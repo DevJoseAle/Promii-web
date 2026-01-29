@@ -1,0 +1,10 @@
+export { BagIcon } from "./BagIcon";
+export { CouponIcon } from "./CouponIcon";
+export { GiftIcon } from "./GiftIcon";
+export { LuggageIcon } from "./LuggageIcon";
+export { PlaneIcon } from "./PlaneIcon";
+export { RollerSkateIcon } from "./RollerSkate";
+export { ServingFoodIcon } from "./ServingFoodIcon";
+export { StarFaceIcon } from "./StarFaceIcon";
+export { StarIcon } from "./StarIcon";
+export { WellnessIcon } from "./WellnessIcon";
