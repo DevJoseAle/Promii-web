@@ -1,156 +1,344 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
+import {
+  Building2,
+  ClipboardCheck,
+  MessageSquarePlus,
+  Sparkles,
+  Users,
+  BadgeCheck,
+  LayoutDashboard,
+  ChevronRight,
+  Menu,
+} from "lucide-react";
+
+// Tremor (Raw) components (si ya los copiaste a /components, ajusta rutas)
+
+import { cn } from "@/lib/utils"; // el cn típico (shadcn). Si usas otro, cambia esta línea.
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@radix-ui/react-accordion";
+import { Drawer, DrawerTrigger, DrawerContent, DrawerClose } from "../Drawer";
+import Image from "next/image";
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-3 pt-4 text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
-      {children}
-    </div>
-  );
-}
-
-function NavLink({
-  href,
-  label,
-  active,
-  sub,
-}: {
-  href: string;
+type NavItem = {
   label: string;
-  active: boolean;
-  sub?: boolean;
-}) {
+  href: string;
+  icon: React.ElementType;
+  badge?: string | number;
+};
+
+type NavGroup = {
+  label: string;
+  icon: React.ElementType;
+  items: NavItem[];
+  defaultOpen?: boolean;
+};
+
+const TOP_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/merchant", icon: LayoutDashboard },
+];
+
+const GROUPS: NavGroup[] = [
+  {
+    label: "Promiis",
+    icon: Sparkles,
+    defaultOpen: true,
+    items: [
+      { label: "Crear Promii", href: "/merchant/promiis/new", icon: Sparkles },
+      {
+        label: "Validar Promiis",
+        href: "/merchant/promiis/validate",
+        icon: ClipboardCheck,
+        badge: "!",
+      },
+      {
+        label: "Promiis activos",
+        href: "/merchant/promiis/active",
+        icon: BadgeCheck,
+      },
+    ],
+  },
+  {
+    label: "Influencers",
+    icon: Users,
+    items: [
+      {
+        label: "Solicitudes",
+        href: "/merchant/influencers/requests",
+        icon: Users,
+        badge: 2,
+      },
+      {
+        label: "Afiliados",
+        href: "/merchant/influencers/affiliates",
+        icon: BadgeCheck,
+      },
+    ],
+  },
+];
+
+function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const pathname = usePathname();
+  const active =
+    pathname === item.href ||
+    (item.href !== "/merchant" && pathname.startsWith(item.href));
+
+  const Icon = item.icon;
+
   return (
     <Link
-      href={href}
+      href={item.href}
       className={cn(
-        "group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition",
-        sub ? "ml-2" : "",
-        active
-          ? "bg-primary text-white shadow-sm"
-          : "text-text-primary hover:bg-primary/10 hover:text-primary"
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+        "text-text-secondary hover:bg-muted/60 hover:text-text-primary",
+        active && "bg-muted text-text-primary",
+        collapsed && "justify-center px-2",
       )}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? item.label : undefined}
     >
-      <span
+      <Icon
         className={cn(
-          "h-1.5 w-1.5 rounded-full transition",
-          active ? "bg-white" : "bg-text-secondary/40 group-hover:bg-primary"
+          "size-5",
+          active ? "text-primary" : "text-text-secondary",
         )}
       />
-      <span className="font-medium">{label}</span>
+      {!collapsed ? (
+        <>
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          {item.badge != null ? (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              {item.badge}
+            </span>
+          ) : null}
+        </>
+      ) : null}
     </Link>
   );
 }
 
-export function MerchantSidebar() {
-  const pathname = usePathname();
-
-  const isCreate = pathname.startsWith("/business/dashboard/create-promii");
-
-  const isValidatePending = pathname.startsWith("/business/dashboard/validate/pending");
-  const isValidateActive = pathname.startsWith("/business/dashboard/validate/active");
-
-  const isInfluencersRequests = pathname.startsWith("/business/dashboard/influencers/requests");
-  const isInfluencersAffiliates = pathname.startsWith("/business/dashboard/influencers/affiliates");
-
+function SidebarInner({
+  collapsed,
+  setCollapsed,
+}: {
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+}) {
   return (
-    <aside className="hidden w-[280px] shrink-0 border-r border-border bg-surface md:block">
-      <div className="flex h-screen flex-col">
-        {/* Brand */}
-        <div className="flex items-center gap-2 px-5 py-5">
-          <Image src="/images/promiiLogo.png" alt="Promii" width={110} height={26} />
-          <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
-            Empresas
-          </span>
+    <div
+      className={cn(
+        "flex h-dvh flex-col border-r border-border bg-surface",
+        "transition-[width] duration-200",
+        collapsed ? "w-[76px]" : "w-[280px]",
+      )}
+    >
+      {/* Brand / Header */}
+      {/* Top actions */}
+      {/* Top actions */}
+      <div
+        className={cn(
+          "flex flex-col items-center gap-3 border-b border-border px-3 py-4",
+          collapsed && "px-2",
+        )}
+      >
+        {/* Logo */}
+        <Link
+          href="/"
+          className="flex items-center justify-center"
+          title="Ir a Promii Home"
+        >
+          <div className="text-xl font-extrabold tracking-tight text-primary">
+            <Image
+              src="/images/promiiLogo.png"
+              alt="Promii Logo"
+              width={120}
+              height={30}
+              priority
+            />
+          </div>
+        </Link>
+
+        {/* Toggle sidebar */}
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "flex items-center justify-center rounded-lg p-2 transition",
+            "text-text-secondary hover:bg-muted hover:text-text-primary",
+          )}
+          aria-label="Toggle sidebar"
+          title={collapsed ? "Expandir menú" : "Contraer menú"}
+        >
+          {!collapsed && <p>Abrir / Cerrar</p>}
+          <ChevronRight
+            className={cn(
+              "size-5 transition-transform",
+              collapsed ? "rotate-180" : "rotate-0",
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Nav */}
+      <div className="flex-1 overflow-y-auto px-3">
+        <div className="space-y-1">
+          {TOP_ITEMS.map((it) => (
+            <NavLink key={it.href} item={it} collapsed={collapsed} />
+          ))}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-auto px-3 pb-6">
-          <div className="rounded-2xl bg-primary/5 p-3">
-            <div className="text-sm font-semibold text-text-primary">Portal</div>
-            <div className="mt-1 text-xs text-text-secondary">
-              Gestiona Promiis, validaciones e influencers
-            </div>
-          </div>
+        <div className="mt-4">
+          <Accordion
+            type="multiple"
+            className={cn(
+              "rounded-xl",
+              collapsed && "pointer-events-none opacity-100",
+            )}
+            defaultValue={GROUPS.filter((g) => g.defaultOpen).map(
+              (g) => g.label,
+            )}
+          >
+            {GROUPS.map((g) => {
+              const GroupIcon = g.icon;
+              return (
+                <AccordionItem
+                  key={g.label}
+                  value={g.label}
+                  className="border-b-0"
+                >
+                  <AccordionTrigger
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-sm",
+                      collapsed && "justify-center px-2",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex items-center gap-3",
+                        collapsed && "justify-center",
+                      )}
+                    >
+                      <GroupIcon className="size-5 text-text-secondary" />
+                      {!collapsed ? (
+                        <span className="text-sm font-semibold text-text-primary">
+                          {g.label}
+                        </span>
+                      ) : null}
+                    </span>
+                  </AccordionTrigger>
 
-          <SectionTitle>Promiis</SectionTitle>
-          <div className="space-y-1">
-            <NavLink
-              href="/business/dashboard/create-promii"
-              label="Crear Promii"
-              active={isCreate}
-            />
-          </div>
-
-          <SectionTitle>Validar Promiis</SectionTitle>
-          <div className="space-y-1">
-            <NavLink
-              href="/business/dashboard/validate/pending"
-              label="Promiis por validar"
-              active={isValidatePending}
-              sub
-            />
-            <NavLink
-              href="/business/dashboard/validate/active"
-              label="Promiis activos"
-              active={isValidateActive}
-              sub
-            />
-          </div>
-
-          <SectionTitle>Influencers</SectionTitle>
-          <div className="space-y-1">
-            <NavLink
-              href="/business/dashboard/influencers/requests"
-              label="Solicitudes"
-              active={isInfluencersRequests}
-              sub
-            />
-            <NavLink
-              href="/business/dashboard/influencers/affiliates"
-              label="Influencers afiliados"
-              active={isInfluencersAffiliates}
-              sub
-            />
-          </div>
-
-          {/* Feedback CTA */}
-          <div className="mt-6 rounded-2xl border border-border bg-surface p-3">
-            <div className="text-sm font-semibold text-text-primary">Feedback</div>
-            <div className="mt-1 text-xs text-text-secondary">
-              Ayúdanos a pulir este portal.
-            </div>
-
-            <Button
-              asChild
-              className="mt-3 w-full bg-primary text-white hover:bg-primary/90"
-            >
-              <Link href="/business/dashboard/feedback">Enviar feedback</Link>
-            </Button>
-          </div>
-        </nav>
-
-        {/* Footer sidebar */}
-        <div className="border-t border-border px-5 py-4">
-          <div className="text-xs text-text-secondary">Promii Empresas</div>
-          <div className="text-xs text-text-secondary">
-            Soporte:{" "}
-            <a
-              className="font-semibold text-primary hover:underline"
-              href="https://wa.me/XXXXXXXXXXX"
-              target="_blank"
-              rel="noreferrer"
-            >
-              WhatsApp
-            </a>
-          </div>
+                  {!collapsed ? (
+                    <AccordionContent className="pb-2">
+                      <div className="space-y-1">
+                        {g.items.map((it) => (
+                          <NavLink key={it.href} item={it} collapsed={false} />
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  ) : null}
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         </div>
       </div>
-    </aside>
+
+      {/* Bottom actions */}
+      <div className={cn("border-t border-border p-3", collapsed && "p-2")}>
+        <Link
+          href="/merchant/feedback"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+            "text-text-secondary hover:bg-muted/60 hover:text-text-primary",
+            collapsed && "justify-center px-2",
+          )}
+          title={collapsed ? "Feedback" : undefined}
+        >
+          <MessageSquarePlus className="size-5" />
+          {!collapsed ? <span className="font-semibold">Feedback</span> : null}
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+            "text-text-secondary hover:bg-muted/60 hover:text-text-primary",
+            collapsed && "justify-center px-2",
+          )}
+          aria-label="Toggle Sidebar"
+          title={collapsed ? "Expandir" : "Contraer"}
+        >
+          <ChevronRight
+            className={cn(
+              "size-5 transition-transform",
+              collapsed ? "rotate-180" : "rotate-0",
+            )}
+          />
+          {!collapsed ? (
+            <span className="font-semibold">Toggle Sidebar</span>
+          ) : null}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function MerchantSidebar() {
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  // Persist simple (opcional)
+  React.useEffect(() => {
+    const v = localStorage.getItem("promii:merchantSidebarCollapsed");
+    if (v === "1") setCollapsed(true);
+  }, []);
+  React.useEffect(() => {
+    localStorage.setItem(
+      "promii:merchantSidebarCollapsed",
+      collapsed ? "1" : "0",
+    );
+  }, [collapsed]);
+
+  return (
+    <>
+      {/* Desktop */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden lg:block">
+        <SidebarInner collapsed={collapsed} setCollapsed={setCollapsed} />
+      </aside>
+
+      {/* Mobile: Drawer */}
+      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-surface px-4 py-3 lg:hidden">
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Abrir menú">
+              <Menu className="size-5" />
+            </Button>
+          </DrawerTrigger>
+
+          <DrawerContent className="sm:max-w-sm">
+            <div className="flex justify-end">
+              <DrawerClose asChild>
+                <Button variant="ghost">Cerrar</Button>
+              </DrawerClose>
+            </div>
+            <div className="mt-2">
+              <SidebarInner collapsed={false} setCollapsed={() => {}} />
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        <div className="text-sm font-semibold text-text-primary">
+          Promii Empresas
+        </div>
+      </div>
+    </>
   );
 }
