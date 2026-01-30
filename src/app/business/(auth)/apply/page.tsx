@@ -11,7 +11,8 @@ import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 
-// 👉 Ajusta estos imports a tu ruta real
+type State = { id: string; name: string };
+type City = { id: string; stateId: string; name: string };
 
 type Draft = {
   email: string;
@@ -77,6 +78,47 @@ export default function BusinessApplyPage() {
     localStorage.removeItem(DRAFT_KEY);
   }
 
+async function ensureMerchantRow(userId: string) {
+  // OJO: category_primary debe ser un valor válido de tu enum promii_category
+  const categoryPrimary = "food"; // <- CAMBIA por uno válido en tu enum
+
+  const { error: merchantErr } = await supabase
+    .from("merchants")
+    .upsert(
+      {
+        id: userId,
+        verification_status: "pending",
+        business_name: businessName.trim(),
+        description: null,
+        logo_url: null,
+        cover_image_url: null,
+
+        category_primary: categoryPrimary,
+        category_secondary: null,
+
+        address_line: "Pendiente", // si aún no lo pides en apply, pon placeholder
+        state: stateId, // hoy estás guardando IDs; si prefieres nombre, cámbialo
+        city: cityId,
+        zone: zone.trim() || null,
+
+        geo_lat: null,
+        geo_lng: null,
+
+        contact_name: "Pendiente",
+        contact_email: email.trim() || "pendiente@promii.com",
+        phone: phone.trim(),
+
+        whatsapp: null,
+        instagram_handle: null,
+        website_url: null,
+      },
+      { onConflict: "id" }
+    );
+
+  if (merchantErr) throw new Error(merchantErr.message);
+}
+
+
   async function finalizeSubmitWithSession(userId: string) {
     // upsert solicitud
     const { error: appErr } = await supabase
@@ -102,6 +144,7 @@ export default function BusinessApplyPage() {
       .eq("id", userId);
 
     if (profileErr) throw new Error(profileErr.message);
+    await ensureMerchantRow(userId);
 
     clearDraft();
     router.push("/business/pending");
@@ -213,8 +256,6 @@ export default function BusinessApplyPage() {
       setLoading(false);
       return;
     }
-
-    // confirm email ON => normalmente NO hay sesión aquí
     setNeedsEmailVerify(true);
     setLoading(false);
   }

@@ -35,6 +35,24 @@ const AuthContext = React.createContext<AuthState | null>(null);
 /* =======================
    Provider
 ======================= */
+type MerchantStateCache =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "blocked"
+  | "unknown";
+const MERCHANT_STATE_KEY = "promii:merchantState:v1";
+
+function writeMerchantStateToCache(state: MerchantStateCache) {
+  if (typeof window === "undefined") return;
+  if (state === "unknown") return;
+  window.localStorage.setItem(MERCHANT_STATE_KEY, state);
+}
+
+function clearMerchantStateCache() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(MERCHANT_STATE_KEY);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
@@ -62,9 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setProfile((data as Profile) ?? null);
+      const nextProfile = (data as Profile) ?? null;
+      setProfile(nextProfile);
+
+      // ✅ Cache SOLO si es merchant y hay estado
+      if (nextProfile?.role === "merchant") {
+        writeMerchantStateToCache((nextProfile.state ?? "unknown") as any);
+      }
     },
-    [supabase]
+    [supabase],
   );
 
   const refreshProfile = useCallback(async () => {
@@ -78,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setUser(null);
     setProfile(null);
+    clearMerchantStateCache();
   }, [supabase]);
 
   /* =======================
@@ -88,20 +113,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     // 1) Carga inicial desde cookies
-    supabase.auth
-      .getSession()
-      .then(async ({ data }) => {
-        if (!mounted) return;
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!mounted) return;
 
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
 
-        if (data.session?.user) {
-          await fetchProfile(data.session.user.id);
-        }
+      if (data.session?.user) {
+        await fetchProfile(data.session.user.id);
+      }
 
-        setLoading(false);
-      });
+      setLoading(false);
+    });
 
     // 2) Listener de auth (login, logout, refresh, callback email)
     const { data: sub } = supabase.auth.onAuthStateChange(
@@ -118,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setLoading(false);
-      }
+      },
     );
 
     return () => {

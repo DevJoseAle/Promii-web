@@ -16,9 +16,7 @@ export function MainHeader() {
   const sp = useSearchParams();
   const [logoutLoading, setLogoutLoading] = useState(false);
   const { user, profile, session } = useAuth();
-  useEffect(() => {
-    console.log({ user, profile, session });
-  }, [user, profile, session]);
+
 
   //TODO: Manejar el cambio de boton de cerrar sesion para caso de usuario y manejar loading
   async function handleLogout() {

@@ -1,9 +1,10 @@
 import { PromiisTable } from "../promiis-table";
 
-export default function PendingValidatePage() {
+
+export default function ClaimPage() {
   return (
     <div className="p-4">
-      <PromiisTable mode="pending" />
+      <PromiisTable mode="claim" />
     </div>
   );
 }

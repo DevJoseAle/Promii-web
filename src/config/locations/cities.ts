@@ -6,6 +6,8 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "san_fernando_atabapo", name: "San Fernando de Atabapo", stateId: "amazonas" },
   { id: "maroa", name: "Maroa", stateId: "amazonas" },
   { id: "la_esmeralda", name: "La Esmeralda", stateId: "amazonas" },
+    { id: "otra", name: "Otra Ciudad", stateId: "amazonas" },
+
 
   // ANZOÁTEGUI
   { id: "barcelona", name: "Barcelona", stateId: "anzoategui" },
@@ -14,6 +16,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "el_tigre", name: "El Tigre", stateId: "anzoategui" },
   { id: "anaco", name: "Anaco", stateId: "anzoategui" },
   { id: "cantaura", name: "Cantaura", stateId: "anzoategui" },
+    { id: "otra", name: "Otra Ciudad", stateId: "anzoategui" },
 
   // APURE
   { id: "san_fernando_apure", name: "San Fernando de Apure", stateId: "apure" },
@@ -21,6 +24,8 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "achaguas", name: "Achaguas", stateId: "apure" },
   { id: "biruaca", name: "Biruaca", stateId: "apure" },
   { id: "elorza", name: "Elorza", stateId: "apure" },
+    { id: "otra", name: "Otra Ciudad", stateId: "apure" },
+
 
   // ARAGUA
   { id: "maracay", name: "Maracay", stateId: "aragua" },
@@ -29,6 +34,8 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "cagua", name: "Cagua", stateId: "aragua" },
   { id: "el_limon", name: "El Limón", stateId: "aragua" },
   { id: "villa_de_cura", name: "Villa de Cura", stateId: "aragua" },
+    { id: "otra", name: "Otra Ciudad", stateId: "aragua" },
+
 
   // BARINAS
   { id: "barinas", name: "Barinas", stateId: "barinas" },
@@ -36,6 +43,8 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "socopo", name: "Socopó", stateId: "barinas" },
   { id: "santa_barbara_barinas", name: "Santa Bárbara de Barinas", stateId: "barinas" },
   { id: "ciudad_bolivia", name: "Ciudad Bolivia", stateId: "barinas" },
+    { id: "otra", name: "Otra Ciudad", stateId: "barinas" },
+
 
   // BOLÍVAR
   { id: "ciudad_bolivar", name: "Ciudad Bolívar", stateId: "bolivar" },
@@ -44,6 +53,8 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "upata", name: "Upata", stateId: "bolivar" },
   { id: "tumeremo", name: "Tumeremo", stateId: "bolivar" },
   { id: "el_callao", name: "El Callao", stateId: "bolivar" },
+    { id: "otra", name: "Otra Ciudad", stateId: "bolivar" },
+
 
   // CARABOBO
   { id: "valencia", name: "Valencia", stateId: "carabobo" },
@@ -52,17 +63,23 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "puerto_cabello", name: "Puerto Cabello", stateId: "carabobo" },
   { id: "guacara", name: "Guacara", stateId: "carabobo" },
   { id: "los_guayos", name: "Los Guayos", stateId: "carabobo" },
+  { id: "otra", name: "Otra Ciudad", stateId: "carabobo" },
+
 
   // COJEDES
   { id: "san_carlos", name: "San Carlos", stateId: "cojedes" },
   { id: "tinaquillo", name: "Tinaquillo", stateId: "cojedes" },
   { id: "tinaco", name: "Tinaco", stateId: "cojedes" },
   { id: "el_baul", name: "El Baúl", stateId: "cojedes" },
+  { id: "otra", name: "Otra Ciudad", stateId: "cojedes" },
+
 
   // DELTA AMACURO
   { id: "tucupita", name: "Tucupita", stateId: "delta_amacuro" },
   { id: "pedernales", name: "Pedernales", stateId: "delta_amacuro" },
   { id: "curiapo", name: "Curiapo", stateId: "delta_amacuro" },
+  { id: "otra", name: "Otra Ciudad", stateId: "delta_amacuro" },
+
 
   // FALCÓN
   { id: "coro", name: "Coro", stateId: "falcon" },
@@ -70,6 +87,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "tucacas", name: "Tucacas", stateId: "falcon" },
   { id: "chichiriviche", name: "Chichiriviche", stateId: "falcon" },
   { id: "dabajuro", name: "Dabajuro", stateId: "falcon" },
+  { id: "otra", name: "Otra Ciudad", stateId: "falcon" },
 
   // GUÁRICO
   { id: "san_juan_morros", name: "San Juan de los Morros", stateId: "guarico" },
@@ -77,6 +95,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "valle_pascua", name: "Valle de la Pascua", stateId: "guarico" },
   { id: "zaraza", name: "Zaraza", stateId: "guarico" },
   { id: "altagracia_orituco", name: "Altagracia de Orituco", stateId: "guarico" },
+  { id: "otra", name: "Otra Ciudad", stateId: "guarico" },
 
   // LARA
   { id: "barquisimeto", name: "Barquisimeto", stateId: "lara" },
@@ -84,6 +103,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "carora", name: "Carora", stateId: "lara" },
   { id: "el_tocuyo", name: "El Tocuyo", stateId: "lara" },
   { id: "quibor", name: "Quíbor", stateId: "lara" },
+  { id: "otra", name: "Otra Ciudad", stateId: "lara" },
 
   // MÉRIDA
   { id: "merida", name: "Mérida", stateId: "merida" },
@@ -91,6 +111,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "el_vigia", name: "El Vigía", stateId: "merida" },
   { id: "tovar", name: "Tovar", stateId: "merida" },
   { id: "mucuchies", name: "Mucuchíes", stateId: "merida" },
+  { id: "otra", name: "Otra Ciudad", stateId: "merida" },
 
   // MIRANDA
   { id: "los_teques", name: "Los Teques", stateId: "miranda" },
@@ -99,18 +120,21 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "guatire", name: "Guatire", stateId: "miranda" },
   { id: "ocumare_tuy", name: "Ocumare del Tuy", stateId: "miranda" },
   { id: "santa_teresa_tuy", name: "Santa Teresa del Tuy", stateId: "miranda" },
+  { id: "otra", name: "Otra Ciudad", stateId: "miranda" },
 
   // MONAGAS
   { id: "maturin", name: "Maturín", stateId: "monagas" },
   { id: "caripito", name: "Caripito", stateId: "monagas" },
   { id: "punta_de_mata", name: "Punta de Mata", stateId: "monagas" },
   { id: "caripe", name: "Caripe", stateId: "monagas" },
+  { id: "otra", name: "Otra Ciudad", stateId: "monagas" },
 
   // NUEVA ESPARTA
   { id: "la_asuncion", name: "La Asunción", stateId: "nueva_esparta" },
   { id: "porlamar", name: "Porlamar", stateId: "nueva_esparta" },
   { id: "pampatar", name: "Pampatar", stateId: "nueva_esparta" },
   { id: "juan_griego", name: "Juan Griego", stateId: "nueva_esparta" },
+  { id: "otra", name: "Otra Ciudad", stateId: "nueva_esparta" },
 
   // PORTUGUESA
   { id: "guanare", name: "Guanare", stateId: "portuguesa" },
@@ -118,6 +142,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "araure", name: "Araure", stateId: "portuguesa" },
   { id: "turen", name: "Turén", stateId: "portuguesa" },
   { id: "biscucuy", name: "Biscucuy", stateId: "portuguesa" },
+  { id: "otra", name: "Otra Ciudad", stateId: "portuguesa" },
 
   // SUCRE
   { id: "cumana", name: "Cumaná", stateId: "sucre" },
@@ -125,6 +150,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "guiria", name: "Güiria", stateId: "sucre" },
   { id: "rio_caribe", name: "Río Caribe", stateId: "sucre" },
   { id: "araya", name: "Araya", stateId: "sucre" },
+  { id: "otra", name: "Otra Ciudad", stateId: "sucre" },
 
   // TÁCHIRA
   { id: "san_cristobal", name: "San Cristóbal", stateId: "tachira" },
@@ -132,6 +158,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "rubio", name: "Rubio", stateId: "tachira" },
   { id: "la_grita", name: "La Grita", stateId: "tachira" },
   { id: "colon", name: "Colón", stateId: "tachira" },
+  { id: "otra", name: "Otra Ciudad", stateId: "tachira" },
 
   // TRUJILLO
   { id: "trujillo", name: "Trujillo", stateId: "trujillo" },
@@ -139,6 +166,7 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "bocono", name: "Boconó", stateId: "trujillo" },
   { id: "carache", name: "Carache", stateId: "trujillo" },
   { id: "pampan", name: "Pampán", stateId: "trujillo" },
+  { id: "otra", name: "Otra Ciudad", stateId: "trujillo" },
 
   // LA GUAIRA
   { id: "la_guaira", name: "La Guaira", stateId: "la_guaira" },
@@ -146,12 +174,14 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "maiquetia", name: "Maiquetía", stateId: "la_guaira" },
   { id: "macuto", name: "Macuto", stateId: "la_guaira" },
   { id: "caraballeda", name: "Caraballeda", stateId: "la_guaira" },
+  { id: "otra", name: "Otra Ciudad", stateId: "la_guaira" },
 
   // YARACUY
   { id: "san_felipe", name: "San Felipe", stateId: "yaracuy" },
   { id: "yaritagua", name: "Yaritagua", stateId: "yaracuy" },
   { id: "chivacoa", name: "Chivacoa", stateId: "yaracuy" },
   { id: "cocorote", name: "Cocorote", stateId: "yaracuy" },
+  { id: "otra", name: "Otra Ciudad", stateId: "yaracuy" },
 
   // ZULIA
   { id: "maracaibo", name: "Maracaibo", stateId: "zulia" },
@@ -159,7 +189,9 @@ export const VENEZUELA_CITIES: IVzlaCity[] = [
   { id: "ciudad_ojeda", name: "Ciudad Ojeda", stateId: "zulia" },
   { id: "lagunillas", name: "Lagunillas", stateId: "zulia" },
   { id: "machiques", name: "Machiques", stateId: "zulia" },
-  { id: "san_francisco", name: "San Francisco", stateId: "zulia" }
+  { id: "san_francisco", name: "San Francisco", stateId: "zulia" },
+  { id: "otra", name: "Otra Ciudad", stateId: "zulia" }
+
 ];
 
 

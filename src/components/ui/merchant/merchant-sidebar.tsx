@@ -43,7 +43,7 @@ type NavGroup = {
 };
 
 const TOP_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/merchant", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/business/dashboard", icon: LayoutDashboard },
 ];
 
 const GROUPS: NavGroup[] = [
@@ -52,16 +52,27 @@ const GROUPS: NavGroup[] = [
     icon: Sparkles,
     defaultOpen: true,
     items: [
-      { label: "Crear Promii", href: "/merchant/promiis/new", icon: Sparkles },
+      {
+        label: "Crear Promii",
+        href: "/business/dashboard/create-promii",
+        icon: Sparkles,
+      },
       {
         label: "Validar Promiis",
-        href: "/merchant/promiis/validate",
+        href: "/business/dashboard/validate",
         icon: ClipboardCheck,
         badge: "!",
       },
       {
+        label: "Por validar",
+        href: "/business/dashboard/validate/pending",
+        icon: ClipboardCheck,
+      },
+      {
         label: "Promiis activos",
-        href: "/merchant/promiis/active",
+        // Si tu pantalla de validate maneja pestañas "pending/active",
+        // puedes usar query param para ir directo a "activos"
+        href: "/business/dashboard/validate?tab=active",
         icon: BadgeCheck,
       },
     ],
@@ -72,13 +83,13 @@ const GROUPS: NavGroup[] = [
     items: [
       {
         label: "Solicitudes",
-        href: "/merchant/influencers/requests",
+        href: "/business/dashboard/influencers/request", // <- es request (singular)
         icon: Users,
         badge: 2,
       },
       {
         label: "Afiliados",
-        href: "/merchant/influencers/affiliates",
+        href: "/business/dashboard/influencers/affiliates",
         icon: BadgeCheck,
       },
     ],
@@ -87,9 +98,12 @@ const GROUPS: NavGroup[] = [
 
 function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const pathname = usePathname();
-  const active =
-    pathname === item.href ||
-    (item.href !== "/merchant" && pathname.startsWith(item.href));
+
+
+const active =
+  pathname === item.href ||
+  (item.href !== "/business/dashboard" && pathname.startsWith(item.href));
+
 
   const Icon = item.icon;
 
