@@ -11,8 +11,6 @@ import Link from "next/link";
 import { PromiiStatus, PromiiRow } from "@/config/types/promiis";
 import { fetchMyPromiis } from "@/lib/services/promiis/myPromiss.service";
 
-
-
 const STATUS_LABELS: Record<PromiiStatus, string> = {
   draft: "Borrador",
   active: "Activo",
@@ -40,32 +38,41 @@ function formatMoney(amount: number, currency: string) {
 }
 
 export default function MyPromiisPage() {
-    
-  const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
-  const { profile } = useAuth();
+   const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
+  const { profile, loading: authLoading } = useAuth();
 
   const [loading, setLoading] = React.useState(true);
   const [rows, setRows] = React.useState<PromiiRow[]>([]);
   const [q, setQ] = React.useState("");
   const [status, setStatus] = React.useState<PromiiStatus | "all">("all");
-
-  async function fetchMine() {
+  const isMerchantPending = profile?.state === "pending";
+  console.log(isMerchantPending);
+  const fetchMine = React.useCallback(async () => {
     if (!profile?.id) return;
+
     setLoading(true);
     try {
-      const {data, error} = await fetchMyPromiis({ merchantId: profile.id });
+      const { data, error } = await fetchMyPromiis({ merchantId: profile.id });
       if (error) throw error;
       setRows(data?.rows || []);
     } catch (e: any) {
-      ToastService.showErrorToast(e?.message ?? "No se pudieron cargar tus Promiis.");
+      ToastService.showErrorToast(
+        e?.message ?? "No se pudieron cargar tus Promiis."
+      );
     } finally {
       setLoading(false);
     }
-  }
+  }, [profile?.id]);
 
   React.useEffect(() => {
-    void fetchMine();
-      }, [profile?.id]);
+    // Espera a que auth termine y exista profile
+    if (authLoading) return;
+    if (!profile?.id) {
+      setLoading(false); // opcional: no te quedas “cargando” infinito si no hay profile
+      return;
+    }
+    fetchMine();
+  }, [authLoading, profile?.id, fetchMine]);
 
   const filtered = React.useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -93,12 +100,16 @@ export default function MyPromiisPage() {
       if (error) throw error;
 
       setRows((prev) =>
-        prev.map((p) => (p.id === promiiId ? { ...p, status: next } : p))
+        prev.map((p) => (p.id === promiiId ? { ...p, status: next } : p)),
       );
 
-      ToastService.showSuccessToast(`Estado actualizado: ${STATUS_LABELS[next]}`);
+      ToastService.showSuccessToast(
+        `Estado actualizado: ${STATUS_LABELS[next]}`,
+      );
     } catch (e: any) {
-      ToastService.showErrorToast(e?.message ?? "No se pudo actualizar el estado.");
+      ToastService.showErrorToast(
+        e?.message ?? "No se pudo actualizar el estado.",
+      );
     }
   }
 
@@ -108,15 +119,23 @@ export default function MyPromiisPage() {
       <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-text-primary">Mis Promiis</h1>
+            <h1 className="text-2xl font-semibold text-text-primary">
+              Mis Promiis
+            </h1>
             <p className="mt-1 text-sm text-text-secondary">
-              Aquí ves todas tus promociones: borradores, pausadas, activas y expiradas.
+              Aquí ves todas tus promociones: borradores, pausadas, activas y
+              expiradas.
             </p>
           </div>
 
           <div className="flex gap-2">
-            <Button asChild className="bg-primary text-white hover:bg-primary/90">
-              <Link href="/business/dashboard/create-promii/new">Crear Promii</Link>
+            <Button
+              asChild
+              className="bg-primary text-white hover:bg-primary/90"
+            >
+              <Link href="/business/dashboard/create-promii/new">
+                Crear Promii
+              </Link>
             </Button>
             <Button variant="outline" onClick={fetchMine} disabled={loading}>
               {loading ? "Actualizando..." : "Buscar"}
@@ -158,13 +177,20 @@ export default function MyPromiisPage() {
         </div>
 
         {loading ? (
-          <div className="p-6 text-sm text-text-secondary">Cargando tus Promiis…</div>
+          <div className="p-6 text-sm text-text-secondary">
+            Cargando tus Promiis…
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-text-secondary">
             No hay Promiis para mostrar.
             <div className="mt-3">
-              <Button asChild className="bg-primary text-white hover:bg-primary/90">
-                <Link href="/business/dashboard/create-promii/new">Crear Promii</Link>
+              <Button
+                asChild
+                className="bg-primary text-white hover:bg-primary/90"
+              >
+                <Link href="/business/dashboard/create-promii/new">
+                  Crear Promii
+                </Link>
               </Button>
             </div>
           </div>
@@ -184,11 +210,18 @@ export default function MyPromiisPage() {
 
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className="border-b border-border last:border-0">
+                  <tr
+                    key={r.id}
+                    className="border-b border-border last:border-0"
+                  >
                     <td className="px-3 py-4">
-                      <div className="font-medium text-text-primary">{r.title}</div>
+                      <div className="font-medium text-text-primary">
+                        {r.title}
+                      </div>
                       {r.discount_label ? (
-                        <div className="mt-1 text-xs text-text-secondary">{r.discount_label}</div>
+                        <div className="mt-1 text-xs text-text-secondary">
+                          {r.discount_label}
+                        </div>
                       ) : null}
                     </td>
 
@@ -196,7 +229,7 @@ export default function MyPromiisPage() {
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-                          STATUS_BADGE[r.status]
+                          STATUS_BADGE[r.status],
                         )}
                       >
                         {STATUS_LABELS[r.status]}
@@ -210,8 +243,12 @@ export default function MyPromiisPage() {
                     </td>
 
                     <td className="px-3 py-4 text-text-secondary">
-                      <div>{new Date(r.start_at).toLocaleDateString("es-VE")}</div>
-                      <div>→ {new Date(r.end_at).toLocaleDateString("es-VE")}</div>
+                      <div>
+                        {new Date(r.start_at).toLocaleDateString("es-VE")}
+                      </div>
+                      <div>
+                        → {new Date(r.end_at).toLocaleDateString("es-VE")}
+                      </div>
                     </td>
 
                     <td className="px-3 py-4 text-text-secondary">
@@ -221,7 +258,7 @@ export default function MyPromiisPage() {
 
                     <td className="px-3 py-4">
                       <div className="flex justify-end gap-2">
-                        {r.status === "draft" || r.status === "paused" ? (
+                        {!isMerchantPending &&(r.status === "draft" || r.status === "paused") ? (
                           <Button
                             size="sm"
                             className="bg-primary text-white hover:bg-primary/90"
@@ -241,13 +278,15 @@ export default function MyPromiisPage() {
                           </Button>
                         ) : null}
 
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          asChild
-                        >
-                            <Link href={`/business/dashboard/create-promii/${r.id}`}>Editar</Link>
-
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link
+                            href={`/business/dashboard/create-promii/${r.id}`}
+                          >
+                            Editar
+                          </Link>
+                        </Button>
+                        <Button size="sm" variant="destructive" >
+                            Borrar
                         </Button>
                       </div>
                     </td>

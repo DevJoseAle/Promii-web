@@ -12,7 +12,8 @@ import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
 import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
-
+import { PhotosField } from "@/components/ui/merchant/image-uploader";
+import { uploadPromiiPhotos } from "@/lib/services/promiis/promiiPhotoUpload.service";
 
 type CurrencyCode = "USD" | "CLP";
 type PromiiStatus = "draft";
@@ -184,6 +185,7 @@ const DEFAULTS: FormState = {
 // =============================
 // 5) HELPERS
 // =============================
+
 function toNumberOrNull(v: string) {
   const t = v.trim();
   if (!t) return null;
@@ -253,7 +255,7 @@ function getCityIdFromName(stateId: string, cityName: string) {
 function dbToForm(p: DbPromiiRow): FormState {
   const stateId = getStateIdByName(p.state || "");
   const cityId = getCityIdFromName(stateId, p.city || "");
-  const otherCityName = cityId === "otra" ? (p.city || "") : "";
+  const otherCityName = cityId === "otra" ? p.city || "" : "";
 
   return {
     ...DEFAULTS,
@@ -300,13 +302,16 @@ function validate(values: FormState): Errors {
   const e: Errors = {};
 
   if (!values.title.trim()) e.title = "El título es requerido.";
-  if (!values.description.trim()) e.description = "La descripción es requerida.";
+  if (!values.description.trim())
+    e.description = "La descripción es requerida.";
   if (!values.terms.trim()) e.terms = "Los términos son requeridos.";
 
-  if (!values.category_primary) e.category_primary = "Selecciona una categoría.";
+  if (!values.category_primary)
+    e.category_primary = "Selecciona una categoría.";
 
   const price = toNumberOrNull(values.price_amount);
-  if (price === null || price <= 0) e.price_amount = "Ingresa un precio válido (> 0).";
+  if (price === null || price <= 0)
+    e.price_amount = "Ingresa un precio válido (> 0).";
 
   const startISO = toISOFromDatetimeLocal(values.start_at);
   const endISO = toISOFromDatetimeLocal(values.end_at);
@@ -334,18 +339,28 @@ function validate(values: FormState): Errors {
   }
 
   if (!values.allow_multiple_per_user) {
-    if (values.max_units_per_user.trim() && maxUnits !== null && maxUnits !== 1) {
-      e.max_units_per_user = "Si no permites múltiples, el máximo por usuario debe ser 1.";
+    if (
+      values.max_units_per_user.trim() &&
+      maxUnits !== null &&
+      maxUnits !== 1
+    ) {
+      e.max_units_per_user =
+        "Si no permites múltiples, el máximo por usuario debe ser 1.";
     }
   } else {
     if (values.max_units_per_user.trim() && maxUnits !== null && maxUnits < 2) {
-      e.max_units_per_user = "Si permites múltiples, el máximo por usuario debe ser >= 2 (o vacío).";
+      e.max_units_per_user =
+        "Si permites múltiples, el máximo por usuario debe ser >= 2 (o vacío).";
     }
   }
 
   const lat = toNumberOrNull(values.geo_lat);
   if (values.geo_lat.trim() && (lat === null || lat < -90 || lat > 90)) {
     e.geo_lat = "Latitud inválida (-90 a 90).";
+  }
+
+  if (values.photos.length < 1) {
+    e.photos = "Debes subir al menos una foto.";
   }
 
   const lng = toNumberOrNull(values.geo_lng);
@@ -374,7 +389,9 @@ function Field({
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-sm font-semibold text-text-primary">{label}</div>
-        {hint ? <div className="text-xs text-text-secondary">{hint}</div> : null}
+        {hint ? (
+          <div className="text-xs text-text-secondary">{hint}</div>
+        ) : null}
       </div>
       {children}
       {error ? <div className="text-xs text-red-600">{error}</div> : null}
@@ -394,6 +411,11 @@ export function CreatePromiiForm({
 
   const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
   const { profile, session, loading } = useAuth();
+  console.log("useAuth",
+    {
+        profile, session, loading
+    }
+  );
 
   const [values, setValues] = React.useState<FormState>(DEFAULTS);
   const [errors, setErrors] = React.useState<Errors>({});
@@ -448,10 +470,19 @@ export function CreatePromiiForm({
     const nextErrors = validate(values);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      ToastService.showErrorToast("Por favor corrige los errores en el formulario");
+      ToastService.showErrorToast(
+        "Por favor corrige los errores en el formulario",
+      );
       return;
     }
-
+    if (values.photos.length < 1) {
+      ToastService.showErrorToast("Debes subir al menos 1 foto.");
+      return;
+    }
+    if (values.photos.length > 4) {
+      ToastService.showErrorToast("Máximo 4 fotos.");
+      return;
+    }
     if (submitting) return;
 
     if (loading) {
@@ -460,7 +491,9 @@ export function CreatePromiiForm({
     }
 
     if (!session?.user) {
-      setGlobalError("No hay sesión activa. Por favor inicia sesión nuevamente.");
+      setGlobalError(
+        "No hay sesión activa. Por favor inicia sesión nuevamente.",
+      );
       ToastService.showErrorToast("No hay sesión activa");
       return;
     }
@@ -548,16 +581,23 @@ export function CreatePromiiForm({
 
     setSubmitting(true);
     try {
-        const query =
+      const query =
         type === "edit"
-            ? supabase.from("promiis").update(payload).eq("id", promiiId)
-            : supabase.from("promiis").insert(payload);
+          ? supabase.from("promiis").update(payload).eq("id", promiiId)
+          : supabase.from("promiis").insert(payload);
 
-        const { data, error } = await query
+      const { data, error } = await query
         .select("id,status,created_at")
         .single();
 
       if (error) throw error;
+      if (!data?.id) throw new Error("No se pudo obtener el ID del Promii");
+
+      await uploadPromiiPhotos({
+        promiiId: data.id, // ✅ CORRECTO
+        merchantId: payload.merchant_id,
+        files: values.photos,
+      });
 
       ToastService.showSuccessToast("Promii guardado como borrador");
       router.push("/business/dashboard/validate/pending");
@@ -575,7 +615,7 @@ export function CreatePromiiForm({
     }
   }
 
-  // 
+  //
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -935,7 +975,18 @@ export function CreatePromiiForm({
                   className="h-10"
                 />
               </Field>
-
+              <Field label="Fotos Para el Promii">
+                <PhotosField
+                  files={values.photos}
+                  onChange={(photos) => update("photos", photos)}
+                  error={errors.photos}
+                />
+                {values.photos.length < 1 && (
+                  <div className="text-xs text-red-600">
+                    Debes subir al menos 1 fotos.
+                  </div>
+                )}
+              </Field>
               <Field label="Longitud (opcional)" error={errors.geo_lng}>
                 <Input
                   value={values.geo_lng}
@@ -1016,7 +1067,11 @@ export function CreatePromiiForm({
                   Guardando...
                 </span>
               ) : (
-                <>{type === "edit" ? "Guardar cambios" : "Guardar como borrador"}</>
+                <>
+                  {type === "edit"
+                    ? "Guardar cambios"
+                    : "Guardar como borrador"}
+                </>
               )}
             </Button>
           </div>
@@ -1050,7 +1105,6 @@ export function CreatePromiiForm({
               .
             </div>
           </div>
-
         </div>
       </div>
     </form>

@@ -45,7 +45,6 @@ function clearMerchantStateCache() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -75,9 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   //   },
   //   [supabase],
   // );
+console.log("[Auth] fetching profile for:",{ session, profile, user});
 
   const fetchProfile = useCallback(async (userId: string) => {
-  console.log("[Auth] fetching profile for:", userId);
+  
 
   const { data, error } = await supabase
     .from("profiles")
