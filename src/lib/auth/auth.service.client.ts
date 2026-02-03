@@ -2,7 +2,7 @@
 
 import { SupabaseResponse } from "@/config/types/supabase-response.type";
 import { UserRole } from "@/config/types/user";
-import { supabase } from "@/lib/supabase"; // tu cliente browser actual
+import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 
 export type SignUpUserInput = {
   email: string;
@@ -22,6 +22,8 @@ export type Profile = {
  */
 
 export async function ensureProfile(role: UserRole = UserRole.USER): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   if (!data.user) throw new Error("No hay sesión activa.");
@@ -45,6 +47,8 @@ export async function signUpUser({
   password,
   role = UserRole.USER,
 }: SignUpUserInput): Promise<SupabaseResponse<true>> {
+  const supabase = getSupabaseBrowserClient();
+
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,

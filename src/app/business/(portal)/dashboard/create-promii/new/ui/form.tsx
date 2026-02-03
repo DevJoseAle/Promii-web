@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 import { useAuth } from "@/lib/context/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
+import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 
 // ✅ Usa TUS fuentes reales (las mismas del apply)
 // Ajusta estos imports a donde tengas tus constantes/funciones
@@ -123,7 +123,6 @@ const DEFAULTS: FormState = {
   assignToInfluencer: false,
   default_influencer_id: "",
 };
-
 
 function toNumberOrNull(v: string) {
   const t = v.trim();
@@ -256,12 +255,12 @@ function Field({
 export function CreatePromiiForm() {
   const router = useRouter();
   const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
-  const { profile, loading } = useAuth();
+  const { profile, session, loading } = useAuth();
 
   const [values, setValues] = React.useState<FormState>(DEFAULTS);
   const [errors, setErrors] = React.useState<Errors>({});
   const [submitting, setSubmitting] = React.useState(false);
-  
+
   // ✅ NUEVO: Estado para mostrar errores globales
   const [globalError, setGlobalError] = React.useState<string | null>(null);
 
@@ -299,38 +298,59 @@ export function CreatePromiiForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
-    // ✅ Limpiar errores previos
+
     setGlobalError(null);
 
     console.log("[Promii] ========== SUBMIT START ==========");
     console.log("[Promii] Current values:", values);
     console.log("[Promii] Profile:", profile);
+    console.log("[Promii] Session:", session);
     console.log("[Promii] Loading:", loading);
     console.log("[Promii] Submitting:", submitting);
 
-    // ✅ Validación
     const nextErrors = validate(values);
     console.log("[Promii] Validation errors:", nextErrors);
     setErrors(nextErrors);
-    
+
     if (Object.keys(nextErrors).length > 0) {
       console.log("[Promii] ❌ Validation failed, stopping");
-      ToastService.showErrorToast("Por favor corrige los errores en el formulario");
+      ToastService.showErrorToast(
+        "Por favor corrige los errores en el formulario",
+      );
       return;
     }
 
-    // ✅ Prevenir doble submit
     if (submitting) {
       console.log("[Promii] ⚠️ Already submitting, ignoring");
       return;
     }
 
-    // ✅ Verificar profile
-    if (!profile) {
-      console.log("[Promii] ❌ No profile found");
-      setGlobalError("No hay sesión activa. Por favor inicia sesión nuevamente.");
+    // ✅ 1) Verifica auth real por session
+        if (loading) {
+        ToastService.showErrorToast("Cargando tu perfil, intenta de nuevo en 1 segundo...");
+        return;
+        }
+
+        if (!profile) {
+        ToastService.showErrorToast("No pudimos cargar tu perfil. Recarga la página.");
+        return;
+        }
+    if (!session?.user) {
+      console.log("[Promii] ❌ No session.user");
+      setGlobalError(
+        "No hay sesión activa. Por favor inicia sesión nuevamente.",
+      );
       ToastService.showErrorToast("No hay sesión activa");
+      return;
+    }
+
+    // ✅ 2) Profile puede tardar: si no está, es mejor decirlo claro
+    if (!profile) {
+      console.log("[Promii] ❌ No profile loaded yet");
+      setGlobalError(
+        "No pudimos cargar tu perfil. Intenta recargar la página.",
+      );
+      ToastService.showErrorToast("No pudimos cargar tu perfil");
       return;
     }
 
@@ -341,11 +361,10 @@ export function CreatePromiiForm() {
       return;
     }
 
-    // ✅ Obtener merchant_id
     const merchant_id = profile.id;
     console.log("[Promii] Merchant ID:", merchant_id);
 
-    // ✅ Preparar datos
+    // ✅ Prepara payload igual que lo tienes (sin cambios)
     const price_amount = toNumberOrNull(values.price_amount);
     if (price_amount == null || price_amount <= 0) {
       setGlobalError("El precio debe ser mayor a 0.");
@@ -407,12 +426,14 @@ export function CreatePromiiForm() {
 
     console.log("[Promii] Payload to insert:", payload);
 
-    // ✅ COMENZAR SUBMIT
     setSubmitting(true);
 
     try {
       console.log("[Promii] 🚀 Calling Supabase insert...");
-      
+
+      // ✅ 3) Obtén el singleton correcto aquí (evita instancias dobles)
+      const supabase = getSupabaseBrowserClient();
+
       const { data, error } = await supabase
         .from("promiis")
         .insert(payload)
@@ -423,46 +444,35 @@ export function CreatePromiiForm() {
       console.log("[Promii] Supabase response - error:", error);
 
       if (error) {
-        // ✅ Analizar tipo de error
         console.error("[Promii] ❌ Supabase error details:", {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code,
         });
-        
-        // ✅ Errores comunes
+
         if (error.code === "23503") {
-          // Foreign key violation
           throw new Error(
-            "Error de referencia: Verifica que tu cuenta de merchant esté correctamente configurada. " +
-            "Contacta a soporte si el problema persiste."
+            "Error de referencia: tu merchant aún no está creado en la tabla merchants. " +
+              "Necesitamos crear esa fila antes de poder insertar promiis.",
           );
         }
-        
-        if (error.code === "23505") {
-          // Unique violation
-          throw new Error("Ya existe un Promii con estos datos.");
-        }
-        
+
         if (error.code === "42501") {
-          // Permission denied
           throw new Error(
-            "No tienes permisos para crear Promiis. " +
-            "Verifica que tu cuenta esté aprobada."
+            "No tienes permisos para crear Promiis (RLS). Verifica que tu cuenta merchant exista y esté aprobada.",
           );
         }
-        
+
         throw error;
       }
 
       console.log("[Promii] ✅ Insert successful!", data);
-      ToastService.showSuccessToast(`Promii guardado como borrador`);
+      ToastService.showSuccessToast("Promii guardado como borrador");
       router.push("/business/dashboard/validate/pending");
-      
     } catch (err: any) {
       console.error("[Promii] ❌ Catch block error:", err);
-      
+
       const msg =
         err?.message ??
         err?.details ??
@@ -471,7 +481,6 @@ export function CreatePromiiForm() {
 
       setGlobalError(msg);
       ToastService.showErrorToast(msg);
-      
     } finally {
       console.log("[Promii] ========== SUBMIT END ==========");
       setSubmitting(false);
@@ -487,7 +496,7 @@ export function CreatePromiiForm() {
           <div className="mt-1 text-red-800">{globalError}</div>
         </div>
       )}
-      
+
       {isMerchantPending ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <div className="font-semibold">Tu cuenta está en revisión</div>
@@ -961,13 +970,16 @@ export function CreatePromiiForm() {
               y aparece en Por validar).
             </div>
           </div>
-          
+
           {/* ✅ NUEVO: Debug panel (solo en desarrollo) */}
           {process.env.NODE_ENV === "development" && (
             <div className="rounded-2xl border border-slate-300 bg-slate-100 p-5 text-xs font-mono">
               <div className="font-semibold text-slate-700 mb-2">🔧 Debug</div>
               <div className="space-y-1 text-slate-600">
-                <div>Profile: {profile ? `${profile.role} (${profile.state})` : "null"}</div>
+                <div>
+                  Profile:{" "}
+                  {profile ? `${profile.role} (${profile.state})` : "null"}
+                </div>
                 <div>Loading: {String(loading)}</div>
                 <div>Submitting: {String(submitting)}</div>
                 <div>Errors: {Object.keys(errors).length}</div>

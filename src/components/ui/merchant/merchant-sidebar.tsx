@@ -58,8 +58,8 @@ const GROUPS: NavGroup[] = [
         icon: Sparkles,
       },
       {
-        label: "Validar Promiis",
-        href: "/business/dashboard/validate",
+        label: "Mis Promiis",
+        href: "/business/dashboard/my-promiis",
         icon: ClipboardCheck,
         badge: "!",
       },

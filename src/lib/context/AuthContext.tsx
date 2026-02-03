@@ -4,10 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "../supabase.ssr";
 
-/* =======================
-   Types
-======================= */
-
 export type Profile = {
   id: string;
   email: string;
@@ -26,15 +22,8 @@ type AuthState = {
   signOut: () => Promise<void>;
 };
 
-/* =======================
-   Context
-======================= */
-
 const AuthContext = React.createContext<AuthState | null>(null);
 
-/* =======================
-   Provider
-======================= */
 type MerchantStateCache =
   | "pending"
   | "approved"
@@ -62,35 +51,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  /* =======================
-     Helpers
-  ======================= */
+  // const fetchProfile = useCallback(
+  //   async (userId: string) => {
+  //     const { data, error } = await supabase
+  //       .from("profiles")
+  //       .select("id,email,role,state,first_name,last_name")
+  //       .eq("id", userId)
+  //       .maybeSingle();
 
-  const fetchProfile = useCallback(
-    async (userId: string) => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id,email,role,state,first_name,last_name")
-        .eq("id", userId)
-        .maybeSingle();
+  //     if (error) {
+  //       console.warn("[Auth] profile fetch error:", error.message);
+  //       setProfile(null);
+  //       return;
+  //     }
 
-      if (error) {
-        console.warn("[Auth] profile fetch error:", error.message);
-        setProfile(null);
-        return;
-      }
+  //     const nextProfile = (data as Profile) ?? null;
+  //     setProfile(nextProfile);
 
-      const nextProfile = (data as Profile) ?? null;
-      setProfile(nextProfile);
+  //     // ✅ Cache SOLO si es merchant y hay estado
+  //     if (nextProfile?.role === "merchant") {
+  //       writeMerchantStateToCache((nextProfile.state ?? "unknown") as any);
+  //     }
+  //   },
+  //   [supabase],
+  // );
 
-      // ✅ Cache SOLO si es merchant y hay estado
-      if (nextProfile?.role === "merchant") {
-        writeMerchantStateToCache((nextProfile.state ?? "unknown") as any);
-      }
-    },
-    [supabase],
-  );
+  const fetchProfile = useCallback(async (userId: string) => {
+  console.log("[Auth] fetching profile for:", userId);
 
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,email,role,state,first_name,last_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  console.log("[Auth] profile res:", { data, error });
+
+  if (error) {
+    console.warn("[Auth] profile fetch error:", error.message);
+    setProfile(null);
+    return;
+  }
+
+  setProfile((data as Profile) ?? null);
+}, [supabase]);
   const refreshProfile = useCallback(async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
@@ -105,44 +109,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearMerchantStateCache();
   }, [supabase]);
 
-  /* =======================
-     Init + Auth listener
-  ======================= */
-
   useEffect(() => {
     let mounted = true;
-
-    // 1) Carga inicial desde cookies
     supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
 
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
+      try {
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
 
-      if (data.session?.user) {
-        await fetchProfile(data.session.user.id);
-      }
-
-      setLoading(false);
-    });
-
-    // 2) Listener de auth (login, logout, refresh, callback email)
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return;
-
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          await fetchProfile(session.user.id);
+        if (data.session?.user) {
+          await fetchProfile(data.session.user.id);
         } else {
           setProfile(null);
         }
+      } catch (e) {
+        console.warn("[Auth] init error:", e);
+        setProfile(null);
+      } finally {
+        setLoading(false); // ✅ SIEMPRE
+      }
+    });
 
-        setLoading(false);
-      },
-    );
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  if (!mounted) return;
+
+  try {
+    setSession(session);
+    setUser(session?.user ?? null);
+
+    if (session?.user) {
+      await fetchProfile(session.user.id);
+    } else {
+      setProfile(null);
+    }
+  } catch (e) {
+    console.warn("[Auth] listener error:", e);
+    setProfile(null);
+  } finally {
+    setLoading(false); // ✅ SIEMPRE
+  }
+});
 
     return () => {
       mounted = false;

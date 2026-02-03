@@ -78,73 +78,77 @@ export default function BusinessApplyPage() {
     localStorage.removeItem(DRAFT_KEY);
   }
 
-async function ensureMerchantRow(userId: string) {
-  // OJO: category_primary debe ser un valor válido de tu enum promii_category
-  const categoryPrimary = "food"; // <- CAMBIA por uno válido en tu enum
+  async function ensureMerchantRow(userId: string) {
+    const categoryPrimary = "food";
+    try {
+      const { error: merchantErr } = await supabase.from("merchants").upsert(
+        {
+          id: userId,
+          verification_status: "pending",
+          business_name: businessName.trim(),
+          description: null,
+          logo_url: null,
+          cover_image_url: null,
 
-  const { error: merchantErr } = await supabase
-    .from("merchants")
-    .upsert(
-      {
-        id: userId,
-        verification_status: "pending",
-        business_name: businessName.trim(),
-        description: null,
-        logo_url: null,
-        cover_image_url: null,
+          category_primary: categoryPrimary,
+          category_secondary: null,
 
-        category_primary: categoryPrimary,
-        category_secondary: null,
+          address_line: "Pendiente", // si aún no lo pides en apply, pon placeholder
+          state: stateId, // hoy estás guardando IDs; si prefieres nombre, cámbialo
+          city: cityId,
+          zone: zone.trim() || null,
 
-        address_line: "Pendiente", // si aún no lo pides en apply, pon placeholder
-        state: stateId, // hoy estás guardando IDs; si prefieres nombre, cámbialo
-        city: cityId,
-        zone: zone.trim() || null,
+          geo_lat: null,
+          geo_lng: null,
 
-        geo_lat: null,
-        geo_lng: null,
+          contact_name: "Pendiente",
+          contact_email: email.trim() || "pendiente@promii.com",
+          phone: phone.trim(),
 
-        contact_name: "Pendiente",
-        contact_email: email.trim() || "pendiente@promii.com",
-        phone: phone.trim(),
-
-        whatsapp: null,
-        instagram_handle: null,
-        website_url: null,
-      },
-      { onConflict: "id" }
-    );
-
-  if (merchantErr) throw new Error(merchantErr.message);
-}
-
+          whatsapp: null,
+          instagram_handle: null,
+          website_url: null,
+        },
+        { onConflict: "id" },
+      );
+      if (merchantErr) throw new Error(merchantErr.message);
+    } catch (error) {
+      console.error("Error ensuring merchant row:", error);
+      throw error;
+    }
+  }
 
   async function finalizeSubmitWithSession(userId: string) {
-    // upsert solicitud
-    const { error: appErr } = await supabase
-      .from("business_applications")
-      .upsert(
-        {
-          owner_id: userId,
-          business_name: businessName.trim(),
-          phone: phone.trim(),
-          state: stateId || null, // guardas ID
-          city: cityId || null, // guardas ID
-          zone: zone.trim() || null,
-        },
-        { onConflict: "owner_id" },
-      );
+    try {
+      // upsert solicitud
+      const { error: appErr } = await supabase
+        .from("business_applications")
+        .upsert(
+          {
+            owner_id: userId,
+            business_name: businessName.trim(),
+            phone: phone.trim(),
+            state: stateId || null, // guardas ID
+            city: cityId || null, // guardas ID
+            zone: zone.trim() || null,
+          },
+          { onConflict: "owner_id" },
+        );
 
-    if (appErr) throw new Error(appErr.message);
+      if (appErr) throw new Error(appErr.message);
 
-    // set profile merchant/pending
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({ role: "merchant", state: "pending" })
-      .eq("id", userId);
+      // set profile merchant/pending
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({ role: "merchant", state: "pending" })
+        .eq("id", userId);
 
-    if (profileErr) throw new Error(profileErr.message);
-    await ensureMerchantRow(userId);
+      if (profileErr) throw new Error(profileErr.message);
+      await ensureMerchantRow(userId);
+    } catch (error) {
+      console.error("Error finalizing submit with session:", error);
+      throw error;
+    }
 
     clearDraft();
     router.push("/business/pending");
@@ -190,11 +194,6 @@ async function ensureMerchantRow(userId: string) {
       setCityId(draft.cityId);
       setZone(draft.zone);
     }
-
-    // 2) Si el usuario volvió desde email y ya tiene sesión => auto-submit
-    // (esto hace que el flujo “B” se sienta mágico)
-    void tryAutoSubmitDraftIfSessionExists();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -202,87 +201,119 @@ async function ensureMerchantRow(userId: string) {
     setLoading(true);
     setError(null);
     setNeedsEmailVerify(false);
-
+    try {
+    console.log("Ingresé", email);
     const safeBusinessName = businessName.trim();
     const safePhone = phone.trim();
-
-    if (!safeBusinessName || !safePhone) {
-      setError("Completa al menos el nombre del negocio y el teléfono.");
+    console.log("antes");console.time("checkUserExist");
+const {data: authEmail, error: authEmailErr } = await supabase.functions.invoke("checkUserExist", {
+  body: { email },
+});
+console.timeEnd("checkUserExist");
+    console.log({authEmail, authEmailErr, email});
+    if(authEmailErr){
+      setError("Error verificando el email. Intenta nuevamente.");
       setLoading(false);
+      let error = new Error(authEmailErr.message);
+      throw error;
       return;
     }
-    if (!stateId || !cityId) {
-      setError("Selecciona un estado y una ciudad.");
-      setLoading(false);
-      return;
-    }
+    console.log({authEmail, authEmailErr});
+    // if (!safeBusinessName || !safePhone) {
+    //   setError("Completa al menos el nombre del negocio y el teléfono.");
+    //   setLoading(false);
+    //   return;
+    // }
+    // if (!stateId || !cityId) {
+    //   setError("Selecciona un estado y una ciudad.");
+    //   setLoading(false);
+    //   return;
+    // }
+    // const { data: auth } = await supabase.auth.getUser();
+    // const userId = auth.user?.id;
 
-    // 1) ¿hay sesión? -> enviar directo
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
+    // if (userId) {
+    //   try {
+    //     await finalizeSubmitWithSession(userId);
+    //   } catch (e: any) {
+    //     setError(e?.message ?? "No se pudo enviar la solicitud.");
+    //     setLoading(false);
+    //   }
+    //   return;
+    // }
 
-    if (userId) {
-      try {
-        await finalizeSubmitWithSession(userId);
-      } catch (e: any) {
-        setError(e?.message ?? "No se pudo enviar la solicitud.");
-        setLoading(false);
-      }
-      return;
-    }
+    // // 2) No hay sesión: creamos cuenta, guardamos draft, pedimos verificación
+    // const safeEmail = email.trim();
+    // const safePass = password.trim();
 
-    // 2) No hay sesión: creamos cuenta, guardamos draft, pedimos verificación
-    const safeEmail = email.trim();
-    const safePass = password.trim();
+    // if (!safeEmail || !safePass) {
+    //   setError("Ingresa tu email y contraseña para crear tu cuenta.");
+    //   setLoading(false);
+    //   return;
+    // }
 
-    if (!safeEmail || !safePass) {
-      setError("Ingresa tu email y contraseña para crear tu cuenta.");
-      setLoading(false);
-      return;
-    }
+    // // guardamos lo que llenó para no perderlo
+    // saveDraft();
 
-    // guardamos lo que llenó para no perderlo
-    saveDraft();
+    // const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
+    // const { error: signUpErr } = await supabase.auth.signUp({
+    //   email: safeEmail,
+    //   password: safePass,
+    //   options: emailRedirectTo ? { emailRedirectTo } : undefined,
+    // });
 
-    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
-    const { error: signUpErr } = await supabase.auth.signUp({
-      email: safeEmail,
-      password: safePass,
-      options: emailRedirectTo ? { emailRedirectTo } : undefined,
-    });
-
-    if (signUpErr) {
-      setError(signUpErr.message);
-      setLoading(false);
-      return;
-    }
-    setNeedsEmailVerify(true);
+    // if (signUpErr) {
+    //   setError(signUpErr.message);
+    //   setLoading(false);
+    //   return;
+    // }
+    // setNeedsEmailVerify(true);
+    // setLoading(false);
+  } catch (error) {
+    console.error("Error en el submit:", error);
+    setError("Error al procesar la solicitud.");
     setLoading(false);
+  }finally{
+    setLoading(false);
+  }
   }
 
   async function onIVerifiedClick() {
-    setLoading(true);
-    setError(null);
-
+  setLoading(true);
+  setError(null);
+  
+  try {
     const safeEmail = email.trim();
     const safePass = password.trim();
 
-    const { error: signInErr } = await supabase.auth.signInWithPassword({
+    const { data, error: signInErr } = await supabase.auth.signInWithPassword({
       email: safeEmail,
       password: safePass,
     });
 
     if (signInErr) {
-      setError(
-        "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.",
-      );
+      setError("Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.");
+      setLoading(false);
+      return; // ← RETURN en lugar de throw
+    }
+
+    // ✅ Usa el userId directamente del response, no de otra llamada
+    const userId = data.user?.id;
+    if (!userId) {
+      setError("No se pudo obtener el usuario.");
       setLoading(false);
       return;
     }
 
-    // si ya hay sesión, intenta auto-enviar el draft
-    await tryAutoSubmitDraftIfSessionExists();
+    // ✅ Llama directamente a finalizeSubmitWithSession con el userId
+    await finalizeSubmitWithSession(userId);
+    
+  } catch (error: any) {
+    console.error("Error en verificación:", error);
+    setError(error?.message ?? "Error al procesar la verificación.");
+    setLoading(false);
   }
+}
 
   return (
     <AuthShell

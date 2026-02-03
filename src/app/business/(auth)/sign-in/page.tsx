@@ -28,7 +28,8 @@ export default function BusinessSignInPage() {
     setLoading(true);
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
+    try {
+      const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "").trim();
 
@@ -40,6 +41,7 @@ export default function BusinessSignInPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
+      throw error;
       return;
     }
 
@@ -60,7 +62,7 @@ export default function BusinessSignInPage() {
     if (profileErr) {
       setError(profileErr.message);
       setLoading(false);
-      return;
+      throw profileErr;
     }
 
     // si no hay profile, manda a apply (o flujo de reparación)
@@ -84,7 +86,10 @@ export default function BusinessSignInPage() {
     else router.push("/business/blocked");
 
     router.refresh();
+  } catch (error) {
+    console.log(error);
   }
+}
 
   return (
     <AuthShell
