@@ -13,48 +13,13 @@ import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
 import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 
-// ✅ Usa TUS fuentes reales (las mismas del apply)
-// Ajusta estos imports a donde tengas tus constantes/funciones
 
-type CurrencyCode = "USD" | "CLP"; // ajusta si tienes más
-type PromiiStatus = "draft"; // tu default actual
+type CurrencyCode = "USD" | "CLP";
+type PromiiStatus = "draft";
 
-type FormState = {
-  title: string;
-  description: string;
-  terms: string;
-
-  category_primary: PromiiCategory | "";
-  category_secondary: PromiiCategory | "";
-
-  price_amount: string;
-  price_currency: CurrencyCode;
-  original_price_amount: string;
-
-  start_at: string; // datetime-local
-  end_at: string;
-
-  max_redemptions: string;
-  allow_multiple_per_user: boolean;
-  max_units_per_user: string;
-
-  // ✅ Selectores
-  stateId: string;
-  cityId: string;
-  otherCityName: string;
-
-  zone: string;
-  address_line: string;
-
-  geo_lat: string;
-  geo_lng: string;
-
-  // ✅ Influencers
-  assignToInfluencer: boolean;
-  default_influencer_id: string;
-};
-
-type Errors = Partial<Record<keyof FormState, string>>;
+// =============================
+// 1) CATEGORÍAS (DB en inglés, UI en español)
+// =============================
 const PROMII_CATEGORIES = [
   "food",
   "coffee",
@@ -91,6 +56,97 @@ const PROMII_CATEGORY_LABELS: Record<PromiiCategory, string> = {
   other: "Otros",
 };
 
+// =============================
+// 2) FORM STATE (lo que usa el UI)
+// =============================
+type FormState = {
+  title: string;
+  description: string;
+  terms: string;
+
+  category_primary: PromiiCategory | "";
+  category_secondary: PromiiCategory | "";
+
+  price_amount: string;
+  price_currency: CurrencyCode;
+  original_price_amount: string;
+
+  start_at: string; // datetime-local
+  end_at: string;
+
+  max_redemptions: string;
+  allow_multiple_per_user: boolean;
+  max_units_per_user: string;
+
+  // ✅ Selectores
+  stateId: string;
+  cityId: string;
+  otherCityName: string;
+
+  zone: string;
+  address_line: string;
+
+  geo_lat: string;
+  geo_lng: string;
+
+  // ✅ Influencers
+  assignToInfluencer: boolean;
+  default_influencer_id: string;
+  photos: File[]; // ✅ nuevas fotos (locales)
+};
+
+type Errors = Partial<Record<keyof FormState, string>>;
+
+// =============================
+// 3) DB ROW (lo que viene realmente de Supabase)
+//    NOTA: state/city aquí son string con nombres (ej: "Barinas")
+// =============================
+type DbPromiiRow = {
+  id: string;
+  merchant_id: string;
+  status: "draft" | "active" | "paused" | "expired";
+
+  title: string;
+  description: string;
+  terms: string;
+
+  category_primary: PromiiCategory;
+  category_secondary: PromiiCategory | null;
+
+  price_amount: number;
+  price_currency: CurrencyCode;
+  original_price_amount: number | null;
+  discount_label: string | null;
+
+  start_at: string; // ISO
+  end_at: string; // ISO
+
+  max_redemptions: number | null;
+  allow_multiple_per_user: boolean;
+  max_units_per_user: number | null;
+
+  state: string;
+  city: string;
+  zone: string | null;
+  address_line: string | null;
+
+  geo_lat: number | null;
+  geo_lng: number | null;
+
+  allow_influencers: boolean;
+  default_influencer_id: string | null;
+};
+
+// ✅ CORREGIDO: initialData YA NO es FormState
+interface CreatePromiiFormProps {
+  type: "new" | "edit";
+  promiiId?: string;
+  initialData?: DbPromiiRow | null;
+}
+
+// =============================
+// 4) DEFAULTS
+// =============================
 const DEFAULTS: FormState = {
   title: "",
   description: "",
@@ -108,7 +164,7 @@ const DEFAULTS: FormState = {
 
   max_redemptions: "",
   allow_multiple_per_user: false,
-  max_units_per_user: "1", // ✅ consistente cuando no permite múltiples
+  max_units_per_user: "1",
 
   stateId: "",
   cityId: "",
@@ -122,8 +178,12 @@ const DEFAULTS: FormState = {
 
   assignToInfluencer: false,
   default_influencer_id: "",
+  photos: [],
 };
 
+// =============================
+// 5) HELPERS
+// =============================
 function toNumberOrNull(v: string) {
   const t = v.trim();
   if (!t) return null;
@@ -144,6 +204,20 @@ function toISOFromDatetimeLocal(v: string) {
   return d.toISOString();
 }
 
+// ✅ FALTABA: ISO -> datetime-local (para editar)
+function toDatetimeLocal(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
 function computeDiscountLabel(original: number | null, current: number | null) {
   if (!original || !current) return "";
   if (original <= 0 || current <= 0) return "";
@@ -152,24 +226,87 @@ function computeDiscountLabel(original: number | null, current: number | null) {
   return `${pct}% OFF`;
 }
 
+// UI guarda ID, DB guarda name
 function getStateNameById(stateId: string) {
   return VENEZUELA_STATES.find((s: any) => s.id === stateId)?.name ?? stateId;
 }
 
+function normalize(s: string) {
+  return s.trim().toLowerCase();
+}
+
+function getStateIdByName(stateName: string) {
+  const n = normalize(stateName);
+  return n
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, "_");
+}
+
+function getCityIdFromName(stateId: string, cityName: string) {
+  const cities = getCitiesByState(stateId);
+  const hit = cities.find((c) => normalize(c.name) === normalize(cityName));
+  return hit?.id ?? "otra";
+}
+
+// ✅ mapper: DB -> FormState
+function dbToForm(p: DbPromiiRow): FormState {
+  const stateId = getStateIdByName(p.state || "");
+  const cityId = getCityIdFromName(stateId, p.city || "");
+  const otherCityName = cityId === "otra" ? (p.city || "") : "";
+
+  return {
+    ...DEFAULTS,
+    title: p.title ?? "",
+    description: p.description ?? "",
+    terms: p.terms ?? "",
+
+    category_primary: (p.category_primary as PromiiCategory) ?? "",
+    category_secondary: (p.category_secondary as PromiiCategory) ?? "",
+
+    price_currency: p.price_currency ?? "USD",
+    price_amount: p.price_amount != null ? String(p.price_amount) : "",
+    original_price_amount:
+      p.original_price_amount != null ? String(p.original_price_amount) : "",
+
+    start_at: p.start_at ? toDatetimeLocal(p.start_at) : "",
+    end_at: p.end_at ? toDatetimeLocal(p.end_at) : "",
+
+    max_redemptions: p.max_redemptions != null ? String(p.max_redemptions) : "",
+    allow_multiple_per_user: !!p.allow_multiple_per_user,
+    max_units_per_user:
+      p.max_units_per_user != null ? String(p.max_units_per_user) : "1",
+
+    stateId,
+    cityId,
+    otherCityName,
+
+    zone: p.zone ?? "",
+    address_line: p.address_line ?? "",
+
+    geo_lat: p.geo_lat != null ? String(p.geo_lat) : "",
+    geo_lng: p.geo_lng != null ? String(p.geo_lng) : "",
+
+    // DB allow_influencers -> form assignToInfluencer
+    assignToInfluencer: !!p.allow_influencers,
+    default_influencer_id: p.default_influencer_id ?? "",
+  };
+}
+
+// =============================
+// 6) VALIDATE (igual que tenías)
+// =============================
 function validate(values: FormState): Errors {
   const e: Errors = {};
 
   if (!values.title.trim()) e.title = "El título es requerido.";
-  if (!values.description.trim())
-    e.description = "La descripción es requerida.";
+  if (!values.description.trim()) e.description = "La descripción es requerida.";
   if (!values.terms.trim()) e.terms = "Los términos son requeridos.";
 
-  if (!values.category_primary)
-    e.category_primary = "Selecciona una categoría.";
+  if (!values.category_primary) e.category_primary = "Selecciona una categoría.";
 
   const price = toNumberOrNull(values.price_amount);
-  if (price === null || price <= 0)
-    e.price_amount = "Ingresa un precio válido (> 0).";
+  if (price === null || price <= 0) e.price_amount = "Ingresa un precio válido (> 0).";
 
   const startISO = toISOFromDatetimeLocal(values.start_at);
   const endISO = toISOFromDatetimeLocal(values.end_at);
@@ -182,7 +319,6 @@ function validate(values: FormState): Errors {
   if (!values.stateId.trim()) e.stateId = "Selecciona un estado.";
   if (!values.cityId.trim()) e.cityId = "Selecciona una ciudad.";
 
-  // ✅ tu sentinel viene del array: id === "otra"
   if (values.cityId === "otra" && !values.otherCityName.trim()) {
     e.otherCityName = "Escribe el nombre de la ciudad.";
   }
@@ -197,21 +333,13 @@ function validate(values: FormState): Errors {
     e.max_units_per_user = "Debe ser un número entero >= 1.";
   }
 
-  // ✅ regla: si no permite múltiples -> max_units null o 1
-  // (nosotros lo forzamos a 1 y deshabilitamos input, pero igual validamos)
   if (!values.allow_multiple_per_user) {
-    if (
-      values.max_units_per_user.trim() &&
-      maxUnits !== null &&
-      maxUnits !== 1
-    ) {
-      e.max_units_per_user =
-        "Si no permites múltiples, el máximo por usuario debe ser 1.";
+    if (values.max_units_per_user.trim() && maxUnits !== null && maxUnits !== 1) {
+      e.max_units_per_user = "Si no permites múltiples, el máximo por usuario debe ser 1.";
     }
   } else {
     if (values.max_units_per_user.trim() && maxUnits !== null && maxUnits < 2) {
-      e.max_units_per_user =
-        "Si permites múltiples, el máximo por usuario debe ser >= 2 (o vacío).";
+      e.max_units_per_user = "Si permites múltiples, el máximo por usuario debe ser >= 2 (o vacío).";
     }
   }
 
@@ -219,6 +347,7 @@ function validate(values: FormState): Errors {
   if (values.geo_lat.trim() && (lat === null || lat < -90 || lat > 90)) {
     e.geo_lat = "Latitud inválida (-90 a 90).";
   }
+
   const lng = toNumberOrNull(values.geo_lng);
   if (values.geo_lng.trim() && (lng === null || lng < -180 || lng > 180)) {
     e.geo_lng = "Longitud inválida (-180 a 180).";
@@ -227,6 +356,9 @@ function validate(values: FormState): Errors {
   return e;
 }
 
+// =============================
+// 7) FIELD
+// =============================
 function Field({
   label,
   hint,
@@ -242,9 +374,7 @@ function Field({
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-sm font-semibold text-text-primary">{label}</div>
-        {hint ? (
-          <div className="text-xs text-text-secondary">{hint}</div>
-        ) : null}
+        {hint ? <div className="text-xs text-text-secondary">{hint}</div> : null}
       </div>
       {children}
       {error ? <div className="text-xs text-red-600">{error}</div> : null}
@@ -252,8 +382,16 @@ function Field({
   );
 }
 
-export function CreatePromiiForm() {
+// =============================
+// 8) COMPONENT
+// =============================
+export function CreatePromiiForm({
+  type = "new",
+  promiiId,
+  initialData,
+}: CreatePromiiFormProps) {
   const router = useRouter();
+
   const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
   const { profile, session, loading } = useAuth();
 
@@ -261,7 +399,6 @@ export function CreatePromiiForm() {
   const [errors, setErrors] = React.useState<Errors>({});
   const [submitting, setSubmitting] = React.useState(false);
 
-  // ✅ NUEVO: Estado para mostrar errores globales
   const [globalError, setGlobalError] = React.useState<string | null>(null);
 
   const isMerchantPending =
@@ -275,10 +412,10 @@ export function CreatePromiiForm() {
   function update<K extends keyof FormState>(key: K, val: FormState[K]) {
     setValues((p) => ({ ...p, [key]: val }));
     setErrors((p) => ({ ...p, [key]: undefined }));
-    setGlobalError(null); // ✅ Limpiar error global al editar
+    setGlobalError(null);
   }
 
-  // ✅ CORREGIDO: useEffect con flag para evitar reset en mount inicial
+  // ✅ Reset city al cambiar state (con guard)
   const isFirstRender = React.useRef(true);
   React.useEffect(() => {
     if (isFirstRender.current) {
@@ -290,81 +427,58 @@ export function CreatePromiiForm() {
     setErrors((p) => ({ ...p, cityId: undefined, otherCityName: undefined }));
   }, [values.stateId]);
 
+  // ✅ NUEVO: precargar para editar
+  React.useEffect(() => {
+    if (!initialData) return;
+    setValues(dbToForm(initialData));
+  }, [initialData]);
+
   const discountLabelPreview = React.useMemo(() => {
     const original = toNumberOrNull(values.original_price_amount);
     const current = toNumberOrNull(values.price_amount);
     return computeDiscountLabel(original, current);
   }, [values.original_price_amount, values.price_amount]);
 
+  // ✅ tu onSubmit puede quedar igual (todavía insert)
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     setGlobalError(null);
 
-    console.log("[Promii] ========== SUBMIT START ==========");
-    console.log("[Promii] Current values:", values);
-    console.log("[Promii] Profile:", profile);
-    console.log("[Promii] Session:", session);
-    console.log("[Promii] Loading:", loading);
-    console.log("[Promii] Submitting:", submitting);
-
     const nextErrors = validate(values);
-    console.log("[Promii] Validation errors:", nextErrors);
     setErrors(nextErrors);
-
     if (Object.keys(nextErrors).length > 0) {
-      console.log("[Promii] ❌ Validation failed, stopping");
-      ToastService.showErrorToast(
-        "Por favor corrige los errores en el formulario",
-      );
+      ToastService.showErrorToast("Por favor corrige los errores en el formulario");
       return;
     }
 
-    if (submitting) {
-      console.log("[Promii] ⚠️ Already submitting, ignoring");
+    if (submitting) return;
+
+    if (loading) {
+      ToastService.showErrorToast("Cargando tu perfil, intenta de nuevo...");
       return;
     }
 
-    // ✅ 1) Verifica auth real por session
-        if (loading) {
-        ToastService.showErrorToast("Cargando tu perfil, intenta de nuevo en 1 segundo...");
-        return;
-        }
-
-        if (!profile) {
-        ToastService.showErrorToast("No pudimos cargar tu perfil. Recarga la página.");
-        return;
-        }
     if (!session?.user) {
-      console.log("[Promii] ❌ No session.user");
-      setGlobalError(
-        "No hay sesión activa. Por favor inicia sesión nuevamente.",
-      );
+      setGlobalError("No hay sesión activa. Por favor inicia sesión nuevamente.");
       ToastService.showErrorToast("No hay sesión activa");
       return;
     }
 
-    // ✅ 2) Profile puede tardar: si no está, es mejor decirlo claro
     if (!profile) {
-      console.log("[Promii] ❌ No profile loaded yet");
-      setGlobalError(
-        "No pudimos cargar tu perfil. Intenta recargar la página.",
-      );
+      setGlobalError("No pudimos cargar tu perfil. Recarga la página.");
       ToastService.showErrorToast("No pudimos cargar tu perfil");
       return;
     }
 
     if (profile.role !== "merchant") {
-      console.log("[Promii] ❌ Not a merchant, role:", profile.role);
       setGlobalError("Solo merchants pueden crear Promiis.");
       ToastService.showErrorToast("Solo merchants pueden crear Promiis");
       return;
     }
 
     const merchant_id = profile.id;
-    console.log("[Promii] Merchant ID:", merchant_id);
 
-    // ✅ Prepara payload igual que lo tienes (sin cambios)
     const price_amount = toNumberOrNull(values.price_amount);
     if (price_amount == null || price_amount <= 0) {
       setGlobalError("El precio debe ser mayor a 0.");
@@ -397,26 +511,34 @@ export function CreatePromiiForm() {
     const payload = {
       merchant_id,
       status: "draft" as PromiiStatus,
+
       title: values.title.trim(),
       description: values.description.trim(),
       terms: values.terms.trim(),
+
       category_primary: values.category_primary,
       category_secondary: values.category_secondary || null,
+
       price_amount,
       price_currency: values.price_currency,
       original_price_amount,
       discount_label,
+
       start_at: startISO,
       end_at: endISO,
+
       max_redemptions,
       allow_multiple_per_user: values.allow_multiple_per_user,
       max_units_per_user,
+
       state: stateName,
       city: cityName,
       zone: values.zone.trim() || null,
       address_line: values.address_line.trim() || null,
+
       geo_lat: toNumberOrNull(values.geo_lat),
       geo_lng: toNumberOrNull(values.geo_lng),
+
       allow_influencers: values.assignToInfluencer,
       default_influencer_id:
         values.assignToInfluencer && values.default_influencer_id.trim()
@@ -424,55 +546,22 @@ export function CreatePromiiForm() {
           : null,
     };
 
-    console.log("[Promii] Payload to insert:", payload);
-
     setSubmitting(true);
-
     try {
-      console.log("[Promii] 🚀 Calling Supabase insert...");
+        const query =
+        type === "edit"
+            ? supabase.from("promiis").update(payload).eq("id", promiiId)
+            : supabase.from("promiis").insert(payload);
 
-      // ✅ 3) Obtén el singleton correcto aquí (evita instancias dobles)
-      const supabase = getSupabaseBrowserClient();
-
-      const { data, error } = await supabase
-        .from("promiis")
-        .insert(payload)
+        const { data, error } = await query
         .select("id,status,created_at")
         .single();
 
-      console.log("[Promii] Supabase response - data:", data);
-      console.log("[Promii] Supabase response - error:", error);
+      if (error) throw error;
 
-      if (error) {
-        console.error("[Promii] ❌ Supabase error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-
-        if (error.code === "23503") {
-          throw new Error(
-            "Error de referencia: tu merchant aún no está creado en la tabla merchants. " +
-              "Necesitamos crear esa fila antes de poder insertar promiis.",
-          );
-        }
-
-        if (error.code === "42501") {
-          throw new Error(
-            "No tienes permisos para crear Promiis (RLS). Verifica que tu cuenta merchant exista y esté aprobada.",
-          );
-        }
-
-        throw error;
-      }
-
-      console.log("[Promii] ✅ Insert successful!", data);
       ToastService.showSuccessToast("Promii guardado como borrador");
       router.push("/business/dashboard/validate/pending");
     } catch (err: any) {
-      console.error("[Promii] ❌ Catch block error:", err);
-
       const msg =
         err?.message ??
         err?.details ??
@@ -482,10 +571,11 @@ export function CreatePromiiForm() {
       setGlobalError(msg);
       ToastService.showErrorToast(msg);
     } finally {
-      console.log("[Promii] ========== SUBMIT END ==========");
       setSubmitting(false);
     }
   }
+
+  // 
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -926,7 +1016,7 @@ export function CreatePromiiForm() {
                   Guardando...
                 </span>
               ) : (
-                "Guardar borrador"
+                <>{type === "edit" ? "Guardar cambios" : "Guardar como borrador"}</>
               )}
             </Button>
           </div>
@@ -961,31 +1051,6 @@ export function CreatePromiiForm() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-5 text-sm text-text-secondary">
-            <div className="font-semibold text-text-primary">
-              Siguiente paso
-            </div>
-            <div className="mt-1">
-              Luego del borrador, agregamos "Enviar a validación" (cambia status
-              y aparece en Por validar).
-            </div>
-          </div>
-
-          {/* ✅ NUEVO: Debug panel (solo en desarrollo) */}
-          {process.env.NODE_ENV === "development" && (
-            <div className="rounded-2xl border border-slate-300 bg-slate-100 p-5 text-xs font-mono">
-              <div className="font-semibold text-slate-700 mb-2">🔧 Debug</div>
-              <div className="space-y-1 text-slate-600">
-                <div>
-                  Profile:{" "}
-                  {profile ? `${profile.role} (${profile.state})` : "null"}
-                </div>
-                <div>Loading: {String(loading)}</div>
-                <div>Submitting: {String(submitting)}</div>
-                <div>Errors: {Object.keys(errors).length}</div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </form>

@@ -12,7 +12,7 @@ export default function CreatePromiiNewPage() {
         </p>
       </div>
 
-      <CreatePromiiForm />
+      <CreatePromiiForm type="new" />
     </div>
   );
 }

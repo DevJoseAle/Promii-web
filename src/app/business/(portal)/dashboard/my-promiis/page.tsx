@@ -119,7 +119,7 @@ export default function MyPromiisPage() {
               <Link href="/business/dashboard/create-promii/new">Crear Promii</Link>
             </Button>
             <Button variant="outline" onClick={fetchMine} disabled={loading}>
-              {loading ? "Actualizando..." : "Actualizar"}
+              {loading ? "Actualizando..." : "Buscar"}
             </Button>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function MyPromiisPage() {
             No hay Promiis para mostrar.
             <div className="mt-3">
               <Button asChild className="bg-primary text-white hover:bg-primary/90">
-                <Link href="/business/dashboard/create-promii/new">Crear mi primer Promii</Link>
+                <Link href="/business/dashboard/create-promii/new">Crear Promii</Link>
               </Button>
             </div>
           </div>
@@ -244,9 +244,10 @@ export default function MyPromiisPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => ToastService.showSuccessToast("Editaremos esto luego 😉")}
+                          asChild
                         >
-                          Editar
+                            <Link href={`/business/dashboard/create-promii/${r.id}`}>Editar</Link>
+
                         </Button>
                       </div>
                     </td>
