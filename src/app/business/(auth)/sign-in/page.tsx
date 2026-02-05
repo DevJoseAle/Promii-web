@@ -7,89 +7,93 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "@/lib/supabase/supabase.client"; // <-- tu client-only
+import { ProfileRole } from "@/config/types/profile";
 
-type Profile = {
+type ProfileCheck = {
   id: string;
-  role: "user" | "merchant" | "influencer" | "admin";
+  role: ProfileRole
   state: "pending" | "approved" | "rejected" | "blocked";
 };
 
 export default function BusinessSignInPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     setLoading(true);
     setError(null);
 
     try {
       const formData = new FormData(e.currentTarget);
-    const email = String(formData.get("email") ?? "").trim();
-    const password = String(formData.get("password") ?? "").trim();
+      const email = String(formData.get("email") ?? "").trim();
+      const password = String(formData.get("password") ?? "").trim();
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      // 1) Validación previa por profile (opcional, pero útil)
+      const { data: profileCheck, error: profileCheckErr } = await supabase
+        .from("profiles")
+        .select("id, role, state")
+        .eq("email", email)
+        .maybeSingle<ProfileCheck>();
 
-    if (error) {
-      setError(error.message);
+      if (profileCheckErr) {
+        setError("Error verificando tu cuenta. Intenta nuevamente.");
+        return;
+      }
+
+      if (profileCheck) {
+        if (profileCheck.role !== ProfileRole.Merchant) {
+          setError(
+            "Esta cuenta no tiene permisos de empresa. Ingresa desde el módulo de usuarios."
+          );
+          return;
+        }
+
+        if (profileCheck.state === "blocked") {
+          setError("Tu cuenta de empresa ha sido bloqueada. Contacta soporte.");
+          return;
+        }
+
+        if (profileCheck.state === "rejected") {
+          setError("Tu solicitud de empresa fue rechazada. Contacta soporte.");
+          return;
+        }
+      }
+
+      // 2) Login
+      const { data, error: signInError } = await supabase.auth.signInWithPassword(
+        { email, password }
+      );
+
+      if (signInError) {
+        if (signInError.message.includes("Invalid login credentials")) {
+          setError("Credenciales incorrectas. Verifica tu email y contraseña.");
+        } else if (signInError.message.includes("Email not confirmed")) {
+          setError("Debes confirmar tu email antes de iniciar sesión.");
+        } else {
+          setError(signInError.message);
+        }
+        return;
+      }
+
+      // 3) Determinar destino (usa el profileCheck si está)
+      let destination = "/business/dashboard";
+      if (profileCheck?.state === "blocked") destination = "/business/blocked";
+      else if (profileCheck?.state === "rejected") destination = "/business/rejected";
+      router.replace(destination);
+
+      // Opcional: si quieres re-evaluar server components (no es necesario)
+      // router.refresh();
+    } catch (err: any) {
+      console.error("Sign-in error:", err);
+      setError(err?.message ?? "Error al iniciar sesión");
+    } finally {
       setLoading(false);
-      throw error;
-      return;
     }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      setError("No se pudo obtener tu usuario. Intenta nuevamente.");
-      setLoading(false);
-      return;
-    }
-
-    // ✅ leemos profile real (no merchants)
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("id, role, state")
-      .eq("id", userId)
-      .maybeSingle<Profile>();
-
-    if (profileErr) {
-      setError(profileErr.message);
-      setLoading(false);
-      throw profileErr;
-    }
-
-    // si no hay profile, manda a apply (o flujo de reparación)
-    if (!profile) {
-      router.push("/business/apply");
-      router.refresh();
-      return;
-    }
-
-    // si no es merchant, lo mandamos a apply (porque este portal es empresas)
-    if (profile.role !== "merchant") {
-      router.push("/business/apply");
-      router.refresh();
-      return;
-    }
-
-    // routing por state
-    if (profile.state === "approved") router.push("/merchant");
-    else if (profile.state === "pending") router.push("/business/pending");
-    else if (profile.state === "rejected") router.push("/business/rejected");
-    else router.push("/business/blocked");
-
-    router.refresh();
-  } catch (error) {
-    console.log(error);
   }
-}
 
   return (
     <AuthShell

@@ -10,35 +10,31 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { useEffect, useState } from "react";
 import { ToastService } from "@/lib/toast/toast.service";
 import { logoutUser } from "@/lib/auth/auth.service.client";
+import { FullscreenLoading } from "../ui/FullScreenLoading";
 
 export function MainHeader() {
   const router = useRouter();
   const sp = useSearchParams();
   const [logoutLoading, setLogoutLoading] = useState(false);
-  const { user, profile, session } = useAuth();
+  const { user, profile, session, signOut, existSession } = useAuth();
 
-
-  //TODO: Manejar el cambio de boton de cerrar sesion para caso de usuario y manejar loading
+  console.log("MainHeader Fuera logout",{ profile, user, session, existSession });
   async function handleLogout() {
+    console.log("entre");
     try {
       setLogoutLoading(true);
-
-      const { status, message, error } = await logoutUser();
-
-      // Si se aborta, lo tratamos como "no fatal" (ver logoutUser)
-      if (status !== "success")
-        throw new Error(error ?? message ?? "No se pudo cerrar sesión.");
-
-      ToastService.showSuccessToast(message ?? "Sesión cerrada con éxito.");
-
-      router.replace("/"); // replace mejor que push para no volver atrás
-      router.refresh(); // fuerza re-evaluación SSR
+      console.log("entre 2");
+      await signOut();
+      console.log("entre 3");
+      console.log("entre 4");
+  
     } catch (err: any) {
-      ToastService.showErrorToast(err?.message ?? "No se pudo cerrar sesión.");
       console.error("Logout error:", err);
-    } finally {
+    }finally{
       setLogoutLoading(false);
+      window.location.reload();
     }
+
   }
 
   function onSubmit(formData: FormData) {
@@ -54,7 +50,7 @@ export function MainHeader() {
 
     router.push(`/?${params.toString()}`);
   }
-
+  if (logoutLoading) return <FullscreenLoading show={logoutLoading} />;
   return (
     <div className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4">

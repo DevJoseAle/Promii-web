@@ -11,16 +11,14 @@ import { Input } from "@/components/ui/input";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 import { PhotosField } from "@/components/ui/merchant/image-uploader";
 import { uploadPromiiPhotos } from "@/lib/services/promiis/promiiPhotoUpload.service";
+import { supabase } from "@/lib/supabase/supabase.client";
+import { useAuthStore } from "@/lib/stores/auth/authStore";
 
 type CurrencyCode = "USD" | "CLP";
 type PromiiStatus = "draft";
 
-// =============================
-// 1) CATEGORÍAS (DB en inglés, UI en español)
-// =============================
 const PROMII_CATEGORIES = [
   "food",
   "coffee",
@@ -292,6 +290,7 @@ function dbToForm(p: DbPromiiRow): FormState {
     // DB allow_influencers -> form assignToInfluencer
     assignToInfluencer: !!p.allow_influencers,
     default_influencer_id: p.default_influencer_id ?? "",
+    photos: []
   };
 }
 
@@ -408,14 +407,17 @@ export function CreatePromiiForm({
   initialData,
 }: CreatePromiiFormProps) {
   const router = useRouter();
+  const status = useAuthStore((s) => s.status);
+  const session = useAuthStore((s) => s.session);
+  const profile = useAuthStore((s) => s.profile);
+  const hydrated = useAuthStore((s) => s._hasHydrated);
+  const loading = !hydrated || status === "loading";
 
-  const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
-  const { profile, session, loading } = useAuth();
-  console.log("useAuth",
-    {
-        profile, session, loading
-    }
-  );
+  console.log("useAuth", {
+    profile,
+    session,
+    loading,
+  });
 
   const [values, setValues] = React.useState<FormState>(DEFAULTS);
   const [errors, setErrors] = React.useState<Errors>({});
@@ -484,11 +486,6 @@ export function CreatePromiiForm({
       return;
     }
     if (submitting) return;
-
-    if (loading) {
-      ToastService.showErrorToast("Cargando tu perfil, intenta de nuevo...");
-      return;
-    }
 
     if (!session?.user) {
       setGlobalError(

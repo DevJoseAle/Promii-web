@@ -1,10 +1,9 @@
 import { PromiiCreatePayload, PromiiRow, PromiiStatus } from "@/config/types/promiis";
 import { SupabaseResponse, success, failure } from "@/config/types/supabase-response.type";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "@/lib/supabase/supabase.client";
 import { PostgrestError } from "@supabase/supabase-js";
 
 //Instacias y Mapeadores
-const supabase = getSupabaseBrowserClient();
 
 function normalizeSupabaseError(err: any) {
   const e = err as PostgrestError & { code?: string; details?: string; hint?: string };

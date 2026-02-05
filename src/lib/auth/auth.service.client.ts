@@ -1,8 +1,8 @@
 "use client";
 
-import { SupabaseResponse } from "@/config/types/supabase-response.type";
+import { failure, success, SupabaseResponse } from "@/config/types/supabase-response.type";
 import { UserRole } from "@/config/types/user";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "../supabase/supabase.client";
 
 export type SignUpUserInput = {
   email: string;
@@ -15,14 +15,8 @@ export type Profile = {
   role: "user" | "merchant" | "influencer" | "admin";
   state: "pending" | "approved" | "rejected" | "blocked";
 };
-/**
- * OJO:
- * - Esto usa supabase browser + session del navegador
- * - NO debe importar createSupabaseServerClient ni next/headers
- */
 
 export async function ensureProfile(role: UserRole = UserRole.USER): Promise<string> {
-  const supabase = getSupabaseBrowserClient();
 
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
@@ -47,7 +41,7 @@ export async function signUpUser({
   password,
   role = UserRole.USER,
 }: SignUpUserInput): Promise<SupabaseResponse<true>> {
-  const supabase = getSupabaseBrowserClient();
+
 
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
@@ -127,3 +121,15 @@ export async function logoutUser(): Promise<SupabaseResponse<true>> {
   }
 }
 
+// export async function signInWithUserAndPassword (user: string, password: string): Promise<SupabaseResponse<>> {
+//    const { data, error } = await supabase.auth.signInWithPassword({
+//     email: user,
+//     password,
+//   });
+
+//   if (error) {
+//     return failure(error.message, "No se pudo iniciar sesión.", error.code);
+//   }
+
+//   return success(data, "Sesión iniciada con éxito.");
+// }

@@ -5,11 +5,12 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToastService } from "@/lib/toast/toast.service";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { PromiiStatus, PromiiRow } from "@/config/types/promiis";
 import { fetchMyPromiis } from "@/lib/services/promiis/myPromiss.service";
+import { FullscreenLoading } from "@/components/ui/FullScreenLoading";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 const STATUS_LABELS: Record<PromiiStatus, string> = {
   draft: "Borrador",
@@ -38,15 +39,15 @@ function formatMoney(amount: number, currency: string) {
 }
 
 export default function MyPromiisPage() {
-   const supabase = React.useMemo(() => getSupabaseBrowserClient(), []);
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: authLoading, session } = useAuth();
 
   const [loading, setLoading] = React.useState(true);
   const [rows, setRows] = React.useState<PromiiRow[]>([]);
   const [q, setQ] = React.useState("");
   const [status, setStatus] = React.useState<PromiiStatus | "all">("all");
   const isMerchantPending = profile?.state === "pending";
-  console.log(isMerchantPending);
+  console.log({profile, session, isMerchantPending, authLoading});
+
   const fetchMine = React.useCallback(async () => {
     if (!profile?.id) return;
 

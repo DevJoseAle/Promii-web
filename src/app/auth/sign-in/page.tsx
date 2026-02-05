@@ -8,16 +8,15 @@ import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { redirectForRole } from "@/lib/auth/redirects";
-import { getSupabaseBrowserClient } from "@/lib/supabase/supabase.client";
 import { ProfileRole } from "@/config/types/profile";
 import { ToastService } from "@/lib/toast/toast.service";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 export default function SignInPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabase = getSupabaseBrowserClient();
   async function onSubmit(formData: FormData) {
     setLoading(true);
     setError(null);

@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AuthBootstrap } from "./auth-bootstrap";
 
 type Props = {
   brandLabel?: string; // "Promii" por defecto
@@ -21,14 +22,12 @@ export function AuthShell({
   children,
   variant = "consumer",
 }: Props) {
-  const rightPanel =
-    variant === "business"
-      ? "bg-primary/15"
-      : "bg-primary/10";
+  const rightPanel = variant === "business" ? "bg-primary/15" : "bg-primary/10";
 
   return (
     <div className="min-h-dvh bg-background">
       {/* Header minimal */}
+      <AuthBootstrap />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link
           href="/"
@@ -50,9 +49,13 @@ export function AuthShell({
         <div className="flex items-center justify-center">
           <div className="w-full max-w-md">
             <div className="rounded-3xl bg-surface p-7 shadow-sm">
-              <div className="text-2xl font-bold text-text-primary">{title}</div>
+              <div className="text-2xl font-bold text-text-primary">
+                {title}
+              </div>
               {subtitle ? (
-                <div className="mt-2 text-sm text-text-secondary">{subtitle}</div>
+                <div className="mt-2 text-sm text-text-secondary">
+                  {subtitle}
+                </div>
               ) : null}
 
               <div className="mt-6">{children}</div>
@@ -65,7 +68,7 @@ export function AuthShell({
           <div
             className={cn(
               "ml-10 h-full min-h-[560px] rounded-3xl border border-border",
-              rightPanel
+              rightPanel,
             )}
           >
             {/* Decorative shapes */}
@@ -76,7 +79,9 @@ export function AuthShell({
             {/* Copy */}
             <div className="absolute inset-0 flex flex-col justify-center p-12">
               <div className="text-sm font-semibold text-text-primary">
-                {variant === "business" ? "Portal de negocios" : "Promos locales"}
+                {variant === "business"
+                  ? "Portal de negocios"
+                  : "Promos locales"}
               </div>
               <div className="mt-2 text-3xl font-extrabold tracking-tight text-text-primary">
                 {variant === "business"
@@ -90,7 +95,8 @@ export function AuthShell({
               </p>
 
               <div className="mt-6 rounded-2xl bg-surface/70 p-4 text-xs text-text-secondary backdrop-blur">
-                Consejo: Mantén tus promos claras y con condiciones simples para aumentar conversiones.
+                Consejo: Mantén tus promos claras y con condiciones simples para
+                aumentar conversiones.
               </div>
             </div>
           </div>

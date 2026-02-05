@@ -1,4 +1,4 @@
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 export type PromiiPhotoRow = {
   id: string;
@@ -36,7 +36,6 @@ export async function uploadPromiiPhotos(params: {
   if (!files.length) throw new Error("Debes subir al menos 1 foto.");
   if (files.length > 4) throw new Error("Máximo 4 fotos.");
 
-  const supabase = getSupabaseBrowserClient();
 
   // ✅ Verifica sesión real (evita “me da 403 y no sé por qué”)
   const { data: sess } = await supabase.auth.getSession();
@@ -109,7 +108,6 @@ export async function uploadPromiiPhotos(params: {
 }
 
 export async function fetchPromiiPhotos(promiiId: string) {
-  const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("promii_photos")
     .select("id,promii_id,merchant_id,storage_path,public_url,sort_order")
@@ -121,7 +119,6 @@ export async function fetchPromiiPhotos(promiiId: string) {
 }
 
 export async function deletePromiiPhoto(photo: PromiiPhotoRow) {
-  const supabase = getSupabaseBrowserClient();
 
   // borrar storage primero
   const { error: stErr } = await supabase.storage

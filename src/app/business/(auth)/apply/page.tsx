@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 type State = { id: string; name: string };
 type City = { id: string; stateId: string; name: string };
@@ -28,7 +28,6 @@ const DRAFT_KEY = "promii_business_apply_draft_v1";
 
 export default function BusinessApplyPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

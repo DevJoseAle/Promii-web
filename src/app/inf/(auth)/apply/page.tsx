@@ -7,9 +7,9 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 type Draft = {
   // cuenta
@@ -36,7 +36,6 @@ const DRAFT_KEY = "promii_influencer_apply_draft_v1";
 
 export default function InfluencerApplyPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
 
   const [loading, setLoading] = useState(false);
   const [needsEmailVerify, setNeedsEmailVerify] = useState(false);

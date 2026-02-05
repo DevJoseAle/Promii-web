@@ -8,7 +8,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getSupabaseBrowserClient } from "@/lib/supabase.ssr";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 type Profile = {
   id: string;
@@ -18,7 +18,6 @@ type Profile = {
 
 export default function InfluencersSignInPage() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
