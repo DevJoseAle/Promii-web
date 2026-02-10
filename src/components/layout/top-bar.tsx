@@ -1,14 +1,18 @@
 import { COLORS } from "@/config/colors";
+import { useAuth } from "@/lib/context/AuthContext";
 import { Building2, UserStarIcon } from "lucide-react";
 import Link from "next/link";
 
 export function TopBar() {
-
+  const { profile, isAuthenticated } = useAuth()
+  const showTopBar = !isAuthenticated || isAuthenticated && (profile?.role === "merchant" || profile?.role === "influencer")
   const blue = COLORS.bluePrimary
 
   return (
     <div className="border-b border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl items-center justify-end gap-4 px-4 py-2 text-xs text-text-secondary">
+      {
+        showTopBar && (
+          <div className="mx-auto flex max-w-6xl items-center justify-end gap-4 px-4 py-2 text-xs text-text-secondary">
         <Link
           href="/business/dashboard"
           
@@ -29,6 +33,8 @@ export function TopBar() {
           Acceder
         </Link>
       </div>
+        )
+      }
     </div>
   );
 }

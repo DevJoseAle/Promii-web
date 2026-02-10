@@ -11,6 +11,8 @@ import { PromiiStatus, PromiiRow } from "@/config/types/promiis";
 import { fetchMyPromiis } from "@/lib/services/promiis/myPromiss.service";
 import { FullscreenLoading } from "@/components/ui/FullScreenLoading";
 import { supabase } from "@/lib/supabase/supabase.client";
+import { COLORS } from "@/config/colors";
+import { FileText, Search, RefreshCw, Plus, Edit, Trash2, Play, Pause } from "lucide-react";
 
 const STATUS_LABELS: Record<PromiiStatus, string> = {
   draft: "Borrador",
@@ -19,11 +21,27 @@ const STATUS_LABELS: Record<PromiiStatus, string> = {
   expired: "Expirado",
 };
 
-const STATUS_BADGE: Record<PromiiStatus, string> = {
-  draft: "bg-muted text-text-primary",
-  active: "bg-emerald-50 text-emerald-700",
-  paused: "bg-amber-50 text-amber-700",
-  expired: "bg-slate-100 text-slate-600",
+const STATUS_CONFIG: Record<PromiiStatus, { bg: string; text: string; border: string }> = {
+  draft: {
+    bg: COLORS.neutral[100],
+    text: COLORS.text.secondary,
+    border: COLORS.border.light,
+  },
+  active: {
+    bg: COLORS.success.lighter,
+    text: COLORS.success.dark,
+    border: COLORS.success.light,
+  },
+  paused: {
+    bg: COLORS.warning.lighter,
+    text: COLORS.warning.dark,
+    border: COLORS.warning.light,
+  },
+  expired: {
+    bg: COLORS.neutral[100],
+    text: COLORS.neutral[600],
+    border: COLORS.border.light,
+  },
 };
 
 function formatMoney(amount: number, currency: string) {
@@ -116,96 +134,153 @@ export default function MyPromiisPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-text-primary">
-              Mis Promiis
-            </h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              Aquí ves todas tus promociones: borradores, pausadas, activas y
-              expiradas.
-            </p>
+      {/* Header con diseño consistente */}
+      <div className="flex items-start gap-4">
+        <div
+          className="flex size-12 items-center justify-center rounded-xl shrink-0"
+          style={{
+            background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+          }}
+        >
+          <FileText className="size-6 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: COLORS.text.primary }}>
+            Mis Promiis
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed" style={{ color: COLORS.text.secondary }}>
+            Gestiona todas tus promociones: borradores, pausadas, activas y expiradas.
+          </p>
+        </div>
+      </div>
+
+      {/* Filters card */}
+      <div
+        className="rounded-xl border shadow-sm p-6"
+        style={{
+          backgroundColor: COLORS.background.primary,
+          borderColor: COLORS.border.light,
+        }}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 size-4 -translate-y-1/2"
+                style={{ color: COLORS.text.tertiary }}
+              />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar por título, ciudad o estado..."
+                className="h-10 pl-9"
+                style={{
+                  backgroundColor: COLORS.background.tertiary,
+                  borderColor: COLORS.border.main,
+                }}
+              />
+            </div>
+
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as any)}
+              className="h-10 w-full sm:w-[200px] rounded-lg border px-4 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-3"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+                color: COLORS.text.primary,
+              }}
+            >
+              <option value="all">Todos los estados</option>
+              <option value="draft">Borrador</option>
+              <option value="paused">Pausado</option>
+              <option value="active">Activo</option>
+              <option value="expired">Expirado</option>
+            </select>
           </div>
 
           <div className="flex gap-2">
             <Button
+              variant="outline"
+              onClick={fetchMine}
+              disabled={loading}
+              className="h-10 transition-all duration-200 hover:scale-105"
+              style={{
+                borderColor: COLORS.border.main,
+                color: COLORS.text.secondary,
+              }}
+            >
+              <RefreshCw className={cn("mr-2 size-4", loading && "animate-spin")} />
+              {loading ? "Actualizando" : "Actualizar"}
+            </Button>
+
+            <Button
               asChild
-              className="bg-primary text-white hover:bg-primary/90"
+              className="h-11 font-semibold transition-all duration-200 hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                color: COLORS.text.inverse,
+              }}
             >
               <Link href="/business/dashboard/create-promii/new">
+                <Plus className="mr-2 size-4" />
                 Crear Promii
               </Link>
             </Button>
-            <Button variant="outline" onClick={fetchMine} disabled={loading}>
-              {loading ? "Actualizando..." : "Buscar"}
-            </Button>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_220px]">
-          <div className="relative">
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por título, ciudad o estado..."
-              className="h-10"
-            />
-          </div>
-
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as any)}
-            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-          >
-            <option value="all">Todos</option>
-            <option value="draft">Borrador</option>
-            <option value="paused">Pausado</option>
-            <option value="active">Activo</option>
-            <option value="expired">Expirado</option>
-          </select>
         </div>
       </div>
 
-      {/* Table / List */}
-      <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-        <div className="px-2 pb-3">
-          <div className="text-sm font-semibold text-text-primary">
-            {loading ? "Cargando..." : `${filtered.length} Promiis`}
+      {/* Table card */}
+      <div
+        className="rounded-xl border shadow-sm overflow-hidden"
+        style={{
+          backgroundColor: COLORS.background.primary,
+          borderColor: COLORS.border.light,
+        }}
+      >
+        <div className="px-6 py-4 border-b" style={{ borderColor: COLORS.border.light }}>
+          <div className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+            {loading ? "Cargando..." : `${filtered.length} ${filtered.length === 1 ? "Promii" : "Promiis"}`}
           </div>
         </div>
 
         {loading ? (
-          <div className="p-6 text-sm text-text-secondary">
+          <div className="p-12 text-center text-sm" style={{ color: COLORS.text.secondary }}>
+            <RefreshCw className="size-8 mx-auto mb-3 animate-spin" style={{ color: COLORS.primary.main }} />
             Cargando tus Promiis…
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-sm text-text-secondary">
-            No hay Promiis para mostrar.
-            <div className="mt-3">
-              <Button
-                asChild
-                className="bg-primary text-white hover:bg-primary/90"
-              >
-                <Link href="/business/dashboard/create-promii/new">
-                  Crear Promii
-                </Link>
-              </Button>
-            </div>
+          <div className="p-12 text-center">
+            <FileText className="size-12 mx-auto mb-3" style={{ color: COLORS.text.tertiary }} />
+            <p className="text-sm mb-4" style={{ color: COLORS.text.secondary }}>
+              {q || status !== "all" ? "No hay Promiis que coincidan con los filtros." : "No has creado ningún Promii todavía."}
+            </p>
+            <Button
+              asChild
+              className="h-11 font-semibold transition-all duration-200 hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                color: COLORS.text.inverse,
+              }}
+            >
+              <Link href="/business/dashboard/create-promii/new">
+                <Plus className="mr-2 size-4" />
+                Crear tu primer Promii
+              </Link>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
-              <thead className="text-left text-text-secondary">
-                <tr className="border-b border-border">
-                  <th className="px-3 py-3">Título</th>
-                  <th className="px-3 py-3">Estado</th>
-                  <th className="px-3 py-3">Precio</th>
-                  <th className="px-3 py-3">Vigencia</th>
-                  <th className="px-3 py-3">Ubicación</th>
-                  <th className="px-3 py-3 text-right">Acciones</th>
+              <thead style={{ color: COLORS.text.secondary }}>
+                <tr className="border-b" style={{ borderColor: COLORS.border.light }}>
+                  <th className="px-6 py-3 text-left font-semibold">Título</th>
+                  <th className="px-6 py-3 text-left font-semibold">Estado</th>
+                  <th className="px-6 py-3 text-left font-semibold">Precio</th>
+                  <th className="px-6 py-3 text-left font-semibold">Vigencia</th>
+                  <th className="px-6 py-3 text-left font-semibold">Ubicación</th>
+                  <th className="px-6 py-3 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
 
@@ -213,58 +288,66 @@ export default function MyPromiisPage() {
                 {filtered.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-b border-border last:border-0"
+                    className="border-b transition-colors duration-200 hover:bg-opacity-50"
+                    style={{ borderColor: COLORS.border.light }}
                   >
-                    <td className="px-3 py-4">
-                      <div className="font-medium text-text-primary">
+                    <td className="px-6 py-4">
+                      <div className="font-medium" style={{ color: COLORS.text.primary }}>
                         {r.title}
                       </div>
                       {r.discount_label ? (
-                        <div className="mt-1 text-xs text-text-secondary">
+                        <div className="mt-1 text-xs" style={{ color: COLORS.text.secondary }}>
                           {r.discount_label}
                         </div>
                       ) : null}
                     </td>
 
-                    <td className="px-3 py-4">
+                    <td className="px-6 py-4">
                       <span
-                        className={cn(
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-                          STATUS_BADGE[r.status],
-                        )}
+                        className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border"
+                        style={{
+                          backgroundColor: STATUS_CONFIG[r.status].bg,
+                          color: STATUS_CONFIG[r.status].text,
+                          borderColor: STATUS_CONFIG[r.status].border,
+                        }}
                       >
                         {STATUS_LABELS[r.status]}
                       </span>
                     </td>
 
-                    <td className="px-3 py-4">
-                      <div className="font-medium text-text-primary">
+                    <td className="px-6 py-4">
+                      <div className="font-medium" style={{ color: COLORS.text.primary }}>
                         {formatMoney(r.price_amount, r.price_currency)}
                       </div>
                     </td>
 
-                    <td className="px-3 py-4 text-text-secondary">
-                      <div>
-                        {new Date(r.start_at).toLocaleDateString("es-VE")}
+                    <td className="px-6 py-4" style={{ color: COLORS.text.secondary }}>
+                      <div className="text-xs">
+                        {new Date(r.start_at).toLocaleDateString("es-VE", { day: "2-digit", month: "short" })}
                       </div>
-                      <div>
-                        → {new Date(r.end_at).toLocaleDateString("es-VE")}
+                      <div className="text-xs mt-0.5">
+                        → {new Date(r.end_at).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" })}
                       </div>
                     </td>
 
-                    <td className="px-3 py-4 text-text-secondary">
-                      <div>{r.city}</div>
-                      <div className="text-xs">{r.state}</div>
+                    <td className="px-6 py-4" style={{ color: COLORS.text.secondary }}>
+                      <div className="text-xs">{r.city}</div>
+                      <div className="text-xs mt-0.5 opacity-75">{r.state}</div>
                     </td>
 
-                    <td className="px-3 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
-                        {!isMerchantPending &&(r.status === "draft" || r.status === "paused") ? (
+                        {!isMerchantPending && (r.status === "draft" || r.status === "paused") ? (
                           <Button
                             size="sm"
-                            className="bg-primary text-white hover:bg-primary/90"
+                            className="h-9 font-semibold transition-all duration-200 hover:scale-105"
+                            style={{
+                              background: `linear-gradient(135deg, ${COLORS.success.main} 0%, ${COLORS.success.light} 100%)`,
+                              color: COLORS.text.inverse,
+                            }}
                             onClick={() => setPromiiStatus(r.id, "active")}
                           >
+                            <Play className="mr-1 size-3" />
                             Activar
                           </Button>
                         ) : null}
@@ -273,21 +356,45 @@ export default function MyPromiisPage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-9 transition-all duration-200 hover:scale-105"
+                            style={{
+                              borderColor: COLORS.warning.main,
+                              color: COLORS.warning.dark,
+                            }}
                             onClick={() => setPromiiStatus(r.id, "paused")}
                           >
+                            <Pause className="mr-1 size-3" />
                             Pausar
                           </Button>
                         ) : null}
 
-                        <Button size="sm" variant="ghost" asChild>
-                          <Link
-                            href={`/business/dashboard/create-promii/${r.id}`}
-                          >
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          asChild
+                          className="h-9 transition-all duration-200 hover:scale-105"
+                          style={{
+                            borderColor: COLORS.border.main,
+                            color: COLORS.text.secondary,
+                          }}
+                        >
+                          <Link href={`/business/dashboard/create-promii/${r.id}`}>
+                            <Edit className="mr-1 size-3" />
                             Editar
                           </Link>
                         </Button>
-                        <Button size="sm" variant="destructive" >
-                            Borrar
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 transition-all duration-200 hover:scale-105"
+                          style={{
+                            borderColor: COLORS.error.main,
+                            color: COLORS.error.dark,
+                          }}
+                        >
+                          <Trash2 className="mr-1 size-3" />
+                          Borrar
                         </Button>
                       </div>
                     </td>

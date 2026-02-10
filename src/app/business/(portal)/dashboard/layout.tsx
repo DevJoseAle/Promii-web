@@ -1,6 +1,6 @@
-import { MerchantSidebar } from "@/components/ui/merchant/merchant-sidebar";
+import { MerchantShell } from "@/components/ui/merchant/merchant-shell";
 import { PendingBanner } from "@/components/ui/pending-banner";
-
+import { COLORS } from "@/config/colors";
 
 export default function MerchantDashboardLayout({
   children,
@@ -8,25 +8,20 @@ export default function MerchantDashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full bg-background">
-      <div className="flex min-h-screen">
-        {/* Sidebar izquierda full height */}
-        <MerchantSidebar />
+    <MerchantShell>
+      {/* Banner pending (si aplica) */}
+      <PendingBanner />
 
-        {/* Content */}
-        <main className="flex-1">
-          {/* Top spacing + container */}
-          <div className="mx-auto w-full max-w-6xl px-5 py-6">
-            {/* Banner pending (si aplica) */}
-            <PendingBanner />
-
-            {/* Content canvas */}
-            <div className="mt-6 rounded-2xl border border-border bg-surface p-6 shadow-sm">
-              {children}
-            </div>
-          </div>
-        </main>
+      {/* Content canvas */}
+      <div
+        className="mt-6 rounded-2xl border p-6 shadow-sm"
+        style={{
+          backgroundColor: COLORS.background.primary,
+          borderColor: COLORS.border.light,
+        }}
+      >
+        {children}
       </div>
-    </div>
+    </MerchantShell>
   );
 }

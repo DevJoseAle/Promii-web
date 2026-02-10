@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { COLORS } from "@/config/colors";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
@@ -371,33 +372,74 @@ function validate(values: FormState): Errors {
 }
 
 // =============================
-// 7) FIELD
+// 7) DESIGN COMPONENTS (interface-design principles)
 // =============================
+
+// Section Header Component
+function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="flex items-center gap-3 pb-5" style={{ borderBottom: `1px solid ${COLORS.border.light}` }}>
+      <div
+        className="flex size-10 items-center justify-center rounded-lg shrink-0"
+        style={{ backgroundColor: COLORS.primary.lighter }}
+      >
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h2 className="text-lg font-bold truncate" style={{ color: COLORS.text.primary }}>
+          {title}
+        </h2>
+        <p className="text-sm mt-0.5" style={{ color: COLORS.text.secondary }}>
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Field Component
 function Field({
   label,
   hint,
   error,
   children,
+  required,
 }: {
   label: string;
   hint?: string;
   error?: string;
   children: React.ReactNode;
+  required?: boolean;
 }) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <div className="text-sm font-semibold text-text-primary">{label}</div>
-        {hint ? (
-          <div className="text-xs text-text-secondary">{hint}</div>
-        ) : null}
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <label className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+          {label}
+          {required && <span style={{ color: COLORS.error.main }} className="ml-0.5">*</span>}
+        </label>
+        {hint && (
+          <span className="text-xs" style={{ color: COLORS.text.tertiary }}>
+            {hint}
+          </span>
+        )}
       </div>
       {children}
-      {error ? <div className="text-xs text-red-600">{error}</div> : null}
+      {error && (
+        <div
+          className="flex items-center gap-1.5 text-xs font-medium"
+          style={{ color: COLORS.error.dark }}
+        >
+          <svg className="size-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+          {error}
+        </div>
+      )}
     </div>
   );
 }
-
+  
 // =============================
 // 8) COMPONENT
 // =============================
@@ -616,41 +658,82 @@ export function CreatePromiiForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      {/* ✅ NUEVO: Banner de error global */}
+      {/* Error global con diseño mejorado */}
       {globalError && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-          <div className="font-semibold">Error al guardar</div>
-          <div className="mt-1 text-red-800">{globalError}</div>
+        <div
+          className="rounded-xl border p-4 shadow-sm"
+          style={{
+            backgroundColor: COLORS.error.lighter,
+            borderColor: COLORS.error.light,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <svg className="size-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.error.main }}>
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <div className="font-semibold text-sm" style={{ color: COLORS.error.dark }}>
+                Error al guardar
+              </div>
+              <div className="mt-1 text-sm" style={{ color: COLORS.error.dark }}>
+                {globalError}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {isMerchantPending ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <div className="font-semibold">Tu cuenta está en revisión</div>
-          <div className="mt-1 text-amber-800">
-            Puedes crear Promiis como borrador, pero no aparecerán en Promii
-            hasta que tu empresa sea verificada.
+      {isMerchantPending && (
+        <div
+          className="rounded-xl border p-4 shadow-sm"
+          style={{
+            backgroundColor: COLORS.warning.lighter,
+            borderColor: COLORS.warning.light,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <svg className="size-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.warning.main }}>
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <div className="font-semibold text-sm" style={{ color: COLORS.warning.dark }}>
+                Tu cuenta está en revisión
+              </div>
+              <div className="mt-1 text-sm" style={{ color: COLORS.warning.dark }}>
+                Puedes crear Promiis como borrador, pero no aparecerán en Promii hasta que tu empresa sea verificada.
+              </div>
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: form */}
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div>
-            <div className="text-base font-semibold text-text-primary">
-              Detalles del Promii
-            </div>
-            <div className="mt-1 text-sm text-text-secondary">
-              Guarda como borrador y luego lo envías a validación.
-            </div>
-          </div>
+        <div className="space-y-6">
+          {/* Sección: Información Básica */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              }
+              title="Información Básica"
+              description="Título, descripción y categoría de tu Promii"
+            />
 
-          <div className="mt-6 grid gap-5">
+            <div className="mt-6 grid gap-5">
             <Field
               label="Título"
               error={errors.title}
               hint="Ej: 2x1 en hamburguesas"
+              required
             >
               <Input
                 value={values.title}
@@ -664,15 +747,26 @@ export function CreatePromiiForm({
               label="Descripción"
               error={errors.description}
               hint="Qué incluye y por qué conviene"
+              required
             >
               <textarea
                 value={values.description}
                 onChange={(e) => update("description", e.target.value)}
                 placeholder="Describe la promo en pocas líneas..."
-                className={cn(
-                  "min-h-[96px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm",
-                  "focus:outline-none focus:ring-2 focus:ring-ring/50",
-                )}
+                className="min-h-[96px] w-full rounded-lg border px-4 py-3 text-sm transition-all focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: errors.description ? COLORS.error.main : COLORS.border.main,
+                  backgroundColor: COLORS.background.tertiary,
+                  color: COLORS.text.primary,
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = COLORS.primary.main;
+                  e.target.style.boxShadow = `0 0 0 3px ${COLORS.primary.lighter}`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.description ? COLORS.error.main : COLORS.border.main;
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </Field>
 
@@ -680,15 +774,26 @@ export function CreatePromiiForm({
               label="Términos y condiciones"
               error={errors.terms}
               hint="Restricciones y condiciones de uso"
+              required
             >
               <textarea
                 value={values.terms}
                 onChange={(e) => update("terms", e.target.value)}
                 placeholder="Ej: No acumulable, válido de lunes a jueves..."
-                className={cn(
-                  "min-h-[120px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm",
-                  "focus:outline-none focus:ring-2 focus:ring-ring/50",
-                )}
+                className="min-h-[120px] w-full rounded-lg border px-4 py-3 text-sm transition-all focus:outline-none focus:ring-2"
+                style={{
+                  borderColor: errors.terms ? COLORS.error.main : COLORS.border.main,
+                  backgroundColor: COLORS.background.tertiary,
+                  color: COLORS.text.primary,
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = COLORS.primary.main;
+                  e.target.style.boxShadow = `0 0 0 3px ${COLORS.primary.lighter}`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = errors.terms ? COLORS.error.main : COLORS.border.main;
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </Field>
 
@@ -753,9 +858,29 @@ export function CreatePromiiForm({
                 </select>
               </Field>
             </div>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Precio" error={errors.price_amount}>
+          {/* Sección: Precios y Descuentos */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+              title="Precios y Descuentos"
+              description="Define el precio del Promii y su descuento"
+            />
+
+            <div className="mt-6 grid gap-5">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Precio" error={errors.price_amount} required>
                 <Input
                   value={values.price_amount}
                   onChange={(e) => update("price_amount", e.target.value)}
@@ -794,21 +919,43 @@ export function CreatePromiiForm({
               </Field>
             </div>
 
-            {/* ✅ Discount label NO editable */}
-            <Field
-              label="Etiqueta de descuento"
-              hint="Se calcula automáticamente"
-            >
-              <Input
-                value={discountLabelPreview}
-                disabled
-                className="h-10"
-                placeholder="Ej: 40% OFF"
-              />
-            </Field>
+                {/* Discount label NO editable */}
+                <Field
+                  label="Etiqueta de descuento"
+                  hint="Se calcula automáticamente"
+                >
+                  <Input
+                    value={discountLabelPreview}
+                    disabled
+                    className="h-10"
+                    placeholder="Ej: 40% OFF"
+                  />
+                </Field>
+              </div>
+            </div>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Inicio" error={errors.start_at}>
+          {/* Sección: Fechas y Disponibilidad */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+              title="Fechas y Disponibilidad"
+              description="Vigencia del Promii y límites de uso"
+            />
+
+            <div className="mt-6 grid gap-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Inicio" error={errors.start_at} required>
                 <Input
                   type="datetime-local"
                   value={values.start_at}
@@ -880,10 +1027,31 @@ export function CreatePromiiForm({
                 />
               </Field>
             </div>
+          </div>
 
-            {/* ✅ Estado / Ciudad: select + "otra" */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Estado" error={errors.stateId}>
+          {/* Sección: Ubicación */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              }
+              title="Ubicación"
+              description="Dónde se puede canjear este Promii"
+            />
+
+            <div className="mt-6 grid gap-5">
+              {/* Estado / Ciudad: select + "otra" */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Estado" error={errors.stateId} required>
                 <select
                   name="state"
                   value={values.stateId}
@@ -962,41 +1130,90 @@ export function CreatePromiiForm({
               </Field>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Latitud (opcional)" error={errors.geo_lat}>
-                <Input
-                  value={values.geo_lat}
-                  onChange={(e) => update("geo_lat", e.target.value)}
-                  placeholder="Ej: 10.495"
-                  inputMode="decimal"
-                  className="h-10"
-                />
-              </Field>
-              <Field label="Fotos Para el Promii">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Latitud (opcional)" error={errors.geo_lat}>
+                  <Input
+                    value={values.geo_lat}
+                    onChange={(e) => update("geo_lat", e.target.value)}
+                    placeholder="Ej: 10.495"
+                    inputMode="decimal"
+                    className="h-10"
+                  />
+                </Field>
+                <Field label="Longitud (opcional)" error={errors.geo_lng}>
+                  <Input
+                    value={values.geo_lng}
+                    onChange={(e) => update("geo_lng", e.target.value)}
+                    placeholder="Ej: -66.853"
+                    inputMode="decimal"
+                    className="h-10"
+                  />
+                </Field>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección: Fotos */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+              title="Fotos del Promii"
+              description="Sube entre 1 y 4 imágenes atractivas (obligatorio)"
+            />
+
+            <div className="mt-6">
+              <Field label="Fotos" error={errors.photos} required>
                 <PhotosField
                   files={values.photos}
                   onChange={(photos) => update("photos", photos)}
                   error={errors.photos}
                 />
                 {values.photos.length < 1 && (
-                  <div className="text-xs text-red-600">
-                    Debes subir al menos 1 fotos.
+                  <div
+                    className="mt-2 flex items-center gap-1.5 text-xs font-medium"
+                    style={{ color: COLORS.error.dark }}
+                  >
+                    <svg className="size-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    Debes subir al menos 1 foto
                   </div>
                 )}
               </Field>
-              <Field label="Longitud (opcional)" error={errors.geo_lng}>
-                <Input
-                  value={values.geo_lng}
-                  onChange={(e) => update("geo_lng", e.target.value)}
-                  placeholder="Ej: -66.853"
-                  inputMode="decimal"
-                  className="h-10"
-                />
-              </Field>
             </div>
+          </div>
 
-            {/* ✅ Influencers: "Asignar a Influencer" + select vacío */}
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Sección: Influencers (opcional) */}
+          <div
+            className="rounded-xl border p-6 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <SectionHeader
+              icon={
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.primary.main }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              }
+              title="Influencers"
+              description="Asigna este Promii a influencers afiliados (opcional)"
+            />
+
+            <div className="mt-6 grid gap-5">
+              {/* Influencers: "Asignar a Influencer" + select vacío */}
+              <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Asignar a Influencer">
                 <select
                   value={values.assignToInfluencer ? "yes" : "no"}
@@ -1026,81 +1243,146 @@ export function CreatePromiiForm({
                 </select>
               </Field>
             </div>
+            </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10"
-              onClick={() => router.back()}
-              disabled={submitting}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="h-10 bg-primary text-white hover:bg-primary/90"
-              disabled={submitting}
-            >
-              {submitting ? (
-                <span className="flex items-center gap-2">
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Guardando...
-                </span>
-              ) : (
-                <>
-                  {type === "edit"
-                    ? "Guardar cambios"
-                    : "Guardar como borrador"}
-                </>
-              )}
-            </Button>
+          {/* Footer: Botones de acción */}
+          <div
+            className="sticky bottom-0 -mx-6 -mb-6 rounded-b-xl border-t p-4 backdrop-blur-sm lg:bottom-auto lg:mx-0 lg:mb-0 lg:rounded-none lg:border-0 lg:p-0 lg:backdrop-blur-none"
+            style={{
+              backgroundColor: COLORS.background.primary + 'f5',
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 font-semibold transition-all hover:scale-105"
+                onClick={() => router.back()}
+                disabled={submitting}
+                style={{
+                  borderColor: COLORS.border.main,
+                  color: COLORS.text.secondary,
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="h-11 font-semibold shadow-sm transition-all hover:scale-105 hover:shadow-md"
+                disabled={submitting}
+                style={{
+                  background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                  color: 'white',
+                }}
+              >
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    Guardando...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {type === "edit" ? "Guardar cambios" : "Guardar como borrador"}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
           </div>
         </div>
 
         {/* Right: helper panel */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-            <div className="text-sm font-semibold text-text-primary">
-              Qué va a contener un Promii
+        <div className="hidden lg:block space-y-4 sticky top-6">
+          {/* Card: Checklist */}
+          <div
+            className="rounded-xl border p-5 shadow-sm"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.success.main }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-sm font-bold" style={{ color: COLORS.text.primary }}>
+                Checklist de un buen Promii
+              </h3>
             </div>
-            <div className="mt-3 space-y-2 text-sm text-text-secondary">
-              <div>✅ Título claro y atractivo</div>
-              <div>✅ Descuento real (ej. 30–60%)</div>
-              <div>✅ Condiciones simples</div>
-              <div>✅ Vigencia y cupos definidos</div>
-              <div>✅ Horarios de uso, dirección</div>
+            <div className="space-y-2.5 text-sm" style={{ color: COLORS.text.secondary }}>
+              <div className="flex items-start gap-2">
+                <svg className="size-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.success.main }}>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Título claro y atractivo</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <svg className="size-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.success.main }}>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Descuento real (30-60% OFF)</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <svg className="size-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.success.main }}>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Condiciones simples</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <svg className="size-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.success.main }}>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Vigencia y cupos definidos</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <svg className="size-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.success.main }}>
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Fotos de calidad</span>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-primary/5 p-5">
-            <div className="text-sm font-semibold text-text-primary">
-              Tip: dinero del futuro ✨
+          {/* Card: Tip */}
+          <div
+            className="rounded-xl border p-5 shadow-sm"
+            style={{
+              backgroundColor: COLORS.primary.lighter,
+              borderColor: COLORS.primary.light,
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="size-5" fill="currentColor" viewBox="0 0 20 20" style={{ color: COLORS.primary.main }}>
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              <h3 className="text-sm font-bold" style={{ color: COLORS.primary.dark }}>
+                Tip: Dinero del futuro
+              </h3>
             </div>
-            <div className="mt-2 text-sm text-text-secondary">
-              Los Promiis con más vigencia de uso te permiten que la gente
-              compre a futuro, y tú puedas traer dinero{" "}
-              <span className="font-semibold text-text-primary">
-                del futuro
-              </span>
-              .
-            </div>
+            <p className="text-sm leading-relaxed" style={{ color: COLORS.primary.dark }}>
+              Los Promiis con más vigencia te permiten que la gente compre a futuro, y tú puedas traer{" "}
+              <span className="font-bold">dinero del futuro</span> hoy.
+            </p>
           </div>
         </div>
       </div>

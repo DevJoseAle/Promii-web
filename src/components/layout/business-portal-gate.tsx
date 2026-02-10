@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 import { useAuthStore } from "@/lib/stores/auth/authStore";
 import { FullscreenLoading } from "../ui/FullScreenLoading";
 
@@ -22,34 +21,40 @@ export default function BusinessPortalGate({
   React.useEffect(() => {
     if (loading) return;
 
+    console.log("[BusinessPortalGate] Auth check:", { status, profile });
+
     // 1) No auth -> sign in
     if (status !== "authenticated") {
+      console.log("[BusinessPortalGate] Not authenticated, redirecting to sign-in");
       router.replace("/business/sign-in");
       return;
     }
 
-    // 2) Sin profile -> apply (o puedes esperar un poco si quieres)
+    // 2) Sin profile -> esperar o redirigir
     if (!profile) {
-      // si quieres: router.replace("/business/sign-in");
+      console.log("[BusinessPortalGate] No profile, waiting...");
       return;
     }
 
     // 3) Role
     if (profile.role !== "merchant") {
+      console.log("[BusinessPortalGate] Not merchant, redirecting to apply");
       router.replace("/business/apply");
       return;
     }
 
     // 4) States
-    if (profile.state === "blocked") router.replace("/business/blocked");
-    else if (profile.state === "rejected") router.replace("/business/rejected");
+    if (profile.state === "blocked") {
+      console.log("[BusinessPortalGate] Merchant blocked");
+      router.replace("/business/blocked");
+    } else if (profile.state === "rejected") {
+      console.log("[BusinessPortalGate] Merchant rejected");
+      router.replace("/business/rejected");
+    }
   }, [loading, status, profile, router]);
-console.log({loading, status, profile, router});
+
   return (
     <>
-      {/* Bootstrap una vez en esta rama /business */}
-      <AuthBootstrap />
-
       <FullscreenLoading show={loading} label="Cargando portal…" />
 
       {/* Mientras profile llega, bloquea para evitar flashes */}

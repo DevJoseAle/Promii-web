@@ -1,30 +1,37 @@
-// import { createBrowserClient } from "@supabase/ssr";
-// import type { SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-// let browserClient: SupabaseClient | null = null;
-
-// export function getSupabaseBrowserClient() {
-//   if (!browserClient) {
-//     browserClient = createBrowserClient(
-//       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-//     );
-//   }
-//   return browserClient;
-// }
-
-import { createClient } from "@supabase/supabase-js";
-
-export const supabase = createClient(
+export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true, // útil si usas magic link/OAuth
+      detectSessionInUrl: true,
       storageKey: "promii:supabase.auth",
-      // storage: window.localStorage (por defecto en browser)
+    },
+    cookies: {
+      // Configuración para que funcione con el middleware SSR
+      get(name: string) {
+        if (typeof document === "undefined") return undefined;
+        const cookies = document.cookie.split("; ");
+        const cookie = cookies.find((c) => c.startsWith(`${name}=`));
+        return cookie?.split("=")[1];
+      },
+      set(name: string, value: string, options: any) {
+        if (typeof document === "undefined") return;
+        let cookie = `${name}=${value}`;
+        if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
+        if (options?.path) cookie += `; path=${options.path}`;
+        if (options?.domain) cookie += `; domain=${options.domain}`;
+        if (options?.sameSite) cookie += `; samesite=${options.sameSite}`;
+        if (options?.secure) cookie += "; secure";
+        document.cookie = cookie;
+      },
+      remove(name: string, options: any) {
+        if (typeof document === "undefined") return;
+        document.cookie = `${name}=; max-age=0; path=${options?.path || "/"}`;
+      },
     },
   }
 );

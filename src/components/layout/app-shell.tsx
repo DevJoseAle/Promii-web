@@ -1,4 +1,6 @@
-import { ReactNode } from "react";
+"use client"
+
+import { ReactNode, useEffect } from "react";
 import { CategoryNav } from "./category-nav";
 import { MainHeader } from "./main-header";
 import { TopBar } from "./top-bar";
@@ -6,8 +8,10 @@ import { TopBar } from "./top-bar";
 import { AppFooter } from "./footer";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { AuthBootstrap } from "../auth/auth-bootstrap";
+import { initAuthListener } from "@/lib/stores/auth/authStore";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <AuthBootstrap />

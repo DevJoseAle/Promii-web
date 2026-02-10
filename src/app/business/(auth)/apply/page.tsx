@@ -201,118 +201,120 @@ export default function BusinessApplyPage() {
     setError(null);
     setNeedsEmailVerify(false);
     try {
-    console.log("Ingresé", email);
-    const safeBusinessName = businessName.trim();
-    const safePhone = phone.trim();
-    console.log("antes");console.time("checkUserExist");
-const {data: authEmail, error: authEmailErr } = await supabase.functions.invoke("checkUserExist", {
-  body: { email },
-});
-console.timeEnd("checkUserExist");
-    console.log({authEmail, authEmailErr, email});
-    if(authEmailErr){
-      setError("Error verificando el email. Intenta nuevamente.");
+      console.log("Ingresé", email);
+      const safeBusinessName = businessName.trim();
+      const safePhone = phone.trim();
+      console.log("antes");
+      console.time("checkUserExist");
+      const { data: authEmail, error: authEmailErr } =
+        await supabase.functions.invoke("checkUserExist", {
+          body: { email },
+        });
+      console.timeEnd("checkUserExist");
+      if (authEmailErr) {
+        setError("Error verificando el email. Intenta nuevamente.");
+        setLoading(false);
+        let error = new Error(authEmailErr.message);
+        throw error;
+        return;
+      }
+      console.log({ authEmail, authEmailErr });
+     if (!safeBusinessName || !safePhone) {
+       setError("Completa al menos el nombre del negocio y el teléfono.");
+       setLoading(false);
+       return;
+     }
+     if (!stateId || !cityId) {
+       setError("Selecciona un estado y una ciudad.");
+       setLoading(false);
+       return;
+     }
+     const { data: auth } = await supabase.auth.getUser();
+     const userId = auth.user?.id;
+
+     if (userId) {
+       try {
+         await finalizeSubmitWithSession(userId);
+       } catch (e: any) {
+         setError(e?.message ?? "No se pudo enviar la solicitud.");
+         setLoading(false);
+       }
+       return;
+     }
+
+     const safeEmail = email.trim();
+     const safePass = password.trim();
+
+     if (!safeEmail || !safePass) {
+       setError("Ingresa tu email y contraseña para crear tu cuenta.");
+       setLoading(false);
+       return;
+     }
+
+     saveDraft();
+
+     const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
+     const { error: signUpErr } = await supabase.auth.signUp({
+       email: safeEmail,
+       password: safePass,
+       options: emailRedirectTo ? { emailRedirectTo } : undefined,
+     });
+
+     if (signUpErr) {
+       setError(signUpErr.message);
+       setLoading(false);
+       return;
+     }
+     setNeedsEmailVerify(true);
+     setLoading(false);
+    } catch (error) {
+      console.error("Error en el submit:", error);
+      setError("Error al procesar la solicitud.");
       setLoading(false);
-      let error = new Error(authEmailErr.message);
-      throw error;
-      return;
+    } finally {
+      setLoading(false);
     }
-    console.log({authEmail, authEmailErr});
-    // if (!safeBusinessName || !safePhone) {
-    //   setError("Completa al menos el nombre del negocio y el teléfono.");
-    //   setLoading(false);
-    //   return;
-    // }
-    // if (!stateId || !cityId) {
-    //   setError("Selecciona un estado y una ciudad.");
-    //   setLoading(false);
-    //   return;
-    // }
-    // const { data: auth } = await supabase.auth.getUser();
-    // const userId = auth.user?.id;
-
-    // if (userId) {
-    //   try {
-    //     await finalizeSubmitWithSession(userId);
-    //   } catch (e: any) {
-    //     setError(e?.message ?? "No se pudo enviar la solicitud.");
-    //     setLoading(false);
-    //   }
-    //   return;
-    // }
-
-    // // 2) No hay sesión: creamos cuenta, guardamos draft, pedimos verificación
-    // const safeEmail = email.trim();
-    // const safePass = password.trim();
-
-    // if (!safeEmail || !safePass) {
-    //   setError("Ingresa tu email y contraseña para crear tu cuenta.");
-    //   setLoading(false);
-    //   return;
-    // }
-
-    // // guardamos lo que llenó para no perderlo
-    // saveDraft();
-
-    // const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
-    // const { error: signUpErr } = await supabase.auth.signUp({
-    //   email: safeEmail,
-    //   password: safePass,
-    //   options: emailRedirectTo ? { emailRedirectTo } : undefined,
-    // });
-
-    // if (signUpErr) {
-    //   setError(signUpErr.message);
-    //   setLoading(false);
-    //   return;
-    // }
-    // setNeedsEmailVerify(true);
-    // setLoading(false);
-  } catch (error) {
-    console.error("Error en el submit:", error);
-    setError("Error al procesar la solicitud.");
-    setLoading(false);
-  }finally{
-    setLoading(false);
-  }
   }
 
   async function onIVerifiedClick() {
-  setLoading(true);
-  setError(null);
-  
-  try {
-    const safeEmail = email.trim();
-    const safePass = password.trim();
+    setLoading(true);
+    setError(null);
 
-    const { data, error: signInErr } = await supabase.auth.signInWithPassword({
-      email: safeEmail,
-      password: safePass,
-    });
+    try {
+      const safeEmail = email.trim();
+      const safePass = password.trim();
 
-    if (signInErr) {
-      setError("Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.");
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword(
+        {
+          email: safeEmail,
+          password: safePass,
+        },
+      );
+
+      if (signInErr) {
+        setError(
+          "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.",
+        );
+        setLoading(false);
+        return; // ← RETURN en lugar de throw
+      }
+
+      // ✅ Usa el userId directamente del response, no de otra llamada
+      const userId = data.user?.id;
+      if (!userId) {
+        setError("No se pudo obtener el usuario.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Llama directamente a finalizeSubmitWithSession con el userId
+      await finalizeSubmitWithSession(userId);
+    } catch (error: any) {
+      console.error("Error en verificación:", error);
+      setError(error?.message ?? "Error al procesar la verificación.");
       setLoading(false);
-      return; // ← RETURN en lugar de throw
     }
-
-    // ✅ Usa el userId directamente del response, no de otra llamada
-    const userId = data.user?.id;
-    if (!userId) {
-      setError("No se pudo obtener el usuario.");
-      setLoading(false);
-      return;
-    }
-
-    // ✅ Llama directamente a finalizeSubmitWithSession con el userId
-    await finalizeSubmitWithSession(userId);
-    
-  } catch (error: any) {
-    console.error("Error en verificación:", error);
-    setError(error?.message ?? "Error al procesar la verificación.");
-    setLoading(false);
   }
-}
 
   return (
     <AuthShell

@@ -26,7 +26,11 @@ export function useAuth() {
 
   // Loading es true si no ha hidratado O si el status es loading
   const loading = !hasHydrated || status === "loading";
-
+  const isMerchant = profile?.role === "merchant";
+  const isInfluencer = profile?.role === "influencer";
+  const isUser = profile?.role === "user";
+  const isAuthenticated = !!profile;
+  console.log({ isMerchant, isInfluencer, isUser, isAuthenticated });
   return {
     loading,
     session,
@@ -36,7 +40,10 @@ export function useAuth() {
     signOut,
     isAuthenticated: status === "authenticated",
     status,
-    existSession
+    existSession,
+    isMerchant,
+    isInfluencer,
+    isUser,
   };
 }
 
@@ -46,22 +53,26 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false);
+  const listenerInitialized = useRef(false);
   const initialize = useAuthStore((s) => s.initialize);
   const hasHydrated = useAuthStore((s) => s._hasHydrated);
 
+  // Solo inicializar el listener UNA VEZ
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    // Inicializar listener
+    if (listenerInitialized.current) return;
+    listenerInitialized.current = true;
+    console.log("[AuthProvider] Initializing auth listener");
     initAuthListener();
   }, []);
 
-  // Inicializar después de hidratar
+  // Inicializar después de hidratar - SOLO UNA VEZ
   useEffect(() => {
-    if (hasHydrated) {
-      initialize();
-    }
+    if (!hasHydrated) return;
+    if (initialized.current) return;
+    initialized.current = true;
+
+    console.log("[AuthProvider] Initializing auth state");
+    initialize();
   }, [hasHydrated, initialize]);
 
   return <>{children}</>;

@@ -7,34 +7,38 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import Image from "next/image";
 import { useAuth } from "@/lib/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { ToastService } from "@/lib/toast/toast.service";
 import { logoutUser } from "@/lib/auth/auth.service.client";
 import { FullscreenLoading } from "../ui/FullScreenLoading";
+import { COLORS } from "@/config/colors";
 
-export function MainHeader() {
+function MainHeaderContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const [logoutLoading, setLogoutLoading] = useState(false);
-  const { user, profile, session, signOut, existSession } = useAuth();
+  const {
+    user,
+    profile,
+    session,
+    signOut,
+    existSession,
+    isAuthenticated,
+    isInfluencer,
+    isMerchant,
+    isUser,
+  } = useAuth();
 
-  console.log("MainHeader Fuera logout",{ profile, user, session, existSession });
   async function handleLogout() {
-    console.log("entre");
     try {
       setLogoutLoading(true);
-      console.log("entre 2");
       await signOut();
-      console.log("entre 3");
-      console.log("entre 4");
-  
     } catch (err: any) {
       console.error("Logout error:", err);
-    }finally{
+    } finally {
       setLogoutLoading(false);
       window.location.reload();
     }
-
   }
 
   function onSubmit(formData: FormData) {
@@ -98,19 +102,61 @@ export function MainHeader() {
         </form>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            disabled={logoutLoading}
-          >
-            <p>{logoutLoading ? "Cerrando..." : "Cerrar sesión"}</p>
-          </Button>
+          {isAuthenticated && (
+            <Button
+              variant="destructive"
+              onClick={handleLogout}
+              disabled={logoutLoading}
+            >
+              <p>{logoutLoading ? "Cerrando..." : "Cerrar sesión"}</p>
+            </Button>
+          )}
+          {!isAuthenticated && (
+            <Button
+              variant="secondary"
+              asChild
+              className="h-10 bg-primary text-white hover:bg-primary/90"
+              style={{
+                backgroundColor: COLORS.bluePrimary,
+                color: "white",
+                fontWeight: "bold",
+              }}
+            >
+              <Link className="hover:text-primary" href="/auth/sign-in">
+                Iniciar Sesión
+              </Link>
+            </Button>
+          )}
 
-          <Button variant="ghost" size="icon" aria-label="Cuenta">
-            <User className="size-5" />
-          </Button>
+          {isUser && (
+            <Button variant="ghost" size="icon" aria-label="Cuenta">
+              <User className="size-5" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+export function MainHeader() {
+  return (
+    <Suspense fallback={
+      <div className="sticky top-0 z-50 border-b bg-white">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.svg"
+              alt="Promii"
+              width={100}
+              height={32}
+              className="h-8 w-auto"
+            />
+          </Link>
+        </div>
+      </div>
+    }>
+      <MainHeaderContent />
+    </Suspense>
   );
 }

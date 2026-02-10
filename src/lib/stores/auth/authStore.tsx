@@ -21,6 +21,7 @@ interface AuthState {
   user: User | null;
   profile: Profile | null;
   _hasHydrated: boolean;
+  _isInitializing: boolean;
   existSession: boolean;
 
   initialize: () => Promise<void>;
@@ -52,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       profile: null,
       _hasHydrated: false,
+      _isInitializing: false,
       existSession: false,
 
       setHasHydrated: (state: boolean) => {
@@ -59,9 +61,33 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initialize: async () => {
+        // Prevenir múltiples inicializaciones simultáneas
+        if (get()._isInitializing) {
+          console.log("[AuthStore] Already initializing, skipping...");
+          return;
+        }
+
+        set({ _isInitializing: true });
+
         const cachedProfile = get().profile;
 
         console.log("[AuthStore] Initializing...");
+
+        // Timeout de seguridad: si después de 10s no se resuelve, forzar a unauthenticated
+        const timeoutId = setTimeout(() => {
+          const currentStatus = get().status;
+          if (currentStatus === "loading") {
+            console.warn("[AuthStore] Initialization timeout, forcing unauthenticated");
+            set({
+              status: "unauthenticated",
+              session: null,
+              user: null,
+              profile: null,
+              existSession: false,
+              _isInitializing: false,
+            });
+          }
+        }, 10000);
 
         try {
           const {
@@ -69,8 +95,19 @@ export const useAuthStore = create<AuthState>()(
             error,
           } = await supabase.auth.getSession();
 
+          clearTimeout(timeoutId);
+
           if (error) {
             console.warn("[AuthStore] getSession error:", error.message);
+            set({
+              status: "unauthenticated",
+              session: null,
+              user: null,
+              profile: null,
+              existSession: false,
+              _isInitializing: false,
+            });
+            return;
           }
 
           if (!session?.user) {
@@ -81,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
               user: null,
               profile: null,
               existSession: false,
+              _isInitializing: false,
             });
             return;
           }
@@ -97,6 +135,7 @@ export const useAuthStore = create<AuthState>()(
               status: "authenticated",
               profile: cachedProfile,
               existSession: true,
+              _isInitializing: false,
             });
 
             // refresco en background
@@ -104,6 +143,9 @@ export const useAuthStore = create<AuthState>()(
               .fetchProfile(session.user.id)
               .then((freshProfile) => {
                 if (freshProfile) set({ profile: freshProfile });
+              })
+              .catch((err) => {
+                console.warn("[AuthStore] Background profile refresh failed:", err);
               });
           } else {
             const profile = await get().fetchProfile(session.user.id);
@@ -111,11 +153,13 @@ export const useAuthStore = create<AuthState>()(
               status: "authenticated",
               profile,
               existSession: true,
+              _isInitializing: false,
             });
           }
 
-          console.log("[AuthStore] Initialized");
+          console.log("[AuthStore] Initialized successfully");
         } catch (error) {
+          clearTimeout(timeoutId);
           console.error("[AuthStore] Init error:", error);
           set({
             status: "unauthenticated",
@@ -123,6 +167,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             profile: null,
             existSession: false,
+            _isInitializing: false,
           });
         }
       },
@@ -208,9 +253,14 @@ export const useAuthStore = create<AuthState>()(
 let listenerInitialized = false;
 
 export function initAuthListener() {
-  if (listenerInitialized) return;
+  if (listenerInitialized) {
+    console.log("[AuthStore] Auth listener already initialized");
+    return;
+  }
   if (typeof window === "undefined") return;
+
   listenerInitialized = true;
+  console.log("[AuthStore] Initializing auth listener");
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     console.log("[AuthStore] Auth event:", event);
@@ -218,19 +268,34 @@ export function initAuthListener() {
     const { fetchProfile } = useAuthStore.getState();
 
     if (event === "SIGNED_IN" && session?.user) {
-      const profile = await fetchProfile(session.user.id);
+      console.log("[AuthStore] User signed in");
+      try {
+        const profile = await fetchProfile(session.user.id);
 
-      useAuthStore.setState({
-        status: "authenticated",
-        session,
-        user: session.user,
-        profile,
-        existSession: true,
-      });
+        useAuthStore.setState({
+          status: "authenticated",
+          session,
+          user: session.user,
+          profile,
+          existSession: true,
+          _isInitializing: false,
+        });
+      } catch (error) {
+        console.error("[AuthStore] Error fetching profile on SIGNED_IN:", error);
+        useAuthStore.setState({
+          status: "authenticated",
+          session,
+          user: session.user,
+          profile: null,
+          existSession: true,
+          _isInitializing: false,
+        });
+      }
       return;
     }
 
     if (event === "SIGNED_OUT") {
+      console.log("[AuthStore] User signed out");
       clearMerchantStateCache();
 
       useAuthStore.setState({
@@ -239,9 +304,14 @@ export function initAuthListener() {
         user: null,
         profile: null,
         existSession: false,
+        _isInitializing: false,
       });
 
-      await useAuthStore.persist.clearStorage();
+      try {
+        await useAuthStore.persist.clearStorage();
+      } catch (error) {
+        console.warn("[AuthStore] Error clearing storage:", error);
+      }
 
       if (typeof window !== "undefined") {
         window.localStorage.removeItem(SUPABASE_STORAGE_KEY);
@@ -250,11 +320,22 @@ export function initAuthListener() {
     }
 
     if (event === "TOKEN_REFRESHED" && session) {
+      console.log("[AuthStore] Token refreshed");
       useAuthStore.setState({
         session,
         user: session.user,
         existSession: true,
       });
+    }
+
+    if (event === "USER_UPDATED" && session?.user) {
+      console.log("[AuthStore] User updated, refreshing profile");
+      try {
+        const profile = await fetchProfile(session.user.id);
+        useAuthStore.setState({ profile });
+      } catch (error) {
+        console.error("[AuthStore] Error fetching profile on USER_UPDATED:", error);
+      }
     }
   });
 }

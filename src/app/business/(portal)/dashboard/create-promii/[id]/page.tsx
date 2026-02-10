@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/supabase.server";
+import { supabase } from "@/lib/supabase/supabase.client";
 import { CreatePromiiForm } from "../new/ui/form";
 
 
@@ -7,7 +7,7 @@ export default async function EditPromiiPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = await createSupabaseServerClient();
+  
 
   const { data: promii, error } = await supabase
     .from("promiis")
