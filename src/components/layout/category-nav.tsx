@@ -6,25 +6,33 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/config/categories";
 import { COLORS } from "@/config/colors";
+import { useAuth } from "@/lib/context/AuthContext";
 
 const BLUE = COLORS.bluePrimary; // "#2d68e8"
 const BLUE_LIGHT = COLORS.blueSecondary;
 
 export function CategoryNav() {
   const pathname = usePathname();
+  const { isInfluencer, isAuthenticated } = useAuth();
 
   return (
     <div className="border-b border-border bg-surface mb-1">
       <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-2">
         {CATEGORIES.map((c) => {
+          // Si es la categoría de influencers y el usuario está autenticado como influencer, redirigir a su dashboard
+          const isInfluencerCategory = c.key === "influencers";
+          const targetHref = isInfluencerCategory && isAuthenticated && isInfluencer
+            ? "/inf/dashboard"
+            : c.href;
+
           const active =
-            (c.href === "/" && pathname === "/") ||
-            (c.href !== "/" && pathname.startsWith(c.href));
+            (targetHref === "/" && pathname === "/") ||
+            (targetHref !== "/" && pathname.startsWith(targetHref));
 
           return (
             <Link
               key={c.key}
-              href={c.href}
+              href={targetHref}
               style={
                 {
                   "--cat-accent": BLUE,

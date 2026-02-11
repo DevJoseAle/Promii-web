@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase/supabase.client"; // <-- tu client-only
+import { supabase } from "@/lib/supabase/supabase.client";
 import { ProfileRole } from "@/config/types/profile";
+import { COLORS } from "@/config/colors";
+import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 
 type ProfileCheck = {
   id: string;
-  role: ProfileRole
+  role: ProfileRole;
   state: "pending" | "approved" | "rejected" | "blocked";
 };
 
@@ -32,7 +33,7 @@ export default function BusinessSignInPage() {
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "").trim();
 
-      // 1) Validación previa por profile (opcional, pero útil)
+      // Validación previa por profile
       const { data: profileCheck, error: profileCheckErr } = await supabase
         .from("profiles")
         .select("id, role, state")
@@ -63,7 +64,7 @@ export default function BusinessSignInPage() {
         }
       }
 
-      // 2) Login
+      // Login
       const { data, error: signInError } = await supabase.auth.signInWithPassword(
         { email, password }
       );
@@ -79,14 +80,11 @@ export default function BusinessSignInPage() {
         return;
       }
 
-      // 3) Determinar destino (usa el profileCheck si está)
+      // Determinar destino
       let destination = "/business/dashboard";
       if (profileCheck?.state === "blocked") destination = "/business/blocked";
       else if (profileCheck?.state === "rejected") destination = "/business/rejected";
       router.replace(destination);
-
-      // Opcional: si quieres re-evaluar server components (no es necesario)
-      // router.refresh();
     } catch (err: any) {
       console.error("Sign-in error:", err);
       setError(err?.message ?? "Error al iniciar sesión");
@@ -97,33 +95,147 @@ export default function BusinessSignInPage() {
 
   return (
     <AuthShell
-      title="Promii Empresas"
-      subtitle="Crea promos, valida compras y haz crecer tu negocio. Las empresas requieren aprobación antes de publicar."
+      title="Acceso Empresas"
+      subtitle="Entra a tu portal de negocio y gestiona tus promociones"
       badgeText="Portal · Promii Empresas"
+      variant="business"
     >
-      <AuthCard heading="Acceso empresas" subheading="Entra a tu portal de negocio">
-        <form onSubmit={onSubmit} className="space-y-3">
-          <Input name="email" type="email" placeholder="Email" required />
-          <Input name="password" type="password" placeholder="Contraseña" required />
-
-          {error ? <div className="text-sm text-danger">{error}</div> : null}
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-primary text-white hover:bg-primary/90"
+      <form onSubmit={onSubmit} className="space-y-5">
+        {/* Email field */}
+        <div className="space-y-2">
+          <label
+            htmlFor="email"
+            className="text-sm font-semibold"
+            style={{ color: COLORS.text.primary }}
           >
-            {loading ? "Entrando..." : "Entrar al portal"}
-          </Button>
-
-          <div className="text-sm text-text-secondary">
-            ¿Aún no estás aprobado?{" "}
-            <Link className="font-semibold text-primary hover:underline" href="/business/apply">
-              Solicita tu cuenta
-            </Link>
+            Email
+          </label>
+          <div className="relative">
+            <Mail
+              className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+              style={{ color: COLORS.text.tertiary }}
+            />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="tu@email.com"
+              required
+              className="h-11 pl-11"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+              }}
+            />
           </div>
-        </form>
-      </AuthCard>
+        </div>
+
+        {/* Password field */}
+        <div className="space-y-2">
+          <label
+            htmlFor="password"
+            className="text-sm font-semibold"
+            style={{ color: COLORS.text.primary }}
+          >
+            Contraseña
+          </label>
+          <div className="relative">
+            <Lock
+              className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+              style={{ color: COLORS.text.tertiary }}
+            />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              className="h-11 pl-11"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div
+            className="flex items-start gap-3 rounded-lg border p-4"
+            style={{
+              backgroundColor: COLORS.error.lighter,
+              borderColor: COLORS.error.light,
+            }}
+          >
+            <AlertCircle className="size-5 shrink-0 mt-0.5" style={{ color: COLORS.error.main }} />
+            <div className="text-sm" style={{ color: COLORS.error.dark }}>
+              {error}
+            </div>
+          </div>
+        )}
+
+        {/* Submit button */}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
+          style={{
+            background: loading
+              ? COLORS.text.tertiary
+              : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+            color: COLORS.text.inverse,
+          }}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="size-5 animate-spin" />
+              Entrando...
+            </span>
+          ) : (
+            "Entrar al Portal"
+          )}
+        </Button>
+
+        {/* Divider */}
+        <div className="relative py-4">
+          <div
+            className="absolute inset-0 flex items-center"
+            style={{ borderTop: `1px solid ${COLORS.border.light}` }}
+          />
+          <div className="relative flex justify-center">
+            <span
+              className="bg-white px-4 text-xs font-medium"
+              style={{ color: COLORS.text.tertiary, backgroundColor: COLORS.background.primary }}
+            >
+              ¿Primera vez?
+            </span>
+          </div>
+        </div>
+
+        {/* Sign up link */}
+        <div
+          className="rounded-lg border p-4 text-center"
+          style={{
+            backgroundColor: COLORS.background.secondary,
+            borderColor: COLORS.border.light,
+          }}
+        >
+          <p className="text-sm" style={{ color: COLORS.text.secondary }}>
+            ¿Aún no tienes cuenta?{" "}
+            <Link
+              href="/business/apply"
+              className="font-semibold transition-colors duration-200 hover:underline"
+              style={{ color: COLORS.primary.main }}
+            >
+              Solicita tu cuenta empresarial
+            </Link>
+          </p>
+          <p className="mt-2 text-xs" style={{ color: COLORS.text.tertiary }}>
+            Las cuentas empresariales requieren aprobación para proteger a los usuarios
+          </p>
+        </div>
+      </form>
     </AuthShell>
   );
 }

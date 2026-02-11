@@ -27,13 +27,11 @@ export function AuthGate({
     if (loading) return;
 
     if (status !== "authenticated") {
-      console.log("[AuthGate] Not authenticated, redirecting to", redirectTo);
       router.replace(redirectTo);
       return;
     }
 
     if (roles?.length && profile?.role && !roles.includes(profile.role)) {
-      console.log("[AuthGate] Role mismatch, redirecting to /");
       router.replace("/");
       return;
     }

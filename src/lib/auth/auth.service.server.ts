@@ -12,7 +12,6 @@ export async function getServerProfile(userId: string): Promise<Profile | null> 
     .eq("id", userId)
     .maybeSingle<Profile>();
 
-    console.log(data, "DESDE SERVERPROFILE");
   if (error) return null;
   return data ?? null;
 }

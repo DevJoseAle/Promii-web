@@ -5,13 +5,16 @@
 
 export const COLORS = {
   // Marca principal (basado en el azul existente)
-  primary: {
-    main: "#2d68e8",      // Azul principal (botones, links principales)
-    light: "#4f86ff",     // Azul secundario (hover, highlights)
-    lighter: "#e8f0ff",   // Fondos sutiles, badges
-    dark: "#1a4bc4",      // Botones pressed, textos importantes
-    darker: "#0d2d7a",    // Headers, contraste alto
+   primary: {
+    main: "#6D28D9",
+    light: "#8B5CF6",
+    lighter: "#EDE9FE",
+    dark: "#4C1D95",
+    darker: "#2E1065",
   },
+
+  bluePrimary: "#6D28D9",
+  blueSecondary: "#8B5CF6",
 
   // Colores semánticos
   success: {
@@ -82,9 +85,7 @@ export const COLORS = {
   // Overlay
   overlay: "rgba(0, 0, 0, 0.5)",  // Para modales, drawers
 
-  // Legacy (mantener compatibilidad)
-  bluePrimary: "#2d68e8",
-  blueSecondary: "#4f86ff",
+
 } as const;
 
 export type ColorTokens = typeof COLORS;

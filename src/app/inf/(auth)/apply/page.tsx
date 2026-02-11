@@ -4,30 +4,45 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { supabase } from "@/lib/supabase/supabase.client";
+import { COLORS } from "@/config/colors";
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  MapPin,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Instagram,
+  Youtube,
+  Users,
+  Sparkles,
+} from "lucide-react";
+
+// TikTok icon
+const TikTokIcon = () => (
+  <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+);
 
 type Draft = {
-  // cuenta
   email: string;
   password: string;
-
-  // datos influencer
   fullName: string;
   phone: string;
-
   stateId: string;
   cityId: string;
-
   instagramHandle: string;
   tiktokHandle: string;
   youtubeHandle: string;
-
-  audienceSize: string; // string para input; convertimos a int al guardar
+  audienceSize: string;
   niche: string;
   notes: string;
 };
@@ -48,14 +63,11 @@ export default function InfluencerApplyPage() {
   // Influencer
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [stateId, setStateId] = useState("");
   const [cityId, setCityId] = useState("");
-
   const [instagramHandle, setInstagramHandle] = useState("");
   const [tiktokHandle, setTiktokHandle] = useState("");
   const [youtubeHandle, setYoutubeHandle] = useState("");
-
   const [audienceSize, setAudienceSize] = useState("");
   const [niche, setNiche] = useState("");
   const [notes, setNotes] = useState("");
@@ -99,7 +111,6 @@ export default function InfluencerApplyPage() {
   }
 
   async function finalizeSubmitWithSession(userId: string) {
-    // audience size int o null
     const audienceInt =
       audienceSize.trim() === ""
         ? null
@@ -109,7 +120,6 @@ export default function InfluencerApplyPage() {
       throw new Error("El tamaño de audiencia debe ser un número.");
     }
 
-    // 1) upsert influencer_applications (1 por usuario)
     const { error: appErr } = await supabase
       .from("influencer_applications")
       .upsert(
@@ -127,12 +137,11 @@ export default function InfluencerApplyPage() {
           niche: niche.trim() || null,
           notes: notes.trim() || null,
         },
-        { onConflict: "owner_id" },
+        { onConflict: "owner_id" }
       );
 
     if (appErr) throw new Error(appErr.message);
 
-    // 2) set profile role=influencer, state=pending
     const { error: profileErr } = await supabase
       .from("profiles")
       .update({ role: "influencer", state: "pending" })
@@ -141,7 +150,7 @@ export default function InfluencerApplyPage() {
     if (profileErr) throw new Error(profileErr.message);
 
     clearDraft();
-    router.push("/influencers/pending");
+    router.push("/inf/pending");
     router.refresh();
   }
 
@@ -153,7 +162,6 @@ export default function InfluencerApplyPage() {
     const draft = loadDraft();
     if (!draft) return;
 
-    // hidratar UI desde draft para consistencia
     setEmail(draft.email);
     setPassword(draft.password);
     setFullName(draft.fullName);
@@ -178,7 +186,6 @@ export default function InfluencerApplyPage() {
   }
 
   useEffect(() => {
-    // Prefill desde draft
     const draft = loadDraft();
     if (draft) {
       setEmail(draft.email);
@@ -195,7 +202,6 @@ export default function InfluencerApplyPage() {
       setNotes(draft.notes);
     }
 
-    // Si viene del correo y ya hay sesión → auto submit
     void tryAutoSubmitDraftIfSessionExists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -206,25 +212,21 @@ export default function InfluencerApplyPage() {
     setError(null);
     setNeedsEmailVerify(false);
 
-    // validación mínima
     if (!fullName.trim() || !phone.trim()) {
       setError("Completa tu nombre y tu teléfono (WhatsApp).");
       setLoading(false);
       return;
     }
 
-    // opcional: exigir ubicación
     if (!stateId || !cityId) {
       setError("Selecciona un estado y una ciudad.");
       setLoading(false);
       return;
     }
 
-    // 1) ¿ya hay sesión? → enviar directo
     const { data: auth } = await supabase.auth.getUser();
     const user = auth.user;
 
-    // ✅ si existe user PERO no está confirmado, forzamos flujo verify
     const isConfirmed =
       !!(user as any)?.email_confirmed_at || !!(user as any)?.confirmed_at;
 
@@ -238,7 +240,6 @@ export default function InfluencerApplyPage() {
       return;
     }
 
-    // si hay user pero NO confirmado -> guardamos draft y mostramos verify
     if (user?.id && !isConfirmed) {
       saveDraft();
       setNeedsEmailVerify(true);
@@ -246,7 +247,6 @@ export default function InfluencerApplyPage() {
       return;
     }
 
-    // 2) sin sesión → signup + draft + verify
     const safeEmail = email.trim();
     const safePass = password.trim();
 
@@ -258,10 +258,9 @@ export default function InfluencerApplyPage() {
 
     saveDraft();
 
-    // ✅ importantísimo para que la sesión quede: /auth/callback
     const emailRedirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=/influencers/apply`
+        ? `${window.location.origin}/auth/callback?next=/inf/apply`
         : undefined;
 
     const { error: signUpErr } = await supabase.auth.signUp({
@@ -276,7 +275,6 @@ export default function InfluencerApplyPage() {
       return;
     }
 
-    // confirm email ON: normalmente no habrá sesión aún
     setNeedsEmailVerify(true);
     setLoading(false);
   }
@@ -295,7 +293,7 @@ export default function InfluencerApplyPage() {
 
     if (signInErr) {
       setError(
-        "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.",
+        "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar."
       );
       setLoading(false);
       return;
@@ -306,236 +304,554 @@ export default function InfluencerApplyPage() {
 
   return (
     <AuthShell
-      title="Promii Influencers"
-      subtitle="Solicita tu cuenta. Una vez aprobada, podrás compartir códigos y ganar comisión por compra."
+      title="Solicitud de Influencer"
+      subtitle="Únete a Promii Influencers y gana comisión por cada venta que generes con tu código único."
       badgeText="Solicitud · Promii Influencers"
+      variant="influencer"
     >
-      <AuthCard
-        heading="Solicitud de influencer"
-        subheading="Esto nos ayuda a evitar fraude"
-      >
-        {needsEmailVerify ? (
-          <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
-            <div className="text-sm font-semibold text-text-primary">
-              Te enviamos un correo para verificar tu cuenta
+      {needsEmailVerify ? (
+        <div
+          className="rounded-xl border p-6 space-y-4"
+          style={{
+            backgroundColor: COLORS.info.lighter,
+            borderColor: COLORS.info.light,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <Mail className="size-6 shrink-0 mt-0.5" style={{ color: COLORS.info.main }} />
+            <div>
+              <div className="font-semibold text-base" style={{ color: COLORS.text.primary }}>
+                Verifica tu email
+              </div>
+              <p className="mt-1 text-sm" style={{ color: COLORS.text.secondary }}>
+                Te enviamos un correo de verificación. Revisa tu bandeja de entrada (y spam). Cuando
+                verifiques, vuelve y presiona el botón.
+              </p>
             </div>
-            <div className="text-sm text-text-secondary">
-              Revisa tu bandeja (y spam). Al verificar, volverás aquí y podrás
-              continuar.
-            </div>
+          </div>
 
-            {error ? <div className="text-sm text-danger">{error}</div> : null}
-
-            <Button
-              type="button"
-              onClick={onIVerifiedClick}
-              disabled={loading}
-              className="w-full bg-primary text-white hover:bg-primary/90"
+          {error && (
+            <div
+              className="flex items-start gap-3 rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.error.lighter,
+                borderColor: COLORS.error.light,
+              }}
             >
-              {loading ? "Validando..." : "Ya verifiqué, continuar"}
-            </Button>
+              <AlertCircle
+                className="size-5 shrink-0 mt-0.5"
+                style={{ color: COLORS.error.main }}
+              />
+              <div className="text-sm" style={{ color: COLORS.error.dark }}>
+                {error}
+              </div>
+            </div>
+          )}
 
-            <div className="text-xs text-text-secondary">
-              Si ya verificaste y aún falla, vuelve a{" "}
-              <Link
-                className="text-primary hover:underline"
-                href="/influencers/sign-in"
+          <Button
+            type="button"
+            onClick={onIVerifiedClick}
+            disabled={loading}
+            className="w-full h-11 font-semibold transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                Validando...
+              </span>
+            ) : (
+              "Ya verifiqué, continuar"
+            )}
+          </Button>
+
+          <p className="text-xs text-center" style={{ color: COLORS.text.secondary }}>
+            Si ya verificaste y aún falla,{" "}
+            <Link
+              href="/inf/sign-in"
+              className="font-semibold hover:underline"
+              style={{ color: COLORS.primary.main }}
+            >
+              inicia sesión aquí
+            </Link>
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-6">
+          {/* Sección: Tu Cuenta */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.primary.lighter, color: COLORS.primary.main }}
               >
-                iniciar sesión
-              </Link>
-              .
+                <User className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Tu Cuenta
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Crea tu cuenta de acceso
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      saveDraft({ email: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <Lock
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      saveDraft({ password: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        ) : null}
 
-        <form onSubmit={onSubmit} className="space-y-3">
-          {/* Cuenta */}
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-text-primary">
-              Tu cuenta
+          {/* Sección: Tu Perfil */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.success.lighter, color: COLORS.success.main }}
+              >
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Tu Perfil de Influencer
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Información básica sobre ti
+                </div>
+              </div>
             </div>
 
-            <Input
-              placeholder="Email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                saveDraft({ email: e.target.value });
-              }}
-              required
-            />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="fullName" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Nombre completo
+                </label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  placeholder="Tu nombre completo"
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    saveDraft({ fullName: e.target.value });
+                  }}
+                  required
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
 
-            <Input
-              placeholder="Contraseña"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                saveDraft({ password: e.target.value });
-              }}
-              required
-            />
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  WhatsApp / Teléfono
+                </label>
+                <div className="relative">
+                  <Phone
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+58 414 123 4567"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      saveDraft({ phone: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Datos influencer */}
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-text-primary">
-              Tu perfil
+          {/* Sección: Ubicación */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.warning.lighter, color: COLORS.warning.main }}
+              >
+                <MapPin className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Ubicación
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Dónde te encuentras
+                </div>
+              </div>
             </div>
 
-            <Input
-              placeholder="Nombre completo"
-              name="fullName"
-              value={fullName}
-              onChange={(e) => {
-                setFullName(e.target.value);
-                saveDraft({ fullName: e.target.value });
-              }}
-              required
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="state" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Estado
+                </label>
+                <select
+                  id="state"
+                  name="state"
+                  value={stateId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setStateId(next);
+                    setCityId("");
+                    saveDraft({ stateId: next, cityId: "" });
+                  }}
+                  required
+                  className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                    color: COLORS.text.primary,
+                  }}
+                >
+                  <option value="">Selecciona un estado</option>
+                  {VENEZUELA_STATES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <Input
-              placeholder="WhatsApp / Teléfono"
-              name="phone"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                saveDraft({ phone: e.target.value });
-              }}
-              required
-            />
+              <div className="space-y-2">
+                <label htmlFor="city" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Ciudad
+                </label>
+                <select
+                  id="city"
+                  name="city"
+                  value={cityId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setCityId(next);
+                    saveDraft({ cityId: next });
+                  }}
+                  required
+                  disabled={!stateId}
+                  className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                    color: COLORS.text.primary,
+                  }}
+                >
+                  <option value="">
+                    {stateId ? "Selecciona una ciudad" : "Elige primero un estado"}
+                  </option>
+                  {filteredCities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-            {/* Estado */}
-            <select
-              name="state"
-              value={stateId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setStateId(next);
-                setCityId("");
-                saveDraft({ stateId: next, cityId: "" });
+          {/* Sección: Redes Sociales */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.info.lighter, color: COLORS.info.main }}
+              >
+                <Users className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Redes Sociales
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Tus perfiles (opcional pero recomendado)
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="instagram" className="text-sm font-semibold flex items-center gap-2" style={{ color: COLORS.text.primary }}>
+                  <Instagram className="size-4" />
+                  Instagram
+                </label>
+                <Input
+                  id="instagram"
+                  name="instagramHandle"
+                  placeholder="@tu_usuario"
+                  value={instagramHandle}
+                  onChange={(e) => {
+                    setInstagramHandle(e.target.value);
+                    saveDraft({ instagramHandle: e.target.value });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="tiktok" className="text-sm font-semibold flex items-center gap-2" style={{ color: COLORS.text.primary }}>
+                  <TikTokIcon />
+                  TikTok
+                </label>
+                <Input
+                  id="tiktok"
+                  name="tiktokHandle"
+                  placeholder="@tu_usuario"
+                  value={tiktokHandle}
+                  onChange={(e) => {
+                    setTiktokHandle(e.target.value);
+                    saveDraft({ tiktokHandle: e.target.value });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="youtube" className="text-sm font-semibold flex items-center gap-2" style={{ color: COLORS.text.primary }}>
+                  <Youtube className="size-4" />
+                  YouTube
+                </label>
+                <Input
+                  id="youtube"
+                  name="youtubeHandle"
+                  placeholder="Tu canal o @usuario"
+                  value={youtubeHandle}
+                  onChange={(e) => {
+                    setYoutubeHandle(e.target.value);
+                    saveDraft({ youtubeHandle: e.target.value });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="audienceSize" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Tamaño de audiencia <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>(Opcional)</span>
+                </label>
+                <Input
+                  id="audienceSize"
+                  name="audienceSize"
+                  inputMode="numeric"
+                  placeholder="Ej: 12000"
+                  value={audienceSize}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/[^\d]/g, "");
+                    setAudienceSize(next);
+                    saveDraft({ audienceSize: next });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="niche" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Nicho / Categoría <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>(Opcional)</span>
+                </label>
+                <Input
+                  id="niche"
+                  name="niche"
+                  placeholder="Ej: Comida, Fitness, Tecnología"
+                  value={niche}
+                  onChange={(e) => {
+                    setNiche(e.target.value);
+                    saveDraft({ niche: e.target.value });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="notes" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Cuéntanos sobre ti <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>(Opcional)</span>
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  value={notes}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    saveDraft({ notes: e.target.value });
+                  }}
+                  placeholder="Cuéntanos un poco sobre tu contenido y estilo..."
+                  className="min-h-[96px] w-full resize-none rounded-lg border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                    color: COLORS.text.primary,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div
+              className="flex items-start gap-3 rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.error.lighter,
+                borderColor: COLORS.error.light,
               }}
-              required
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
             >
-              <option value="">Selecciona un estado</option>
-              {VENEZUELA_STATES.map((s: any) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              <AlertCircle className="size-5 shrink-0 mt-0.5" style={{ color: COLORS.error.main }} />
+              <div className="text-sm" style={{ color: COLORS.error.dark }}>
+                {error}
+              </div>
+            </div>
+          )}
 
-            {/* Ciudad */}
-            <select
-              name="city"
-              value={cityId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCityId(next);
-                saveDraft({ cityId: next });
-              }}
-              required
-              disabled={!stateId}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
-            >
-              <option value="">
-                {stateId ? "Selecciona una ciudad" : "Elige primero un estado"}
-              </option>
-              {filteredCities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            <Input
-              placeholder="@instagram (opcional)"
-              name="instagramHandle"
-              value={instagramHandle}
-              onChange={(e) => {
-                setInstagramHandle(e.target.value);
-                saveDraft({ instagramHandle: e.target.value });
-              }}
-            />
-
-            <Input
-              placeholder="@tiktok (opcional)"
-              name="tiktokHandle"
-              value={tiktokHandle}
-              onChange={(e) => {
-                setTiktokHandle(e.target.value);
-                saveDraft({ tiktokHandle: e.target.value });
-              }}
-            />
-
-            <Input
-              placeholder="Canal de YouTube (opcional)"
-              name="youtubeHandle"
-              value={youtubeHandle}
-              onChange={(e) => {
-                setYoutubeHandle(e.target.value);
-                saveDraft({ youtubeHandle: e.target.value });
-              }}
-            />
-
-            <Input
-              placeholder="Tamaño audiencia (ej: 12000) (opcional)"
-              name="audienceSize"
-              inputMode="numeric"
-              value={audienceSize}
-              onChange={(e) => {
-                // solo números
-                const next = e.target.value.replace(/[^\d]/g, "");
-                setAudienceSize(next);
-                saveDraft({ audienceSize: next });
-              }}
-            />
-
-            <Input
-              placeholder="Nicho (ej: comida, fitness, tecnología) (opcional)"
-              name="niche"
-              value={niche}
-              onChange={(e) => {
-                setNiche(e.target.value);
-                saveDraft({ niche: e.target.value });
-              }}
-            />
-
-            <textarea
-              name="notes"
-              value={notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                saveDraft({ notes: e.target.value });
-              }}
-              placeholder="Cuéntanos un poco sobre tu contenido (opcional)"
-              className="min-h-[96px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-            />
-          </div>
-
-          {error ? <div className="text-sm text-danger">{error}</div> : null}
-
+          {/* Submit button */}
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
+            style={{
+              background: loading
+                ? COLORS.text.tertiary
+                : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
           >
-            {loading ? "Enviando..." : "Enviar solicitud"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                Enviando solicitud...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="size-5" />
+                Enviar Solicitud
+              </span>
+            )}
           </Button>
 
-          <div className="text-xs text-text-secondary">
+          {/* Terms */}
+          <p className="text-xs text-center" style={{ color: COLORS.text.secondary }}>
             Al enviar, aceptas nuestros{" "}
-            <Link className="text-primary hover:underline" href="/legal/terms">
-              Términos
+            <Link
+              href="/legal/terms"
+              className="font-semibold hover:underline"
+              style={{ color: COLORS.primary.main }}
+            >
+              Términos y Condiciones
             </Link>
-            .
-          </div>
+          </p>
         </form>
-      </AuthCard>
+      )}
     </AuthShell>
   );
 }

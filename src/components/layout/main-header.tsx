@@ -56,86 +56,128 @@ function MainHeaderContent() {
   }
   if (logoutLoading) return <FullscreenLoading show={logoutLoading} />;
   return (
-    <div className="border-b border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="text-xl font-extrabold tracking-tight text-primary">
-            <Image
-              src={"/images/promiiLogo.png"}
-              alt="Promii Logo"
-              width={120}
-              height={30}
-            />
-          </div>
+    <header
+      className="sticky top-0 z-50 border-b shadow-sm"
+      style={{
+        backgroundColor: COLORS.background.primary,
+        borderColor: COLORS.border.light,
+      }}
+    >
+      <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
+        {/* Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 transition-transform duration-200 hover:scale-105"
+        >
+          <Image
+            src="/images/promiiLogo.png"
+            alt="Promii Logo"
+            width={120}
+            height={40}
+            className="h-10 w-auto object-contain"
+          />
         </Link>
 
+        {/* Search form */}
         <form
           action={onSubmit}
-          className="flex w-full flex-1 items-center gap-2"
+          className="flex w-full flex-1 items-center gap-3"
         >
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-secondary" />
+            <Search
+              className="absolute left-3 top-1/2 size-4 -translate-y-1/2"
+              style={{ color: COLORS.text.tertiary }}
+            />
             <Input
               name="q"
               defaultValue={sp.get("q") ?? ""}
-              placeholder="Búsqueda"
-              className="h-10 pl-9"
+              placeholder="Buscar promiis, categorías..."
+              className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+                color: COLORS.text.primary,
+              }}
             />
           </div>
 
-          <div className="relative w-[200px] shrink-0 max-sm:hidden">
-            <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-secondary" />
+          <div className="relative w-[180px] shrink-0 max-sm:hidden">
+            <MapPin
+              className="absolute left-3 top-1/2 size-4 -translate-y-1/2"
+              style={{ color: COLORS.text.tertiary }}
+            />
             <Input
               name="city"
               defaultValue={sp.get("city") ?? ""}
               placeholder="Ciudad"
-              className="h-10 pl-9"
+              className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+                color: COLORS.text.primary,
+              }}
             />
           </div>
 
           <Button
             type="submit"
-            className="h-10 bg-primary text-white hover:bg-primary/90"
+            className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
           >
-            Buscar
+            <Search className="size-4 sm:mr-2" />
+            <span className="max-sm:hidden">Buscar</span>
           </Button>
         </form>
 
-        <div className="flex items-center gap-2">
-          {isAuthenticated && (
+        {/* Auth buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated ? (
+            <>
+              {isUser && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Cuenta"
+                  className="size-11 transition-colors duration-200"
+                  style={{ color: COLORS.text.secondary }}
+                >
+                  <User className="size-5" />
+                </Button>
+              )}
+              <Button
+                onClick={handleLogout}
+                disabled={logoutLoading}
+                className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: COLORS.error.lighter,
+                  color: COLORS.error.dark,
+                  border: `1px solid ${COLORS.error.light}`,
+                }}
+              >
+                {logoutLoading ? "Cerrando..." : "Cerrar sesión"}
+              </Button>
+            </>
+          ) : (
             <Button
-              variant="destructive"
-              onClick={handleLogout}
-              disabled={logoutLoading}
-            >
-              <p>{logoutLoading ? "Cerrando..." : "Cerrar sesión"}</p>
-            </Button>
-          )}
-          {!isAuthenticated && (
-            <Button
-              variant="secondary"
               asChild
-              className="h-10 bg-primary text-white hover:bg-primary/90"
+              className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
               style={{
-                backgroundColor: COLORS.bluePrimary,
-                color: "white",
-                fontWeight: "bold",
+                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                color: COLORS.text.inverse,
               }}
             >
-              <Link className="hover:text-primary" href="/auth/sign-in">
+              <Link href="/auth/sign-in">
+                <User className="size-4 mr-2" />
                 Iniciar Sesión
               </Link>
             </Button>
           )}
-
-          {isUser && (
-            <Button variant="ghost" size="icon" aria-label="Cuenta">
-              <User className="size-5" />
-            </Button>
-          )}
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

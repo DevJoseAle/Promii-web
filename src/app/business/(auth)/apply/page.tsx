@@ -4,15 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { AuthCard } from "@/components/auth/auth-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { supabase } from "@/lib/supabase/supabase.client";
-
-type State = { id: string; name: string };
-type City = { id: string; stateId: string; name: string };
+import { COLORS } from "@/config/colors";
+import {
+  Mail,
+  Lock,
+  Store,
+  Phone,
+  MapPin,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  User,
+} from "lucide-react";
 
 type Draft = {
   email: string;
@@ -88,27 +96,22 @@ export default function BusinessApplyPage() {
           description: null,
           logo_url: null,
           cover_image_url: null,
-
           category_primary: categoryPrimary,
           category_secondary: null,
-
-          address_line: "Pendiente", // si aún no lo pides en apply, pon placeholder
-          state: stateId, // hoy estás guardando IDs; si prefieres nombre, cámbialo
+          address_line: "Pendiente",
+          state: stateId,
           city: cityId,
           zone: zone.trim() || null,
-
           geo_lat: null,
           geo_lng: null,
-
           contact_name: "Pendiente",
           contact_email: email.trim() || "pendiente@promii.com",
           phone: phone.trim(),
-
           whatsapp: null,
           instagram_handle: null,
           website_url: null,
         },
-        { onConflict: "id" },
+        { onConflict: "id" }
       );
       if (merchantErr) throw new Error(merchantErr.message);
     } catch (error) {
@@ -119,7 +122,6 @@ export default function BusinessApplyPage() {
 
   async function finalizeSubmitWithSession(userId: string) {
     try {
-      // upsert solicitud
       const { error: appErr } = await supabase
         .from("business_applications")
         .upsert(
@@ -127,16 +129,15 @@ export default function BusinessApplyPage() {
             owner_id: userId,
             business_name: businessName.trim(),
             phone: phone.trim(),
-            state: stateId || null, // guardas ID
-            city: cityId || null, // guardas ID
+            state: stateId || null,
+            city: cityId || null,
             zone: zone.trim() || null,
           },
-          { onConflict: "owner_id" },
+          { onConflict: "owner_id" }
         );
 
       if (appErr) throw new Error(appErr.message);
 
-      // set profile merchant/pending
       const { error: profileErr } = await supabase
         .from("profiles")
         .update({ role: "merchant", state: "pending" })
@@ -154,35 +155,7 @@ export default function BusinessApplyPage() {
     router.refresh();
   }
 
-  async function tryAutoSubmitDraftIfSessionExists() {
-    const { data } = await supabase.auth.getUser();
-    const userId = data.user?.id;
-    if (!userId) return;
-
-    const draft = loadDraft();
-    if (!draft) return;
-
-    // hidrata el form desde draft (para que todo quede consistente)
-    setEmail(draft.email);
-    setPassword(draft.password);
-    setBusinessName(draft.businessName);
-    setPhone(draft.phone);
-    setStateId(draft.stateId);
-    setCityId(draft.cityId);
-    setZone(draft.zone);
-
-    setLoading(true);
-    setError(null);
-    try {
-      await finalizeSubmitWithSession(userId);
-    } catch (e: any) {
-      setError(e?.message ?? "No se pudo enviar la solicitud.");
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    // 1) Prefill desde draft si existe
     const draft = loadDraft();
     if (draft) {
       setEmail(draft.email);
@@ -200,78 +173,76 @@ export default function BusinessApplyPage() {
     setLoading(true);
     setError(null);
     setNeedsEmailVerify(false);
+
     try {
-      console.log("Ingresé", email);
       const safeBusinessName = businessName.trim();
       const safePhone = phone.trim();
-      console.log("antes");
-      console.time("checkUserExist");
+
       const { data: authEmail, error: authEmailErr } =
         await supabase.functions.invoke("checkUserExist", {
           body: { email },
         });
-      console.timeEnd("checkUserExist");
+
       if (authEmailErr) {
         setError("Error verificando el email. Intenta nuevamente.");
         setLoading(false);
-        let error = new Error(authEmailErr.message);
-        throw error;
         return;
       }
-      console.log({ authEmail, authEmailErr });
-     if (!safeBusinessName || !safePhone) {
-       setError("Completa al menos el nombre del negocio y el teléfono.");
-       setLoading(false);
-       return;
-     }
-     if (!stateId || !cityId) {
-       setError("Selecciona un estado y una ciudad.");
-       setLoading(false);
-       return;
-     }
-     const { data: auth } = await supabase.auth.getUser();
-     const userId = auth.user?.id;
 
-     if (userId) {
-       try {
-         await finalizeSubmitWithSession(userId);
-       } catch (e: any) {
-         setError(e?.message ?? "No se pudo enviar la solicitud.");
-         setLoading(false);
-       }
-       return;
-     }
+      if (!safeBusinessName || !safePhone) {
+        setError("Completa al menos el nombre del negocio y el teléfono.");
+        setLoading(false);
+        return;
+      }
 
-     const safeEmail = email.trim();
-     const safePass = password.trim();
+      if (!stateId || !cityId) {
+        setError("Selecciona un estado y una ciudad.");
+        setLoading(false);
+        return;
+      }
 
-     if (!safeEmail || !safePass) {
-       setError("Ingresa tu email y contraseña para crear tu cuenta.");
-       setLoading(false);
-       return;
-     }
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
 
-     saveDraft();
+      if (userId) {
+        try {
+          await finalizeSubmitWithSession(userId);
+        } catch (e: any) {
+          setError(e?.message ?? "No se pudo enviar la solicitud.");
+          setLoading(false);
+        }
+        return;
+      }
 
-     const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
-     const { error: signUpErr } = await supabase.auth.signUp({
-       email: safeEmail,
-       password: safePass,
-       options: emailRedirectTo ? { emailRedirectTo } : undefined,
-     });
+      const safeEmail = email.trim();
+      const safePass = password.trim();
 
-     if (signUpErr) {
-       setError(signUpErr.message);
-       setLoading(false);
-       return;
-     }
-     setNeedsEmailVerify(true);
-     setLoading(false);
+      if (!safeEmail || !safePass) {
+        setError("Ingresa tu email y contraseña para crear tu cuenta.");
+        setLoading(false);
+        return;
+      }
+
+      saveDraft();
+
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=/business/apply`;
+      const { error: signUpErr } = await supabase.auth.signUp({
+        email: safeEmail,
+        password: safePass,
+        options: emailRedirectTo ? { emailRedirectTo } : undefined,
+      });
+
+      if (signUpErr) {
+        setError(signUpErr.message);
+        setLoading(false);
+        return;
+      }
+
+      setNeedsEmailVerify(true);
+      setLoading(false);
     } catch (error) {
       console.error("Error en el submit:", error);
       setError("Error al procesar la solicitud.");
-      setLoading(false);
-    } finally {
       setLoading(false);
     }
   }
@@ -284,22 +255,19 @@ export default function BusinessApplyPage() {
       const safeEmail = email.trim();
       const safePass = password.trim();
 
-      const { data, error: signInErr } = await supabase.auth.signInWithPassword(
-        {
-          email: safeEmail,
-          password: safePass,
-        },
-      );
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword({
+        email: safeEmail,
+        password: safePass,
+      });
 
       if (signInErr) {
         setError(
-          "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar.",
+          "Aún no podemos iniciar sesión. Verifica tu correo y vuelve a intentar."
         );
         setLoading(false);
-        return; // ← RETURN en lugar de throw
+        return;
       }
 
-      // ✅ Usa el userId directamente del response, no de otra llamada
       const userId = data.user?.id;
       if (!userId) {
         setError("No se pudo obtener el usuario.");
@@ -307,7 +275,6 @@ export default function BusinessApplyPage() {
         return;
       }
 
-      // ✅ Llama directamente a finalizeSubmitWithSession con el userId
       await finalizeSubmitWithSession(userId);
     } catch (error: any) {
       console.error("Error en verificación:", error);
@@ -318,181 +285,417 @@ export default function BusinessApplyPage() {
 
   return (
     <AuthShell
-      title="Promii Empresas"
-      subtitle="Completa tu solicitud. Una vez aprobada, podrás publicar Promiis."
+      title="Solicitud de Negocio"
+      subtitle="Completa tu solicitud para publicar Promiis. Verificamos cada negocio para proteger a los usuarios."
       badgeText="Solicitud · Promii Empresas"
+      variant="business"
     >
-      <AuthCard
-        heading="Solicitud de negocio"
-        subheading="Esto nos ayuda a evitar estafas"
-      >
-        {/* Panel verificación */}
-        {needsEmailVerify ? (
-          <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
-            <div className="text-sm font-semibold text-text-primary">
-              Te enviamos un correo para verificar tu cuenta
+      {needsEmailVerify ? (
+        <div
+          className="rounded-xl border p-6 space-y-4"
+          style={{
+            backgroundColor: COLORS.info.lighter,
+            borderColor: COLORS.info.light,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <Mail className="size-6 shrink-0 mt-0.5" style={{ color: COLORS.info.main }} />
+            <div>
+              <div className="font-semibold text-base" style={{ color: COLORS.text.primary }}>
+                Verifica tu email
+              </div>
+              <p className="mt-1 text-sm" style={{ color: COLORS.text.secondary }}>
+                Te enviamos un correo de verificación. Revisa tu bandeja de entrada (y spam). Cuando
+                verifiques, vuelve y presiona el botón.
+              </p>
             </div>
-            <div className="text-sm text-text-secondary">
-              Revisa tu bandeja de entrada (y spam). Cuando verifiques, vuelve a
-              esta pantalla y presiona el botón.
-            </div>
+          </div>
 
-            {error ? <div className="text-sm text-danger">{error}</div> : null}
-
-            <Button
-              type="button"
-              onClick={onIVerifiedClick}
-              disabled={loading}
-              className="w-full bg-primary text-white hover:bg-primary/90"
+          {error && (
+            <div
+              className="flex items-start gap-3 rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.error.lighter,
+                borderColor: COLORS.error.light,
+              }}
             >
-              {loading ? "Validando..." : "Ya verifiqué, continuar"}
-            </Button>
+              <AlertCircle
+                className="size-5 shrink-0 mt-0.5"
+                style={{ color: COLORS.error.main }}
+              />
+              <div className="text-sm" style={{ color: COLORS.error.dark }}>
+                {error}
+              </div>
+            </div>
+          )}
 
-            <div className="text-xs text-text-secondary">
-              Si ya verificaste y aún falla, vuelve a{" "}
-              <Link
-                className="text-primary hover:underline"
-                href="/business/sign-in"
+          <Button
+            type="button"
+            onClick={onIVerifiedClick}
+            disabled={loading}
+            className="w-full h-11 font-semibold transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                Validando...
+              </span>
+            ) : (
+              "Ya verifiqué, continuar"
+            )}
+          </Button>
+
+          <p className="text-xs text-center" style={{ color: COLORS.text.secondary }}>
+            Si ya verificaste y aún falla,{" "}
+            <Link
+              href="/business/sign-in"
+              className="font-semibold hover:underline"
+              style={{ color: COLORS.primary.main }}
+            >
+              inicia sesión aquí
+            </Link>
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={onSubmit} className="space-y-6">
+          {/* Sección: Tu Cuenta */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.primary.lighter, color: COLORS.primary.main }}
               >
-                iniciar sesión
-              </Link>
-              .
+                <User className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Tu Cuenta
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Crea tu cuenta de acceso
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      saveDraft({ email: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <Lock
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      saveDraft({ password: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        ) : null}
 
-        {/* Form principal */}
-        <form onSubmit={onSubmit} className="space-y-3">
-          {/* Cuenta (solo si no hay sesión) */}
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-text-primary">
-              Tu cuenta
+          {/* Sección: Tu Negocio */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.success.lighter, color: COLORS.success.main }}
+              >
+                <Store className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Información del Negocio
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Datos que aparecerán en tu perfil
+                </div>
+              </div>
             </div>
-            <Input
-              placeholder="Email"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                saveDraft({ email: e.target.value });
-              }}
-              required
-            />
-            <Input
-              placeholder="Contraseña"
-              name="password"
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                saveDraft({ password: e.target.value });
-              }}
-              required
-            />
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="businessName" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Nombre del Negocio
+                </label>
+                <Input
+                  id="businessName"
+                  name="businessName"
+                  placeholder="Ej: Restaurante El Buen Sabor"
+                  value={businessName}
+                  onChange={(e) => {
+                    setBusinessName(e.target.value);
+                    saveDraft({ businessName: e.target.value });
+                  }}
+                  required
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  WhatsApp / Teléfono
+                </label>
+                <div className="relative">
+                  <Phone
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+58 414 123 4567"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      saveDraft({ phone: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Negocio */}
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-text-primary">
-              Tu negocio
+          {/* Sección: Ubicación */}
+          <div
+            className="rounded-xl border p-6 space-y-4"
+            style={{
+              backgroundColor: COLORS.background.primary,
+              borderColor: COLORS.border.light,
+            }}
+          >
+            <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+              <div
+                className="flex size-10 items-center justify-center rounded-lg"
+                style={{ backgroundColor: COLORS.warning.lighter, color: COLORS.warning.main }}
+              >
+                <MapPin className="size-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                  Ubicación
+                </div>
+                <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                  Dónde se encuentra tu negocio
+                </div>
+              </div>
             </div>
 
-            <Input
-              placeholder="Nombre del negocio"
-              name="businessName"
-              value={businessName}
-              onChange={(e) => {
-                setBusinessName(e.target.value);
-                saveDraft({ businessName: e.target.value });
-              }}
-              required
-            />
-            <Input
-              placeholder="WhatsApp / Teléfono"
-              name="phone"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                saveDraft({ phone: e.target.value });
-              }}
-              required
-            />
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="state" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                    Estado
+                  </label>
+                  <select
+                    id="state"
+                    name="state"
+                    value={stateId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setStateId(next);
+                      setCityId("");
+                      saveDraft({ stateId: next, cityId: "" });
+                    }}
+                    required
+                    className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:outline-none focus:ring-3"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                      color: COLORS.text.primary,
+                    }}
+                  >
+                    <option value="">Selecciona un estado</option>
+                    {VENEZUELA_STATES.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Estado (selector) */}
-            <select
-              name="state"
-              value={stateId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setStateId(next);
-                setCityId("");
-                saveDraft({ stateId: next, cityId: "" });
+                <div className="space-y-2">
+                  <label htmlFor="city" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                    Ciudad
+                  </label>
+                  <select
+                    id="city"
+                    name="city"
+                    value={cityId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCityId(next);
+                      saveDraft({ cityId: next });
+                    }}
+                    required
+                    disabled={!stateId}
+                    className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:outline-none focus:ring-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                      color: COLORS.text.primary,
+                    }}
+                  >
+                    <option value="">
+                      {stateId ? "Selecciona una ciudad" : "Elige primero un estado"}
+                    </option>
+                    {filteredCities.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="zone" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Zona <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>(Opcional)</span>
+                </label>
+                <Input
+                  id="zone"
+                  name="zone"
+                  placeholder="Ej: Centro, Las Mercedes, etc."
+                  value={zone}
+                  onChange={(e) => {
+                    setZone(e.target.value);
+                    saveDraft({ zone: e.target.value });
+                  }}
+                  className="h-11"
+                  style={{
+                    backgroundColor: COLORS.background.tertiary,
+                    borderColor: COLORS.border.main,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div
+              className="flex items-start gap-3 rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.error.lighter,
+                borderColor: COLORS.error.light,
               }}
-              required
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
             >
-              <option value="">Selecciona un estado</option>
-              {VENEZUELA_STATES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              <AlertCircle className="size-5 shrink-0 mt-0.5" style={{ color: COLORS.error.main }} />
+              <div className="text-sm" style={{ color: COLORS.error.dark }}>
+                {error}
+              </div>
+            </div>
+          )}
 
-            {/* Ciudad (selector dependiente) */}
-            <select
-              name="city"
-              value={cityId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCityId(next);
-                saveDraft({ cityId: next });
-              }}
-              required
-              disabled={!stateId}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
-            >
-              <option value="">
-                {stateId ? "Selecciona una ciudad" : "Elige primero un estado"}
-              </option>
-              {filteredCities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            <Input
-              placeholder="Zona"
-              name="zone"
-              value={zone}
-              onChange={(e) => {
-                setZone(e.target.value);
-                saveDraft({ zone: e.target.value });
-              }}
-            />
-          </div>
-
-          {error ? <div className="text-sm text-danger">{error}</div> : null}
-
+          {/* Submit button */}
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
+            style={{
+              background: loading
+                ? COLORS.text.tertiary
+                : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
           >
-            {loading ? "Enviando..." : "Enviar solicitud"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                Enviando solicitud...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="size-5" />
+                Enviar Solicitud
+              </span>
+            )}
           </Button>
 
-          <div className="text-xs text-text-secondary">
+          {/* Terms */}
+          <p className="text-xs text-center" style={{ color: COLORS.text.secondary }}>
             Al enviar, aceptas nuestros{" "}
-            <Link className="text-primary hover:underline" href="/legal/terms">
-              Términos
+            <Link
+              href="/legal/terms"
+              className="font-semibold hover:underline"
+              style={{ color: COLORS.primary.main }}
+            >
+              Términos y Condiciones
             </Link>
-            .
-          </div>
+          </p>
         </form>
-      </AuthCard>
+      )}
     </AuthShell>
   );
 }

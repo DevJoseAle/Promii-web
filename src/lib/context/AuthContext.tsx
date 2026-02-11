@@ -30,7 +30,6 @@ export function useAuth() {
   const isInfluencer = profile?.role === "influencer";
   const isUser = profile?.role === "user";
   const isAuthenticated = !!profile;
-  console.log({ isMerchant, isInfluencer, isUser, isAuthenticated });
   return {
     loading,
     session,
@@ -61,7 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (listenerInitialized.current) return;
     listenerInitialized.current = true;
-    console.log("[AuthProvider] Initializing auth listener");
     initAuthListener();
   }, []);
 
@@ -70,8 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasHydrated) return;
     if (initialized.current) return;
     initialized.current = true;
-
-    console.log("[AuthProvider] Initializing auth state");
     initialize();
   }, [hasHydrated, initialize]);
 
