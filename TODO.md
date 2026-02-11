@@ -1,50 +1,92 @@
 # TODO - Promii Platform
 
-## Pending Features
+## ✅ Completed Features
+
+### Order & Payment System (Venezuela-focused) ✓
+- [x] Create `promii_purchases` table in Supabase
+- [x] Implement order creation flow
+- [x] WhatsApp integration for payment coordination
+- [x] Merchant validation dashboard (/validate/pending)
+- [x] Merchant claim dashboard (/validate/claim)
+- [x] Order history dashboard (/validate)
+- [x] RLS policies and triggers
+- [x] Coupon generation on approval
+- [x] Order status flow: pending_payment → pending_validation → approved → redeemed
+- [x] Compact order cards with filters and search
+
+### Home & Detail Pages ✓
+- [x] Connect home page to real Supabase data
+- [x] Server-side services for promiis
+- [x] Photo gallery component
+- [x] Share buttons component
+- [x] Favorite button component (UI only)
+- [x] Server/Client component separation for SSR optimization
+
+---
+
+## 🔄 In Progress / Pending Features
+
+### Sales Statistics
+- [ ] Implement sales count using `promii_purchases` data
+  - Count approved + redeemed orders per promii
+- [ ] Display sales count on promii cards ("X vendidos")
+- [ ] Display sales count on promii detail page
+- [ ] Add trending/popular badges based on sales velocity
+- [ ] Cache sales counts for performance
 
 ### Reviews & Ratings System
-- [ ] Create `reviews` table in Supabase
+- [ ] Create `promii_reviews` table in Supabase
   - Fields: id, promii_id, user_id, rating (1-5), comment, created_at, updated_at
   - Add RLS policies
 - [ ] Implement review submission form on promii detail page
 - [ ] Display reviews list with pagination
-- [ ] Show average rating and review count
+- [ ] Show average rating and review count on cards
 - [ ] Add helpful/unhelpful voting on reviews
+- [ ] Prevent duplicate reviews (1 per user per promii)
 
-### Sales Statistics
-- [ ] Determine data source for sales count display ("500+ vendidos")
-  - Option 1: Use existing `merchant_coupon_counters` table
-  - Option 2: Create new `promii_sales_stats` table
-  - Option 3: Count from `orders` table when implemented
-- [ ] Implement sales count display on promii cards
-- [ ] Implement sales count display on promii detail page
-- [ ] Add trending/popular badges based on sales velocity
-
-### Order & Payment System (Venezuela-focused)
-- [ ] Create `orders` table in Supabase
-  - Fields: id, promii_id, user_id, merchant_id, status, amount, bank_transfer_proof_url, created_at, validated_at
-  - Statuses: pending_payment, pending_validation, validated, completed, cancelled
-- [ ] Implement order creation flow
-- [ ] WhatsApp integration for bank transfer details
-- [ ] Merchant validation dashboard
-- [ ] Upload proof of payment functionality
-- [ ] Order history for users
+### User Experience Improvements
+- [ ] User order history page (/profile/orders or similar)
+- [ ] Upload payment proof functionality (optional - currently via WhatsApp)
+- [ ] Email notifications for order status changes
+- [ ] Better error handling and user feedback messages
+- [ ] Loading states and skeletons
+- [ ] Empty states for all dashboards
 
 ### Influencer Features (Phase 2)
-- [ ] Influencer codes tracking system
-- [ ] Commission calculation logic
-- [ ] Payout management
-- [ ] Influencer dashboard analytics
-- [ ] Code generation and management
+- [ ] Influencer codes redemption tracking
+- [ ] Commission calculation logic (based on sales with their code)
+- [ ] Payout management dashboard
+- [ ] Influencer analytics (conversion rate, earnings, etc.)
+- [ ] Code generation and management UI
+- [ ] Link influencer codes to purchases in DB
+
+### Merchant Dashboard Enhancements
+- [ ] Sales analytics charts (daily, weekly, monthly)
+- [ ] Revenue tracking
+- [ ] Top performing promiis
+- [ ] Export orders to CSV/Excel
+- [ ] Bulk actions for orders
 
 ### Additional Enhancements
-- [ ] Email notifications (order confirmation, validation, etc.)
 - [ ] Push notifications (optional)
-- [ ] Advanced search with filters
-- [ ] User profiles with purchase history
-- [ ] Merchant analytics dashboard improvements
+- [ ] Advanced search with filters (price range, category, rating)
+- [ ] User profiles with favorites and purchase history
 - [ ] Mobile app (future consideration)
+- [ ] SEO optimization (meta tags, sitemap, etc.)
 
 ---
 
-**Priority**: Reviews & Sales Stats are needed for promii detail page completion.
+## 🐛 Known Issues / Tech Debt
+
+- [ ] Fix Supabase client issues (currently using @supabase/supabase-js, SSR version had problems)
+- [ ] Implement proper error boundaries
+- [ ] Add API rate limiting
+- [ ] Optimize bundle size
+- [ ] Add E2E tests for critical flows
+
+---
+
+**Current Priority**:
+1. Sales statistics (use existing orders data)
+2. Reviews & ratings system
+3. User order history page
