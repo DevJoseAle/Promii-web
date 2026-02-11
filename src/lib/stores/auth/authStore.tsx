@@ -70,14 +70,40 @@ export const useAuthStore = create<AuthState>()(
         set({ _isInitializing: true });
 
         const cachedProfile = get().profile;
+        const cachedSession = get().session;
 
-        console.log("[AuthStore] Initializing...");
+        console.log("[AuthStore] Initializing...", {
+          hasCachedProfile: !!cachedProfile,
+          hasCachedSession: !!cachedSession,
+        });
 
-        // Timeout de seguridad: si después de 10s no se resuelve, forzar a unauthenticated
+        // Si tenemos perfil y sesión en caché, usarlos inmediatamente
+        if (cachedProfile && cachedSession) {
+          console.log("[AuthStore] Using cached auth state");
+          set({
+            status: "authenticated",
+            session: cachedSession,
+            user: cachedSession.user,
+            profile: cachedProfile,
+            existSession: true,
+            _isInitializing: false,
+          });
+
+          // Refrescar en background
+          setTimeout(() => {
+            get().refreshProfile().catch((err) => {
+              console.warn("[AuthStore] Background refresh failed:", err);
+            });
+          }, 100);
+
+          return;
+        }
+
+        // Timeout de seguridad: aumentado a 30s para conexiones lentas
         const timeoutId = setTimeout(() => {
           const currentStatus = get().status;
           if (currentStatus === "loading") {
-            console.warn("[AuthStore] Initialization timeout, forcing unauthenticated");
+            console.warn("[AuthStore] Initialization timeout after 30s");
             set({
               status: "unauthenticated",
               session: null,
@@ -87,7 +113,7 @@ export const useAuthStore = create<AuthState>()(
               _isInitializing: false,
             });
           }
-        }, 10000);
+        }, 30000);
 
         try {
           const {
@@ -242,8 +268,17 @@ export const useAuthStore = create<AuthState>()(
       name: "promii:auth",
       partialize: (state) => ({
         profile: state.profile,
+        session: state.session,
+        user: state.user,
+        status: state.status,
+        existSession: state.existSession,
       }),
       onRehydrateStorage: () => (state) => {
+        console.log("[AuthStore] Rehydrated from storage:", {
+          hasProfile: !!state?.profile,
+          hasSession: !!state?.session,
+          status: state?.status,
+        });
         state?.setHasHydrated(true);
       },
     }
@@ -263,7 +298,10 @@ export function initAuthListener() {
   console.log("[AuthStore] Initializing auth listener");
 
   supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log("[AuthStore] Auth event:", event);
+    console.log("[AuthStore] Auth event:", event, {
+      hasSession: !!session,
+      userId: session?.user?.id,
+    });
 
     const { fetchProfile } = useAuthStore.getState();
 
@@ -282,6 +320,7 @@ export function initAuthListener() {
         });
       } catch (error) {
         console.error("[AuthStore] Error fetching profile on SIGNED_IN:", error);
+        // En caso de error, mantener la sesión pero sin perfil
         useAuthStore.setState({
           status: "authenticated",
           session,
@@ -290,6 +329,33 @@ export function initAuthListener() {
           existSession: true,
           _isInitializing: false,
         });
+      }
+      return;
+    }
+
+    // INITIAL_SESSION: cuando la página carga y ya hay una sesión activa
+    if (event === "INITIAL_SESSION" && session?.user) {
+      console.log("[AuthStore] Initial session detected");
+      const currentState = useAuthStore.getState();
+
+      // Si ya tenemos un perfil válido, no hacer nada
+      if (currentState.profile?.id === session.user.id && currentState.status === "authenticated") {
+        console.log("[AuthStore] Already authenticated with valid profile");
+        return;
+      }
+
+      try {
+        const profile = await fetchProfile(session.user.id);
+        useAuthStore.setState({
+          status: "authenticated",
+          session,
+          user: session.user,
+          profile,
+          existSession: true,
+          _isInitializing: false,
+        });
+      } catch (error) {
+        console.error("[AuthStore] Error fetching profile on INITIAL_SESSION:", error);
       }
       return;
     }
