@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { ShoppingCart, Share2 } from "lucide-react";
 import { PurchaseModal } from "@/components/promii/purchase-modal";
 import { FavoriteButton } from "@/components/promii/favorite-button";
 import { ShareButtons } from "@/components/promii/share-buttons";
+import { trackReferralVisit } from "@/lib/services/influencer";
 
 type Props = {
   promiiId: string;
@@ -37,6 +38,20 @@ export function PromiiDetailClient({
   const [showShareButtons, setShowShareButtons] = useState(false);
 
   console.log("[PromiiDetailClient] Phone received:", phone);
+
+  // Track referral visit when page loads with influencer code
+  useEffect(() => {
+    if (influencerCode) {
+      console.log("[PromiiDetailClient] Tracking referral visit:", influencerCode);
+      trackReferralVisit(influencerCode, promiiId).then((success) => {
+        if (success) {
+          console.log("[PromiiDetailClient] Referral visit tracked successfully");
+        } else {
+          console.warn("[PromiiDetailClient] Failed to track referral visit");
+        }
+      });
+    }
+  }, [influencerCode, promiiId]);
 
   const canPurchase = !isExpired && !notStarted;
 

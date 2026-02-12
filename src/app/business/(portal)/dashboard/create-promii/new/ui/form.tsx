@@ -16,6 +16,7 @@ import { PhotosField } from "@/components/ui/merchant/image-uploader";
 import { uploadPromiiPhotos } from "@/lib/services/promiis/promiiPhotoUpload.service";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { useAuthStore } from "@/lib/stores/auth/authStore";
+import { getMerchantPartnerships, assignInfluencerToPromii, type PartnershipWithDetails } from "@/lib/services/influencer";
 
 type CurrencyCode = "USD" | "CLP";
 type PromiiStatus = "draft";
@@ -467,6 +468,10 @@ export function CreatePromiiForm({
 
   const [globalError, setGlobalError] = React.useState<string | null>(null);
 
+  // Influencer partnerships
+  const [approvedInfluencers, setApprovedInfluencers] = React.useState<PartnershipWithDetails[]>([]);
+  const [loadingInfluencers, setLoadingInfluencers] = React.useState(false);
+
   const isMerchantPending =
     profile?.role === "merchant" && profile?.state === "pending";
 
@@ -492,6 +497,22 @@ export function CreatePromiiForm({
     setValues((p) => ({ ...p, cityId: "", otherCityName: "" }));
     setErrors((p) => ({ ...p, cityId: undefined, otherCityName: undefined }));
   }, [values.stateId]);
+
+  // ✅ Load approved influencers
+  React.useEffect(() => {
+    if (!profile?.id) return;
+
+    async function loadInfluencers() {
+      setLoadingInfluencers(true);
+      const response = await getMerchantPartnerships(profile!.id, "approved");
+      if (response.status === "success" && response.data) {
+        setApprovedInfluencers(response.data);
+      }
+      setLoadingInfluencers(false);
+    }
+
+    loadInfluencers();
+  }, [profile?.id]);
 
   // ✅ NUEVO: precargar para editar
   React.useEffect(() => {
@@ -637,6 +658,23 @@ export function CreatePromiiForm({
         merchantId: payload.merchant_id,
         files: values.photos,
       });
+
+      // Create influencer assignment if selected
+      if (values.assignToInfluencer && values.default_influencer_id) {
+        console.log("[CreatePromiiForm] Creating influencer assignment...");
+        const assignmentResponse = await assignInfluencerToPromii({
+          promii_id: data.id,
+          influencer_id: values.default_influencer_id,
+          merchant_id: payload.merchant_id,
+        });
+
+        if (assignmentResponse.status === "success") {
+          console.log("[CreatePromiiForm] Assignment created successfully");
+        } else {
+          console.warn("[CreatePromiiForm] Failed to create assignment:", assignmentResponse.error);
+          // Don't block the flow, just warn
+        }
+      }
 
       ToastService.showSuccessToast("Promii guardado como borrador");
       router.push("/business/dashboard/validate/pending");
@@ -1229,17 +1267,27 @@ export function CreatePromiiForm({
                 </select>
               </Field>
 
-              <Field label="Influencer" hint="Tus afiliados aparecerán aquí">
+              <Field label="Influencer" hint={loadingInfluencers ? "Cargando..." : "Selecciona un influencer afiliado"}>
                 <select
                   value={values.default_influencer_id}
                   onChange={(e) =>
                     update("default_influencer_id", e.target.value)
                   }
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm disabled:opacity-50"
-                  disabled={!values.assignToInfluencer}
+                  disabled={!values.assignToInfluencer || loadingInfluencers}
                 >
-                  <option value="">No tienes influencers afiliados</option>
-                  {/* Luego: map de afiliados reales */}
+                  <option value="">
+                    {loadingInfluencers
+                      ? "Cargando..."
+                      : approvedInfluencers.length === 0
+                      ? "No tienes influencers afiliados"
+                      : "Selecciona un influencer"}
+                  </option>
+                  {approvedInfluencers.map((partnership) => (
+                    <option key={partnership.influencer_id} value={partnership.influencer_id}>
+                      {partnership.influencer?.display_name || "Sin nombre"} - @{partnership.influencer?.instagram_handle || ""}
+                    </option>
+                  ))}
                 </select>
               </Field>
             </div>

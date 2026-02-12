@@ -9,6 +9,7 @@ import { X, ShoppingCart, User, Mail, Phone, MessageCircle, AlertCircle, Loader2
 import { useAuth } from "@/lib/context/AuthContext";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { createPurchase } from "@/lib/services/orders/orders.service";
+import { trackReferralConversion } from "@/lib/services/influencer";
 
 type Props = {
   promiiId: string;
@@ -103,7 +104,7 @@ export function PurchaseModal({
         promii_id: promiiId,
         merchant_id: merchantId,
         user_id: user.id,
-        influencer_id: influencerCode ? null : null, // TODO: Resolve influencer_id from code
+        influencer_id: null, // Will be populated by referral tracking
         paid_amount: priceAmount,
         paid_currency: priceCurrency as any,
         payment_method: "transfer",
@@ -119,6 +120,12 @@ export function PurchaseModal({
       }
 
       console.log("[PurchaseModal] Order created:", orderResponse.data?.id);
+
+      // 1.5. Track referral conversion if there's an influencer code
+      if (orderResponse.data?.id) {
+        console.log("[PurchaseModal] Tracking referral conversion...");
+        await trackReferralConversion(orderResponse.data.id, promiiId);
+      }
 
       // 2. Open WhatsApp
       const cleanPhone = phone.replace(/[\s\-()]/g, '');
