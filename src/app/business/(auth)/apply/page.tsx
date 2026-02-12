@@ -25,8 +25,11 @@ import {
 type Draft = {
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
   businessName: string;
   phone: string;
+  address: string;
   stateId: string;
   cityId: string;
   zone: string;
@@ -45,9 +48,14 @@ export default function BusinessApplyPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Contact
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
   // Business
   const [businessName, setBusinessName] = useState("");
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [stateId, setStateId] = useState("");
   const [cityId, setCityId] = useState("");
   const [zone, setZone] = useState("");
@@ -61,8 +69,11 @@ export default function BusinessApplyPage() {
     const draft: Draft = {
       email,
       password,
+      firstName,
+      lastName,
       businessName,
       phone,
+      address,
       stateId,
       cityId,
       zone,
@@ -87,6 +98,8 @@ export default function BusinessApplyPage() {
 
   async function ensureMerchantRow(userId: string) {
     const categoryPrimary = "food";
+    const contactName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
     try {
       const { error: merchantErr } = await supabase.from("merchants").upsert(
         {
@@ -98,16 +111,16 @@ export default function BusinessApplyPage() {
           cover_image_url: null,
           category_primary: categoryPrimary,
           category_secondary: null,
-          address_line: "Pendiente",
+          address_line: address.trim(),
           state: stateId,
           city: cityId,
           zone: zone.trim() || null,
           geo_lat: null,
           geo_lng: null,
-          contact_name: "Pendiente",
-          contact_email: email.trim() || "pendiente@promii.com",
+          contact_name: contactName,
+          contact_email: email.trim(),
           phone: phone.trim(),
-          whatsapp: null,
+          whatsapp: phone.trim(), // También guardamos en WhatsApp
           instagram_handle: null,
           website_url: null,
         },
@@ -122,6 +135,7 @@ export default function BusinessApplyPage() {
 
   async function finalizeSubmitWithSession(userId: string) {
     try {
+      // 1. Guardar en business_applications
       const { error: appErr } = await supabase
         .from("business_applications")
         .upsert(
@@ -129,8 +143,9 @@ export default function BusinessApplyPage() {
             owner_id: userId,
             business_name: businessName.trim(),
             phone: phone.trim(),
-            state: stateId || null,
-            city: cityId || null,
+            address: address.trim(),
+            state: stateId,
+            city: cityId,
             zone: zone.trim() || null,
           },
           { onConflict: "owner_id" }
@@ -138,12 +153,20 @@ export default function BusinessApplyPage() {
 
       if (appErr) throw new Error(appErr.message);
 
+      // 2. Actualizar profile con nombre, apellido y role
       const { error: profileErr } = await supabase
         .from("profiles")
-        .update({ role: "merchant", state: "pending" })
+        .update({
+          role: "merchant",
+          state: "pending",
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        })
         .eq("id", userId);
 
       if (profileErr) throw new Error(profileErr.message);
+
+      // 3. Crear/actualizar merchant row
       await ensureMerchantRow(userId);
     } catch (error) {
       console.error("Error finalizing submit with session:", error);
@@ -158,13 +181,16 @@ export default function BusinessApplyPage() {
   useEffect(() => {
     const draft = loadDraft();
     if (draft) {
-      setEmail(draft.email);
-      setPassword(draft.password);
-      setBusinessName(draft.businessName);
-      setPhone(draft.phone);
-      setStateId(draft.stateId);
-      setCityId(draft.cityId);
-      setZone(draft.zone);
+      setEmail(draft.email || "");
+      setPassword(draft.password || "");
+      setFirstName(draft.firstName || "");
+      setLastName(draft.lastName || "");
+      setBusinessName(draft.businessName || "");
+      setPhone(draft.phone || "");
+      setAddress(draft.address || "");
+      setStateId(draft.stateId || "");
+      setCityId(draft.cityId || "");
+      setZone(draft.zone || "");
     }
   }, []);
 
@@ -175,8 +201,12 @@ export default function BusinessApplyPage() {
     setNeedsEmailVerify(false);
 
     try {
+      // Validación de campos obligatorios
+      const safeFirstName = firstName.trim();
+      const safeLastName = lastName.trim();
       const safeBusinessName = businessName.trim();
       const safePhone = phone.trim();
+      const safeAddress = address.trim();
 
       const { data: authEmail, error: authEmailErr } =
         await supabase.functions.invoke("checkUserExist", {
@@ -189,8 +219,26 @@ export default function BusinessApplyPage() {
         return;
       }
 
-      if (!safeBusinessName || !safePhone) {
-        setError("Completa al menos el nombre del negocio y el teléfono.");
+      if (!safeFirstName || !safeLastName) {
+        setError("Completa tu nombre y apellido.");
+        setLoading(false);
+        return;
+      }
+
+      if (!safeBusinessName) {
+        setError("Completa el nombre del negocio.");
+        setLoading(false);
+        return;
+      }
+
+      if (!safePhone) {
+        setError("Completa el número de teléfono.");
+        setLoading(false);
+        return;
+      }
+
+      if (!safeAddress) {
+        setError("Completa la dirección del negocio.");
         setLoading(false);
         return;
       }
@@ -388,9 +436,67 @@ export default function BusinessApplyPage() {
             </div>
 
             <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="firstName" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                    Nombre <span style={{ color: COLORS.error.main }}>*</span>
+                  </label>
+                  <div className="relative">
+                    <User
+                      className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                      style={{ color: COLORS.text.tertiary }}
+                    />
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      placeholder="Tu nombre"
+                      value={firstName}
+                      onChange={(e) => {
+                        setFirstName(e.target.value);
+                        saveDraft({ firstName: e.target.value });
+                      }}
+                      required
+                      className="h-11 pl-11"
+                      style={{
+                        backgroundColor: COLORS.background.tertiary,
+                        borderColor: COLORS.border.main,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="lastName" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                    Apellido <span style={{ color: COLORS.error.main }}>*</span>
+                  </label>
+                  <div className="relative">
+                    <User
+                      className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                      style={{ color: COLORS.text.tertiary }}
+                    />
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      placeholder="Tu apellido"
+                      value={lastName}
+                      onChange={(e) => {
+                        setLastName(e.target.value);
+                        saveDraft({ lastName: e.target.value });
+                      }}
+                      required
+                      className="h-11 pl-11"
+                      style={{
+                        backgroundColor: COLORS.background.tertiary,
+                        borderColor: COLORS.border.main,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                  Email
+                  Email <span style={{ color: COLORS.error.main }}>*</span>
                 </label>
                 <div className="relative">
                   <Mail
@@ -419,7 +525,7 @@ export default function BusinessApplyPage() {
 
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                  Contraseña
+                  Contraseña <span style={{ color: COLORS.error.main }}>*</span>
                 </label>
                 <div className="relative">
                   <Lock
@@ -476,7 +582,7 @@ export default function BusinessApplyPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="businessName" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                  Nombre del Negocio
+                  Nombre del Negocio <span style={{ color: COLORS.error.main }}>*</span>
                 </label>
                 <Input
                   id="businessName"
@@ -498,7 +604,7 @@ export default function BusinessApplyPage() {
 
               <div className="space-y-2">
                 <label htmlFor="phone" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                  WhatsApp / Teléfono
+                  WhatsApp / Teléfono <span style={{ color: COLORS.error.main }}>*</span>
                 </label>
                 <div className="relative">
                   <Phone
@@ -514,6 +620,34 @@ export default function BusinessApplyPage() {
                     onChange={(e) => {
                       setPhone(e.target.value);
                       saveDraft({ phone: e.target.value });
+                    }}
+                    required
+                    className="h-11 pl-11"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor: COLORS.border.main,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="address" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Dirección del Negocio <span style={{ color: COLORS.error.main }}>*</span>
+                </label>
+                <div className="relative">
+                  <MapPin
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="Ej: Av. Principal, Centro Comercial..."
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      saveDraft({ address: e.target.value });
                     }}
                     required
                     className="h-11 pl-11"
@@ -556,7 +690,7 @@ export default function BusinessApplyPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="state" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                    Estado
+                    Estado <span style={{ color: COLORS.error.main }}>*</span>
                   </label>
                   <select
                     id="state"
@@ -587,7 +721,7 @@ export default function BusinessApplyPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="city" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
-                    Ciudad
+                    Ciudad <span style={{ color: COLORS.error.main }}>*</span>
                   </label>
                   <select
                     id="city"

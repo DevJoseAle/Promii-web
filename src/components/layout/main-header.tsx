@@ -27,6 +27,7 @@ function MainHeaderContent() {
     isInfluencer,
     isMerchant,
     isUser,
+    loading,
   } = useAuth();
 
   async function handleLogout() {
@@ -134,7 +135,13 @@ function MainHeaderContent() {
 
         {/* Auth buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          {isAuthenticated ? (
+          {loading ? (
+            // Skeleton mientras carga el estado de auth
+            <div
+              className="h-11 w-[140px] rounded-lg animate-pulse"
+              style={{ backgroundColor: COLORS.neutral[200] }}
+            />
+          ) : isAuthenticated ? (
             <>
               {isUser && (
                 <Button

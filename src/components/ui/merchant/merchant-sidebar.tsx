@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   ChevronRight,
   Menu,
+  Settings,
 } from "lucide-react";
 
 // Tremor (Raw) components (si ya los copiaste a /components, ajusta rutas)
@@ -332,12 +333,27 @@ function SidebarInner({
 
       {/* Bottom actions */}
       <div
-        className={cn("p-3", collapsed && "p-2")}
+        className={cn("p-3 space-y-2", collapsed && "p-2")}
         style={{
           borderTop: `1px solid ${COLORS.border.light}`,
           background: `linear-gradient(180deg, ${COLORS.background.secondary} 0%, ${COLORS.background.primary} 100%)`,
         }}
       >
+        <Link
+          href="/business/dashboard/settings"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:scale-105",
+            collapsed && "justify-center px-2",
+          )}
+          style={{
+            backgroundColor: COLORS.neutral[100],
+            color: COLORS.text.primary,
+          }}
+          title={collapsed ? "Configuración" : undefined}
+        >
+          <Settings className="size-5" />
+          {!collapsed ? <span>Configuración</span> : null}
+        </Link>
         <Link
           href="/merchant/feedback"
           className={cn(
@@ -470,11 +486,23 @@ function MobileBottomBar() {
                         </div>
                       ))}
 
-                      {/* Feedback */}
+                      {/* Settings & Feedback */}
                       <div
-                        className="mt-6 pt-6"
+                        className="mt-6 pt-6 space-y-2"
                         style={{ borderTop: `1px solid ${COLORS.border.light}` }}
                       >
+                        <Link
+                          href="/business/dashboard/settings"
+                          onClick={() => setShowMore(false)}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
+                          style={{
+                            backgroundColor: COLORS.neutral[100],
+                            color: COLORS.text.primary,
+                          }}
+                        >
+                          <Settings className="size-5" />
+                          <span>Configuración</span>
+                        </Link>
                         <Link
                           href="/merchant/feedback"
                           onClick={() => setShowMore(false)}
