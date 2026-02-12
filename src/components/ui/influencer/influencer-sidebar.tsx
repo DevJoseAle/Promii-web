@@ -12,6 +12,8 @@ import {
   Menu,
   LogOut,
   X,
+  DollarSign,
+  Wrench,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -34,6 +36,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Solicitudes", href: "/inf/dashboard?tab=requests", icon: Clock, tab: "requests" },
   { label: "Mis Marcas", href: "/inf/dashboard?tab=merchants", icon: Users, tab: "merchants" },
   { label: "Mis Promiis", href: "/inf/dashboard?tab=promiis", icon: Sparkles, tab: "promiis" },
+  { label: "Ganancias", href: "/inf/dashboard?tab=earnings", icon: DollarSign, tab: "earnings" },
+  { label: "Herramientas", href: "/inf/dashboard?tab=tools", icon: Wrench, tab: "tools" },
   { label: "Mi Perfil", href: "/inf/dashboard?tab=profile", icon: UserCircle, tab: "profile" },
 ];
 

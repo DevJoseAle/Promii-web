@@ -2,49 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CATEGORIES } from "@/config/categories";
 import { COLORS } from "@/config/colors";
-import { Promii } from "@/components/ui/promii-card";
 import { ChevronRight, Home, Sparkles } from "lucide-react";
-import CategoryFeatured from "./category-client";
-
-// Mock data - replace with real data later
-const MOCK: Promii[] = [
-  {
-    id: "1",
-    title: "Corte + barba + lavado premium",
-    merchant: "Barbería Central",
-    location: "Caracas · Chacao",
-    rating: 4.8,
-    sold: 1200,
-    oldPrice: 30,
-    price: 12,
-    discountPct: 60,
-    tag: "Mejor valorado",
-  },
-  {
-    id: "2",
-    title: "2x1 en pizzas artesanales",
-    merchant: "La Trattoria",
-    location: "Valencia · El Viñedo",
-    rating: 4.6,
-    sold: 800,
-    oldPrice: 25,
-    price: 10,
-    discountPct: 60,
-    tag: "Top",
-  },
-  {
-    id: "3",
-    title: "Spa: masaje + hidratación facial",
-    merchant: "Serenity Spa",
-    location: "Caracas · Las Mercedes",
-    rating: 4.7,
-    sold: 500,
-    oldPrice: 50,
-    price: 19,
-    discountPct: 62,
-    tag: "Más vendido",
-  },
-];
+import CategoryPromiis from "./category-promiis";
 
 export default async function CategoryPage({
   params,
@@ -190,7 +149,7 @@ export default async function CategoryPage({
       )}
 
       {/* Featured Promiis */}
-      <CategoryFeatured categoryLabel={category.label} promiis={MOCK} />
+      <CategoryPromiis categoryKey={category.key} categoryLabel={category.label} />
     </div>
   );
 }
