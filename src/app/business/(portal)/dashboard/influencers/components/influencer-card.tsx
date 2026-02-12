@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Instagram, Youtube, ExternalLink, Check, Clock, UserPlus } from "lucide-react";
+import { Instagram, Youtube, ExternalLink, Check, Clock, UserPlus, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { requestPartnership } from "@/lib/services/influencer";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { ToastService } from "@/lib/toast/toast.service";
 import Image from "next/image";
+import Link from "next/link";
 
 interface InfluencerCardProps {
   influencer: {
@@ -205,6 +206,23 @@ export function InfluencerCard({ influencer, merchantId }: InfluencerCardProps) 
             </a>
           )}
         </div>
+
+        {/* Ver perfil button */}
+        <Link
+          href={`/influencers/${influencer.instagram_handle.replace("@", "")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full h-10 mb-3 rounded-lg flex items-center justify-center font-semibold transition-all hover:scale-105 border"
+          style={{
+            backgroundColor: COLORS.background.secondary,
+            borderColor: COLORS.border.main,
+            color: COLORS.text.primary,
+          }}
+        >
+          <User className="size-4 mr-2" />
+          Ver perfil en Promii
+          <ExternalLink className="size-3 ml-2" />
+        </Link>
 
         {/* Action button */}
         {loading ? (

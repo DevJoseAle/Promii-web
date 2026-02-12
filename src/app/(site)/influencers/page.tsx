@@ -1,39 +1,159 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { INFLUENCERS, CITIES, FOLLOWER_BUCKETS, inFollowerBucket } from "@/mocks/influencers";
+import { useMemo, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { InfluencerCard } from "@/components/ui/influencer-card";
 import { COLORS } from "@/config/colors";
-import { Users2, TrendingUp, Sparkles, Search } from "lucide-react";
+import { VE_STATES, getCitiesForState } from "@/config/location";
+import { CATEGORIES } from "@/config/categories";
+import { Users2, TrendingUp, Sparkles, Search, Loader2, AlertCircle } from "lucide-react";
+import { getPublicInfluencers, type PublicInfluencer } from "@/lib/services/influencer/influencer-public.service";
 
-const ALL_TAGS = [
-  "Gastronomía",
-  "Turismo",
-  "Entretenimiento",
-  "Servicios",
-  "Belleza",
-  "Fitness",
-  "Moda",
-  "Tecnología",
-  "Educación",
-  "Familia",
-  "Mascotas",
-  "Hogar",
-] as const;
+const FOLLOWER_BUCKETS = [
+  { key: "all", label: "Todos" },
+  { key: "micro", label: "1k - 10k", min: 1000, max: 10000 },
+  { key: "mid", label: "10k - 100k", min: 10000, max: 100000 },
+  { key: "macro", label: "100k - 1M", min: 100000, max: 1000000 },
+  { key: "mega", label: "1M+", min: 1000000 },
+];
+
+function formatFollowers(n: number | null) {
+  if (!n) return "N/A";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return `${n}`;
+}
 
 export default function InfluencersDirectoryPage() {
-  const [city, setCity] = useState<string>("Caracas");
-  const [bucket, setBucket] = useState<string>("all");
-  const [tag, setTag] = useState<string>("all");
+  const [influencers, setInfluencers] = useState<PublicInfluencer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  const [state, setState] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [bucket, setBucket] = useState<string>("all");
+  const [niche, setNiche] = useState<string>("");
+
+  const cities = useMemo(() => {
+    if (!state) return [];
+    return getCitiesForState(state);
+  }, [state]);
+
+  // Cargar influencers al montar
+  useEffect(() => {
+    loadInfluencers();
+  }, []);
+
+  async function loadInfluencers() {
+    setLoading(true);
+    setError(null);
+
+    const response = await getPublicInfluencers();
+
+    if (response.status === "success") {
+      setInfluencers(response.data || []);
+    } else {
+      setError(response.error || "Error cargando influencers");
+    }
+
+    setLoading(false);
+  }
+
+  // Filtrar influencers en memoria
   const filtered = useMemo(() => {
-    return INFLUENCERS
-      .filter((i) => (city ? i.city === city : true))
-      .filter((i) => inFollowerBucket(i.followers, bucket))
-      .filter((i) => (tag === "all" ? true : i.tags.includes(tag as any)))
-      .sort((a, b) => b.followers - a.followers);
-  }, [city, bucket, tag]);
+    let result = [...influencers];
+
+    // Filtro por estado
+    if (state) {
+      result = result.filter((i) => i.state === state);
+    }
+
+    // Filtro por ciudad
+    if (city) {
+      result = result.filter((i) => i.city === city);
+    }
+
+    // Filtro por nicho
+    if (niche) {
+      result = result.filter(
+        (i) => i.niche_primary === niche || i.niche_secondary === niche
+      );
+    }
+
+    // Filtro por seguidores
+    if (bucket !== "all") {
+      const bucketConfig = FOLLOWER_BUCKETS.find((b) => b.key === bucket);
+      if (bucketConfig && bucketConfig.min !== undefined) {
+        result = result.filter((i) => {
+          const followers = i.instagram_followers || 0;
+          const matchMin = followers >= bucketConfig.min!;
+          const matchMax = bucketConfig.max ? followers <= bucketConfig.max : true;
+          return matchMin && matchMax;
+        });
+      }
+    }
+
+    // Ordenar por seguidores (mayor a menor)
+    result.sort((a, b) => (b.instagram_followers || 0) - (a.instagram_followers || 0));
+
+    return result;
+  }, [influencers, state, city, bucket, niche]);
+
+  // Resetear ciudad cuando cambia el estado
+  useEffect(() => {
+    setCity("");
+  }, [state]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2
+            className="size-12 mx-auto mb-4 animate-spin"
+            style={{ color: COLORS.primary.main }}
+          />
+          <p className="text-sm" style={{ color: COLORS.text.secondary }}>
+            Cargando influencers...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div
+        className="rounded-2xl border p-12 text-center"
+        style={{
+          backgroundColor: COLORS.background.primary,
+          borderColor: COLORS.error.light,
+        }}
+      >
+        <AlertCircle
+          className="size-16 mx-auto mb-4"
+          style={{ color: COLORS.error.main }}
+        />
+        <h2 className="text-xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+          Error cargando influencers
+        </h2>
+        <p className="text-sm mb-6" style={{ color: COLORS.text.secondary }}>
+          {error}
+        </p>
+        <button
+          onClick={loadInfluencers}
+          className="px-6 py-2 rounded-lg font-semibold transition-all hover:scale-105"
+          style={{
+            background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+            color: COLORS.text.inverse,
+          }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -93,7 +213,7 @@ export default function InfluencersDirectoryPage() {
                   Total
                 </div>
                 <div className="text-lg font-bold" style={{ color: COLORS.text.primary }}>
-                  {INFLUENCERS.length}
+                  {influencers.length}
                 </div>
               </div>
             </div>
@@ -119,7 +239,36 @@ export default function InfluencersDirectoryPage() {
           </h2>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Estado */}
+          <div>
+            <label
+              htmlFor="state"
+              className="text-sm font-semibold mb-2 block"
+              style={{ color: COLORS.text.primary }}
+            >
+              Estado
+            </label>
+            <select
+              id="state"
+              className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:ring-2"
+              style={{
+                backgroundColor: COLORS.background.tertiary,
+                borderColor: COLORS.border.main,
+                color: COLORS.text.primary,
+              }}
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+            >
+              <option value="">Todos los estados</option>
+              {VE_STATES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Ciudad */}
           <div>
             <label
@@ -139,8 +288,10 @@ export default function InfluencersDirectoryPage() {
               }}
               value={city}
               onChange={(e) => setCity(e.target.value)}
+              disabled={!state}
             >
-              {CITIES.map((c) => (
+              <option value="">Todas las ciudades</option>
+              {cities.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -176,7 +327,7 @@ export default function InfluencersDirectoryPage() {
             </select>
           </div>
 
-          {/* Rubro */}
+          {/* Nicho/Categoría */}
           <div>
             <label
               htmlFor="category"
@@ -193,13 +344,13 @@ export default function InfluencersDirectoryPage() {
                 borderColor: COLORS.border.main,
                 color: COLORS.text.primary,
               }}
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
+              value={niche}
+              onChange={(e) => setNiche(e.target.value)}
             >
-              <option value="all">Todas las categorías</option>
-              {ALL_TAGS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              <option value="">Todas las categorías</option>
+              {CATEGORIES.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -234,21 +385,36 @@ export default function InfluencersDirectoryPage() {
       </div>
 
       {/* Grid */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((i) => (
-          <InfluencerCard
-            key={i.id}
-            name={i.name}
-            slug={i.slug}
-            handle={i.handle}
-            city={i.city}
-            followers={i.followers}
-            tags={i.tags}
-            brandsCount={i.brands.length}
-            avatarUrl={i.avatarUrl}
-          />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <div
+          className="rounded-xl border p-12 text-center"
+          style={{
+            backgroundColor: COLORS.background.primary,
+            borderColor: COLORS.border.light,
+          }}
+        >
+          <Search className="size-16 mx-auto mb-4" style={{ color: COLORS.text.tertiary }} />
+          <p className="text-sm" style={{ color: COLORS.text.secondary }}>
+            No se encontraron influencers con los filtros seleccionados
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((i) => (
+            <InfluencerCard
+              key={i.id}
+              name={i.display_name}
+              slug={i.instagram_handle.replace("@", "")}
+              handle={i.instagram_handle}
+              city={i.city}
+              followers={i.instagram_followers || 0}
+              tags={[i.niche_primary, i.niche_secondary].filter(Boolean) as string[]}
+              brandsCount={0} // TODO: Get real brands count
+              avatarUrl={i.avatar_url || undefined}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

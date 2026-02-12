@@ -15,11 +15,27 @@ import {
   DollarSign,
   Handshake,
   Star,
+  Sparkles,
 } from "lucide-react";
-import { InfluencerMock } from "@/mocks/influencers";
+
+type InfluencerData = {
+  id: string;
+  name: string;
+  slug: string;
+  handle: string;
+  bio?: string;
+  city: string;
+  followers: number;
+  tags: string[];
+  avatarUrl?: string;
+  tiktokHandle?: string;
+  youtubeHandle?: string;
+  totalPromiis: number;
+  totalBrands: number;
+};
 
 type Props = {
-  influencer: InfluencerMock;
+  influencer: InfluencerData;
   isMerchant?: boolean;
 };
 
@@ -43,6 +59,15 @@ const WhatsAppIcon = () => (
 );
 
 export default function InfluencerProfileClient({ influencer: i, isMerchant = false }: Props) {
+  // Construir URLs de redes sociales
+  const instagramUrl = `https://instagram.com/${i.handle.replace("@", "")}`;
+  const tiktokUrl = i.tiktokHandle
+    ? `https://tiktok.com/@${i.tiktokHandle.replace("@", "")}`
+    : null;
+  const youtubeUrl = i.youtubeHandle
+    ? `https://youtube.com/${i.youtubeHandle}`
+    : null;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       {/* Main content */}
@@ -73,7 +98,7 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
           <div className="relative px-6 md:px-8 pb-6">
             {/* Avatar */}
             <div
-              className="absolute -top-16 size-32 rounded-full border-4 flex items-center justify-center text-4xl font-bold shadow-xl"
+              className="absolute -top-16 size-32 rounded-full border-4 flex items-center justify-center text-4xl font-bold shadow-xl overflow-hidden"
               style={{
                 backgroundColor: COLORS.background.primary,
                 borderColor: COLORS.background.primary,
@@ -84,7 +109,7 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
                 <img
                   src={i.avatarUrl}
                   alt={i.name}
-                  className="size-full rounded-full object-cover"
+                  className="size-full object-cover"
                 />
               ) : (
                 i.name.charAt(0).toUpperCase()
@@ -162,7 +187,7 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
         </div>
 
         {/* About section */}
-        {i.about && (
+        {i.bio && (
           <section
             className="rounded-xl border p-6"
             style={{
@@ -181,10 +206,87 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
               className="text-sm leading-relaxed"
               style={{ color: COLORS.text.secondary }}
             >
-              {i.about}
+              {i.bio}
             </p>
           </section>
         )}
+
+        {/* Stats section */}
+        <section
+          className="rounded-xl border p-6"
+          style={{
+            backgroundColor: COLORS.background.primary,
+            borderColor: COLORS.border.light,
+          }}
+        >
+          <h2
+            className="text-lg font-bold mb-4 flex items-center gap-2"
+            style={{ color: COLORS.text.primary }}
+          >
+            <Sparkles className="size-5" style={{ color: COLORS.primary.main }} />
+            Actividad en Promii
+          </h2>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Total Promiis */}
+            <div
+              className="rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.background.secondary,
+                borderColor: COLORS.border.light,
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-12 items-center justify-center rounded-lg"
+                  style={{
+                    backgroundColor: COLORS.success.lighter,
+                    color: COLORS.success.main,
+                  }}
+                >
+                  <TrendingUp className="size-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold" style={{ color: COLORS.text.primary }}>
+                    {i.totalPromiis}
+                  </div>
+                  <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                    Promiis promocionados
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Brands */}
+            <div
+              className="rounded-lg border p-4"
+              style={{
+                backgroundColor: COLORS.background.secondary,
+                borderColor: COLORS.border.light,
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-12 items-center justify-center rounded-lg"
+                  style={{
+                    backgroundColor: COLORS.info.lighter,
+                    color: COLORS.info.main,
+                  }}
+                >
+                  <Briefcase className="size-6" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold" style={{ color: COLORS.text.primary }}>
+                    {i.totalBrands}
+                  </div>
+                  <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                    Marcas colaboradoras
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Collaboration types */}
         <section
@@ -240,71 +342,6 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
             </div>
           </div>
         </section>
-
-        {/* Brands section */}
-        <section
-          className="rounded-xl border p-6"
-          style={{
-            backgroundColor: COLORS.background.secondary,
-            borderColor: COLORS.border.light,
-          }}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <div
-                className="flex size-10 items-center justify-center rounded-lg"
-                style={{ backgroundColor: COLORS.success.lighter, color: COLORS.success.main }}
-              >
-                <Briefcase className="size-5" />
-              </div>
-              <div>
-                <h2
-                  className="text-lg font-bold"
-                  style={{ color: COLORS.text.primary }}
-                >
-                  Marcas colaboradoras
-                </h2>
-                <p className="text-sm" style={{ color: COLORS.text.secondary }}>
-                  {i.brands.length} colaboraciones activas
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {i.brands.map((brand) => (
-              <div
-                key={brand.id}
-                className="group rounded-lg border p-4 transition-all duration-200 hover:shadow-md"
-                style={{
-                  backgroundColor: COLORS.background.primary,
-                  borderColor: COLORS.border.light,
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3
-                      className="font-semibold text-base truncate"
-                      style={{ color: COLORS.text.primary }}
-                    >
-                      {brand.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-1 text-sm" style={{ color: COLORS.text.tertiary }}>
-                      <MapPin className="size-3.5" />
-                      <span>{brand.city}</span>
-                    </div>
-                  </div>
-
-                  <CheckCircle2
-                    className="size-5 shrink-0"
-                    style={{ color: COLORS.success.main }}
-                    aria-label="Colaboración verificada"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
 
       {/* Sidebar */}
@@ -327,27 +364,25 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
 
             <div className="space-y-2">
               {/* Instagram */}
-              {i.socials?.instagram && (
-                <a
-                  href={i.socials.instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2 h-11 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-                  style={{
-                    background: "linear-gradient(135deg, #F58529 0%, #DD2A7B 50%, #8134AF 100%)",
-                    color: COLORS.text.inverse,
-                  }}
-                >
-                  <Instagram className="size-5" />
-                  Instagram
-                  <ExternalLink className="size-4" />
-                </a>
-              )}
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-2 h-11 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
+                style={{
+                  background: "linear-gradient(135deg, #F58529 0%, #DD2A7B 50%, #8134AF 100%)",
+                  color: COLORS.text.inverse,
+                }}
+              >
+                <Instagram className="size-5" />
+                Instagram
+                <ExternalLink className="size-4" />
+              </a>
 
               {/* TikTok */}
-              {i.socials?.tiktok && (
+              {tiktokUrl && (
                 <a
-                  href={i.socials.tiktok}
+                  href={tiktokUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 h-11 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
@@ -363,9 +398,9 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
               )}
 
               {/* YouTube */}
-              {i.socials?.youtube && (
+              {youtubeUrl && (
                 <a
-                  href={i.socials.youtube}
+                  href={youtubeUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2 h-11 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
@@ -376,24 +411,6 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
                 >
                   <Youtube className="size-5" />
                   YouTube
-                  <ExternalLink className="size-4" />
-                </a>
-              )}
-
-              {/* WhatsApp - Only for merchants */}
-              {i.socials?.whatsapp && isMerchant && (
-                <a
-                  href={i.socials.whatsapp}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2 h-11 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
-                  style={{
-                    backgroundColor: "#25D366",
-                    color: COLORS.text.inverse,
-                  }}
-                >
-                  <WhatsAppIcon />
-                  Contactar por WhatsApp
                   <ExternalLink className="size-4" />
                 </a>
               )}
@@ -412,7 +429,7 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
               className="text-xs leading-relaxed"
               style={{ color: COLORS.info.dark }}
             >
-              <strong>¿Eres merchant?</strong> Pronto podrás contactar directamente a influencers y ver su media kit completo.
+              <strong>¿Eres merchant?</strong> Inicia sesión en tu dashboard para contactar directamente a este influencer y crear colaboraciones.
             </p>
           </div>
         </div>
