@@ -8,6 +8,15 @@
 - [x] Página de detalle de Promii
 - [x] Sistema de favoritos (localStorage)
 - [x] Galería de fotos de Promiis
+- [x] **Dashboard Influencer - Diseño unificado** (12 feb 2026)
+  - Layout profesional con InfluencerShell y InfluencerSidebar
+  - 5 tabs funcionales: Overview, Solicitudes, Mis Marcas, Mis Promiis, Perfil
+  - Navegación con query params correctamente implementada
+  - Diseño responsive (sidebar desktop, drawer móvil)
+- [x] **Sistema de autenticación Influencer corregido** (12 feb 2026)
+  - Sign-in verifica rol y redirige a portal correcto si no coincide
+  - Apply ahora crea registros en tabla `influencers` automáticamente
+  - Conversión de state/city IDs a nombres, limpieza de handles sociales
 
 ---
 
@@ -53,23 +62,37 @@
 **Objetivo:** Portal completo para influencers con estadísticas y herramientas
 
 **Tareas:**
-- [ ] Layout base (`/inf/dashboard`)
-- [ ] Tabs principales:
-  - [ ] **Overview** (métricas generales)
-    - [ ] Total ganado este mes
-    - [ ] Conversiones totales
-    - [ ] Promiis activos
-    - [ ] Gráfico de ganancias
-  - [ ] **Mis Promiis** (promiis disponibles para promocionar)
-  - [ ] **Mis Merchants** (partnerships)
-  - [ ] **Ganancias** (historial de comisiones)
-  - [ ] **Herramientas** (generador de links, códigos QR)
-  - [ ] **Perfil** (editar datos, payout info)
+- [x] Layout base (`/inf/dashboard`) ✅ **Completado 12/feb/2026**
+  - [x] InfluencerShell con sidebar profesional
+  - [x] Navegación responsive (desktop sidebar + mobile drawer)
+  - [x] Navegación por query params (?tab=...)
+- [x] Tabs principales: ✅ **Estructura completada 12/feb/2026**
+  - [x] **Overview** (métricas generales)
+    - [x] Total ganado este mes
+    - [x] Conversiones totales
+    - [x] Promiis activos
+    - [x] Gráfico de ganancias (con Tremor)
+  - [x] **Solicitudes** (solicitudes de colaboración de merchants)
+    - [x] Lista de requests pendientes
+    - [x] Aprobar/Rechazar partnerships
+  - [x] **Mis Promiis** (promiis asignados con códigos de referido)
+    - [x] Lista de assignments con stats
+    - [x] Copiar código y link de referido
+    - [x] Métricas: visitas, conversiones, revenue
+  - [x] **Mis Merchants** (partnerships activas)
+    - [x] Lista de merchants colaboradores
+    - [x] Stats por merchant
+  - [x] **Perfil** (editar datos públicos)
+    - [x] Información básica (nombre, bio, ubicación)
+    - [x] Redes sociales (Instagram, TikTok, YouTube, Twitter)
+    - [x] Nicho/categoría
+  - [ ] **Ganancias** (historial de comisiones) - Pendiente
+  - [ ] **Herramientas** (generador de links, códigos QR) - Pendiente
 
-- [ ] Servicios Supabase:
-  - [ ] `influencer-stats.service.ts` (fetch earnings, conversions)
-  - [ ] `influencer-promiis.service.ts` (fetch available promiis)
-  - [ ] `influencer-partnerships.service.ts` (manage partnerships)
+- [x] Servicios Supabase: ✅ **Completado**
+  - [x] `influencer-stats.service.ts` (fetch earnings, conversions)
+  - [x] `influencer-promiis.service.ts` (fetch available promiis, assignments)
+  - [x] `influencer-partnerships.service.ts` (manage partnerships, respond to requests)
 
 ---
 
@@ -308,4 +331,4 @@
 
 ---
 
-*Última actualización: 12 de febrero de 2026*
+*Última actualización: 12 de febrero de 2026 - Dashboard Influencer completado y bugs de autenticación corregidos*
