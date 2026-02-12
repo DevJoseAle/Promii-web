@@ -21,6 +21,63 @@ export type PromiiFilters = {
   offset?: number;
 };
 
+// ─────────────────────────────────────────────────────────────
+// MAPPING: Frontend category keys → Database enum values
+// ─────────────────────────────────────────────────────────────
+const CATEGORY_MAP: Record<string, string> = {
+  // Direct matches
+  food: "food",
+  beauty: "beauty",
+  services: "services",
+  shopping: "shopping",
+
+  // Frontend-only categories → database values
+  things_to_do: "events",
+  promos: "other",
+  travel: "other",
+  gifts: "shopping",
+  top: "other",
+  influencers: "other",
+};
+
+const SUBCATEGORY_MAP: Record<string, string> = {
+  // Food subcategories
+  restaurants: "food",
+  coffee: "coffee",
+  dessert: "dessert",
+
+  // Beauty subcategories
+  spa: "beauty",
+  hair: "beauty",
+  nails: "beauty",
+
+  // Things to do subcategories
+  cinema: "events",
+  kids: "kids",
+  events: "events",
+
+  // Services subcategories
+  repairs: "services",
+  home: "services",
+  cars: "services",
+
+  // Shopping subcategories
+  fashion: "shopping",
+  tech: "shopping",
+
+  // Travel subcategories
+  hotels: "other",
+  tours: "other",
+};
+
+function mapCategoryToDb(categoryKey: string): string {
+  return CATEGORY_MAP[categoryKey] || "other";
+}
+
+function mapSubcategoryToDb(subcategoryKey: string): string {
+  return SUBCATEGORY_MAP[subcategoryKey] || "other";
+}
+
 export type PaginatedPromiis = {
   promiis: PromiiCardType[];
   total: number;
@@ -57,11 +114,12 @@ export async function getPromiisByCategory(
         title,
         price_amount,
         price_currency,
-        original_price,
-        discount_percentage,
+        original_price_amount,
+        discount_label,
         end_at,
         status,
         created_at,
+        category_primary,
         merchant:merchant_id (
           business_name,
           city,
@@ -75,12 +133,18 @@ export async function getPromiisByCategory(
 
     // Filter by category
     if (category) {
-      query = query.eq("category", category);
+      const dbCategory = mapCategoryToDb(category);
+      query = query.eq("category_primary", dbCategory);
     }
 
     // Filter by subcategory
     if (subcategory) {
-      query = query.eq("subcategory", subcategory);
+      const dbSubcategory = mapSubcategoryToDb(subcategory);
+      // Note: category_secondary is optional, so we might need to filter by category_primary instead
+      // For now, let's filter by the mapped value in category_primary
+      if (!category) {
+        query = query.eq("category_primary", dbSubcategory);
+      }
     }
 
     // Filter by price range
@@ -154,9 +218,9 @@ export async function getPromiisByCategory(
           .eq("promii_id", promii.id);
 
         // Calculate discount percentage
-        const discount = promii.original_price && promii.price_amount
-          ? Math.round(((promii.original_price - promii.price_amount) / promii.original_price) * 100)
-          : promii.discount_percentage || 0;
+        const discount = promii.original_price_amount && promii.price_amount
+          ? Math.round(((promii.original_price_amount - promii.price_amount) / promii.original_price_amount) * 100)
+          : 0;
 
         return {
           id: promii.id,
@@ -167,7 +231,7 @@ export async function getPromiisByCategory(
             : "Ubicación no disponible",
           rating: 4.5, // TODO: Implement real rating system
           sold: purchaseCount || 0,
-          oldPrice: promii.original_price || undefined,
+          oldPrice: promii.original_price_amount || undefined,
           price: promii.price_amount,
           discountPct: discount,
           tag: undefined, // Can add logic for tags later
@@ -223,22 +287,30 @@ export async function getCategoryStats(category: string): Promise<{
   total: number;
   avgDiscount: number;
 }> {
+  const dbCategory = mapCategoryToDb(category);
+
   const { count } = await supabase
     .from("promiis")
     .select("*", { count: "exact", head: true })
-    .eq("category", category)
+    .eq("category_primary", dbCategory)
     .eq("status", "active")
     .gte("end_at", new Date().toISOString());
 
   const { data: promiis } = await supabase
     .from("promiis")
-    .select("discount_percentage")
-    .eq("category", category)
+    .select("original_price_amount, price_amount")
+    .eq("category_primary", dbCategory)
     .eq("status", "active")
     .gte("end_at", new Date().toISOString());
 
   const avgDiscount = promiis && promiis.length > 0
-    ? promiis.reduce((sum, p) => sum + (p.discount_percentage || 0), 0) / promiis.length
+    ? promiis.reduce((sum, p) => {
+        if (p.original_price_amount && p.price_amount) {
+          const discount = ((p.original_price_amount - p.price_amount) / p.original_price_amount) * 100;
+          return sum + discount;
+        }
+        return sum;
+      }, 0) / promiis.length
     : 0;
 
   return {
