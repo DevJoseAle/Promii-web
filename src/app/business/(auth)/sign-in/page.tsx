@@ -159,6 +159,17 @@ export default function BusinessSignInPage() {
           </div>
         </div>
 
+        {/* Forgot password link */}
+        <div className="flex justify-end">
+          <Link
+            href="/auth/forgot-password"
+            className="text-sm font-semibold transition-colors duration-200 hover:underline"
+            style={{ color: COLORS.primary.main }}
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+
         {/* Error message */}
         {error && (
           <div

@@ -84,6 +84,15 @@ export default function InfluencersSignInPage() {
           <Input name="email" type="email" placeholder="Email" required />
           <Input name="password" type="password" placeholder="Contraseña" required />
 
+          <div className="flex justify-end">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
           {error ? <div className="text-sm text-danger">{error}</div> : null}
 
           <Button type="submit" disabled={loading} className="w-full bg-primary text-white hover:bg-primary/90">

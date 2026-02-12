@@ -121,6 +121,85 @@ export async function logoutUser(): Promise<SupabaseResponse<true>> {
   }
 }
 
+/**
+ * Solicita un enlace de recuperación de contraseña
+ * Funciona para todos los roles (user, merchant, influencer)
+ */
+export async function requestPasswordReset(
+  email: string
+): Promise<SupabaseResponse<true>> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      }
+    );
+
+    if (error) {
+      return {
+        status: "error",
+        data: null,
+        error: error.message,
+        code: error.code,
+        message: "No se pudo enviar el correo de recuperación.",
+      };
+    }
+
+    return {
+      status: "success",
+      data: true,
+      error: null,
+      message: "Se ha enviado un correo con las instrucciones para recuperar tu contraseña.",
+    };
+  } catch (e: any) {
+    return {
+      status: "error",
+      data: null,
+      error: e?.message ?? "Error desconocido",
+      message: "No se pudo enviar el correo de recuperación.",
+    };
+  }
+}
+
+/**
+ * Actualiza la contraseña del usuario autenticado
+ * Debe ser llamado después de que el usuario haga click en el enlace del correo
+ */
+export async function updatePassword(
+  newPassword: string
+): Promise<SupabaseResponse<true>> {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      return {
+        status: "error",
+        data: null,
+        error: error.message,
+        code: error.code,
+        message: "No se pudo actualizar la contraseña.",
+      };
+    }
+
+    return {
+      status: "success",
+      data: true,
+      error: null,
+      message: "Contraseña actualizada con éxito.",
+    };
+  } catch (e: any) {
+    return {
+      status: "error",
+      data: null,
+      error: e?.message ?? "Error desconocido",
+      message: "No se pudo actualizar la contraseña.",
+    };
+  }
+}
+
 // export async function signInWithUserAndPassword (user: string, password: string): Promise<SupabaseResponse<>> {
 //    const { data, error } = await supabase.auth.signInWithPassword({
 //     email: user,
