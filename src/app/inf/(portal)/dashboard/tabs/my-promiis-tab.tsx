@@ -5,7 +5,7 @@ import { Sparkles, Copy, Eye, ShoppingCart, TrendingUp, ExternalLink } from "luc
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { getInfluencerAssignmentPerformance, type AssignmentPerformance } from "@/lib/services/influencer";
-import { ToastService } from "@/lib/services/toast.service";
+import { ToastService } from "@/lib/toast/toast.service";
 
 interface MyPromiisTabProps {
   influencerId: string;

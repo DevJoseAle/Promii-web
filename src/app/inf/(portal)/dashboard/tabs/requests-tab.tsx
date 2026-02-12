@@ -5,7 +5,7 @@ import { Clock, Check, X, MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { getInfluencerPartnerships, respondToPartnership, type PartnershipWithDetails } from "@/lib/services/influencer";
-import { ToastService } from "@/lib/services/toast.service";
+import { ToastService } from "@/lib/toast/toast.service";
 import Image from "next/image";
 
 interface RequestsTabProps {
@@ -37,7 +37,8 @@ export function RequestsTab({ influencerId }: RequestsTabProps) {
 
     const response = await respondToPartnership({
       partnership_id: partnershipId,
-      approved,
+      influencer_id: influencerId,
+      action: approved ? "approved" : "rejected",
     });
 
     if (response.status === "success") {

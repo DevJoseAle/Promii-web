@@ -5,9 +5,10 @@ import { UserCircle, Save, Camera, Instagram, Youtube, Twitter } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { ToastService } from "@/lib/services/toast.service";
+import { ToastService } from "@/lib/toast/toast.service";
 import { VE_STATES, getCitiesForState } from "@/config/location";
 import { CATEGORIES } from "@/config/categories";
+import { IVzlaCity } from "@/config/types/locations";
 import Image from "next/image";
 
 interface ProfileTabProps {
@@ -39,7 +40,7 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [cities, setCities] = useState<string[]>([]);
+  const [cities, setCities] = useState<IVzlaCity[]>([]);
 
   useEffect(() => {
     loadProfile();
@@ -244,7 +245,7 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
               >
                 <option value="">Selecciona</option>
                 {VE_STATES.map((state) => (
-                  <option key={state.code} value={state.code}>
+                  <option key={state.id} value={state.id}>
                     {state.name}
                   </option>
                 ))}
@@ -268,8 +269,8 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
               >
                 <option value="">Selecciona</option>
                 {cities.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
+                  <option key={city.id} value={city.name}>
+                    {city.name}
                   </option>
                 ))}
               </select>
@@ -293,8 +294,8 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
             >
               <option value="">Selecciona tu nicho</option>
               {CATEGORIES.map((cat) => (
-                <option key={cat.name} value={cat.name}>
-                  {cat.name}
+                <option key={cat.key} value={cat.key}>
+                  {cat.label}
                 </option>
               ))}
             </select>

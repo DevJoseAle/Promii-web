@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { requestPartnership } from "@/lib/services/influencer";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { ToastService } from "@/lib/services/toast.service";
+import { ToastService } from "@/lib/toast/toast.service";
 import Image from "next/image";
 
 interface InfluencerCardProps {

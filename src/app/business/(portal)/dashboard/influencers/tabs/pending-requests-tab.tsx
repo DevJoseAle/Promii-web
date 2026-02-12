@@ -5,7 +5,7 @@ import { Clock, X, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { getMerchantPartnerships, cancelPartnershipRequest, type PartnershipWithDetails } from "@/lib/services/influencer";
-import { ToastService } from "@/lib/services/toast.service";
+import { ToastService } from "@/lib/toast/toast.service";
 import Image from "next/image";
 
 interface PendingRequestsTabProps {

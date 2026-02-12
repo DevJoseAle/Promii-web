@@ -5,8 +5,8 @@ import { Users, MapPin, ExternalLink, Phone, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { getInfluencerPartnerships, type PartnershipWithDetails } from "@/lib/services/influencer";
-import { ToastService } from "@/lib/services/toast.service";
 import Image from "next/image";
+import { ToastService } from "@/lib/toast/toast.service";
 
 interface MyMerchantsTabProps {
   influencerId: string;
@@ -120,7 +120,7 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
               <div className="flex gap-2 flex-wrap">
                 {merchant.whatsapp_phone && (
                   <Button
-                    onClick={() => window.open(`https://wa.me/${merchant.whatsapp_phone.replace(/\D/g, "")}`, "_blank")}
+                    onClick={() => window.open(`https://wa.me/${merchant.whatsapp_phone!.replace(/\D/g, "")}`, "_blank")}
                     size="sm"
                     className="h-8"
                     style={{
@@ -168,7 +168,7 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
 
               {/* Partnership date */}
               <p className="text-xs mt-3 pt-3 border-t" style={{ color: COLORS.text.tertiary, borderColor: COLORS.border.light }}>
-                Colaborando desde {new Date(partnership.approved_at!).toLocaleDateString('es-VE', {
+                Colaborando desde {new Date(partnership.responded_at!).toLocaleDateString('es-VE', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'

@@ -33,6 +33,10 @@ export type PartnershipWithDetails = Partnership & {
     address_line: string | null;
     city: string;
     state: string;
+    category: string | null;
+    website_url: string | null;
+    whatsapp_phone: string | null;
+    description: string | null;
   };
   influencer?: {
     id: string;
@@ -274,7 +278,11 @@ export async function getInfluencerPartnerships(
           phone,
           address_line,
           city,
-          state
+          state,
+          category,
+          website_url,
+          whatsapp_phone,
+          description
         )
       `
       )

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/supabase.client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
-import { VE_STATES } from "@/config/locations";
+import { VE_STATES } from "@/config/location";
 import { CATEGORIES } from "@/config/categories";
 import { InfluencerCard } from "../components/influencer-card";
 
@@ -280,8 +280,8 @@ export function SearchInfluencersTab({ merchantId }: SearchInfluencersTabProps) 
                 >
                   <option value="">Todos los estados</option>
                   {VE_STATES.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
+                    <option key={state.id} value={state.id}>
+                      {state.name}
                     </option>
                   ))}
                 </select>
@@ -305,8 +305,8 @@ export function SearchInfluencersTab({ merchantId }: SearchInfluencersTabProps) 
                 >
                   <option value="">Todas las categorías</option>
                   {CATEGORIES.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                    <option key={cat.key} value={cat.key}>
+                      {cat.label}
                     </option>
                   ))}
                 </select>
