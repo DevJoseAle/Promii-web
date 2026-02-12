@@ -1,91 +1,85 @@
-/**
- * Sistema de colores de Promii
- * Mobile-first design system
- */
-
 export const COLORS = {
-  // Marca principal (basado en el azul existente)
-   primary: {
-    main: "#6D28D9",
-    light: "#8B5CF6",
-    lighter: "#EDE9FE",
-    dark: "#4C1D95",
-    darker: "#2E1065",
-  },
+// Marca principal (Startup moderna, tecnológica y confiable)
+primary: {
+main: "#9333EA",
+light: "#A855F7",
+lighter: "#F3E8FF",
+dark: "#7E22CE",
+darker: "#581C87",
+},
 
-  bluePrimary: "#6D28D9",
-  blueSecondary: "#8B5CF6",
-
-  // Colores semánticos
-  success: {
-    main: "#10b981",      // Verde éxito (promii activo, validaciones OK)
-    light: "#34d399",     // Hover
-    lighter: "#d1fae5",   // Fondos
-    dark: "#059669",      // Texto
-  },
-
-  warning: {
-    main: "#f59e0b",      // Naranja (promii pausado, alertas)
-    light: "#fbbf24",
-    lighter: "#fef3c7",
-    dark: "#d97706",
-  },
-
-  error: {
-    main: "#ef4444",      // Rojo (errores, promii rechazado)
-    light: "#f87171",
-    lighter: "#fee2e2",
-    dark: "#dc2626",
-  },
-
-  info: {
-    main: "#3b82f6",      // Azul info (tooltips, ayudas)
-    light: "#60a5fa",
-    lighter: "#dbeafe",
-    dark: "#2563eb",
-  },
-
-  // Neutrales (grises)
-  neutral: {
-    50: "#fafafa",        // Fondos muy claros
-    100: "#f5f5f5",       // Fondos de cards
-    200: "#e5e5e5",       // Bordes suaves
-    300: "#d4d4d4",       // Bordes normales
-    400: "#a3a3a3",       // Texto deshabilitado
-    500: "#737373",       // Texto secundario
-    600: "#525252",       // Texto normal
-    700: "#404040",       // Texto importante
-    800: "#262626",       // Texto muy importante
-    900: "#171717",       // Casi negro
-  },
-
-  // Backgrounds
-  background: {
-    primary: "#ffffff",    // Fondo principal
-    secondary: "#f9fafb",  // Fondo alternativo (sidebar, sections)
-    tertiary: "#f3f4f6",   // Fondo de inputs, cards secundarias
-    dark: "#1f2937",       // Fondo oscuro (futuro dark mode)
-  },
-
-  // Bordes
-  border: {
-    light: "#e5e7eb",      // Bordes sutiles
-    main: "#d1d5db",       // Bordes normales
-    dark: "#9ca3af",       // Bordes con énfasis
-  },
-
-  // Texto
-  text: {
-    primary: "#111827",    // Texto principal
-    secondary: "#6b7280",  // Texto secundario
-    tertiary: "#9ca3af",   // Texto deshabilitado
-    inverse: "#ffffff",    // Texto sobre fondos oscuros
-  },
-
-  // Overlay
-  overlay: "rgba(0, 0, 0, 0.5)",  // Para modales, drawers
+bluePrimary: "#9333EA",
+blueSecondary: "#A855F7",
 
 
+// Colores semánticos
+success: {
+main: "#10B981",
+light: "#34D399",
+lighter: "#D1FAE5",
+dark: "#059669",
+},
+
+warning: {
+main: "#F59E0B",
+light: "#FBBF24",
+lighter: "#FEF3C7",
+dark: "#D97706",
+},
+
+error: {
+main: "#EF4444",
+light: "#F87171",
+lighter: "#FEE2E2",
+dark: "#DC2626",
+},
+
+info: {
+main: "#3B82F6", // coherente con primary
+light: "#60A5FA",
+lighter: "#DBEAFE",
+dark: "#2563EB",
+},
+
+// Neutrales más refinados (más premium y menos planos)
+neutral: {
+50: "#F9FAFB",
+100: "#F3F4F6",
+200: "#E5E7EB",
+300: "#D1D5DB",
+400: "#9CA3AF",
+500: "#6B7280",
+600: "#4B5563",
+700: "#374151",
+800: "#1F2937",
+900: "#111827",
+},
+
+// Backgrounds más elegantes
+background: {
+primary: "#FFFFFF",
+secondary: "#F8FAFC", // más moderno que gris plano
+tertiary: "#F1F5F9", // inputs y cards suaves
+dark: "#0F172A", // dark mode premium
+},
+
+// Bordes más suaves y modernos
+border: {
+light: "#E2E8F0",
+main: "#CBD5E1",
+dark: "#94A3B8",
+},
+
+// Texto optimizado para UI moderna
+text: {
+primary: "#0F172A",
+secondary: "#475569",
+tertiary: "#94A3B8",
+inverse: "#FFFFFF",
+},
+
+overlay: "rgba(15, 23, 42, 0.55)",
 } as const;
+
 
 export type ColorTokens = typeof COLORS;

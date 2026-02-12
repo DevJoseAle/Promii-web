@@ -9,11 +9,12 @@ import { AppFooter } from "./footer";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { AuthBootstrap } from "../auth/auth-bootstrap";
 import { initAuthListener } from "@/lib/stores/auth/authStore";
+import { COLORS } from "@/config/colors";
 
 export function AppShell({ children }: { children: ReactNode }) {
   
   return (
-    <div className="min-h-dvh bg-background text-foreground">
+    <div className="min-h-dvh" style={{ backgroundColor: COLORS.background.primary, color: COLORS.text.primary }}>
       <AuthBootstrap />
 
       <TopBar />

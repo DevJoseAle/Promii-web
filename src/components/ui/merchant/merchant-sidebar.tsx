@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Menu,
   Settings,
+  Search,
 } from "lucide-react";
 
 // Tremor (Raw) components (si ya los copiaste a /components, ajusta rutas)
@@ -83,6 +84,11 @@ const GROUPS: NavGroup[] = [
     label: "Influencers",
     icon: Users,
     items: [
+      {
+        label: "Buscar Influencers",
+        href: "/business/dashboard/influencers",
+        icon: Search,
+      },
       {
         label: "Solicitudes",
         href: "/business/dashboard/influencers/request", // <- es request (singular)

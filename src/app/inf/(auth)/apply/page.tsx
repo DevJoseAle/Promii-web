@@ -114,19 +114,19 @@ export default function InfluencerApplyPage() {
     const stateName = VENEZUELA_STATES.find((s) => s.id === stateId)?.name || "";
     const cityName = filteredCities.find((c) => c.id === cityId)?.name || "";
 
-    const { error: influencerErr } = await supabase.from("influencers").upsert(
+    const { error: influencerErr} = await supabase.from("influencers").upsert(
       {
         id: userId,
+        verification_status: "pending",
         display_name: fullName.trim(),
         bio: notes.trim() || null,
         state: stateName,
         city: cityName,
-        niche: niche.trim() || null,
-        instagram_handle: instagramHandle.trim().replace("@", "") || null,
+        niche_primary: niche.trim() || null,
+        niche_secondary: null,
+        instagram_handle: instagramHandle.trim().replace("@", ""),
         tiktok_handle: tiktokHandle.trim().replace("@", "") || null,
         youtube_handle: youtubeHandle.trim().replace("@", "") || null,
-        twitter_handle: null,
-        followers_count: audienceSize.trim() === "" ? 0 : Number.parseInt(audienceSize.trim(), 10) || 0,
       },
       { onConflict: "id" }
     );
@@ -144,37 +144,49 @@ export default function InfluencerApplyPage() {
       throw new Error("El tamaño de audiencia debe ser un número.");
     }
 
-    const { error: appErr } = await supabase
-      .from("influencer_applications")
-      .upsert(
-        {
-          owner_id: userId,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          country: "VE",
-          state_id: stateId || null,
-          city_id: cityId || null,
-          instagram_handle: instagramHandle.trim() || null,
-          tiktok_handle: tiktokHandle.trim() || null,
-          youtube_handle: youtubeHandle.trim() || null,
-          audience_size: audienceInt,
-          niche: niche.trim() || null,
-          notes: notes.trim() || null,
-        },
-        { onConflict: "owner_id" }
-      );
+    try {
+      // 1. PRIMERO: Actualizar profile con role y state
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .update({
+          role: "influencer",
+          state: "pending",
+          first_name: fullName.trim(),
+        })
+        .eq("id", userId);
 
-    if (appErr) throw new Error(appErr.message);
+      if (profileErr) throw new Error(profileErr.message);
 
-    // Create influencer record
-    await ensureInfluencerRow(userId);
+      // 2. SEGUNDO: Guardar en influencer_applications
+      const { error: appErr } = await supabase
+        .from("influencer_applications")
+        .upsert(
+          {
+            owner_id: userId,
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            country: "VE",
+            state_id: stateId || null,
+            city_id: cityId || null,
+            instagram_handle: instagramHandle.trim() || null,
+            tiktok_handle: tiktokHandle.trim() || null,
+            youtube_handle: youtubeHandle.trim() || null,
+            audience_size: audienceInt,
+            niche: niche.trim() || null,
+            notes: notes.trim() || null,
+          },
+          { onConflict: "owner_id" }
+        );
 
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({ role: "influencer", state: "pending" })
-      .eq("id", userId);
+      if (appErr) throw new Error(appErr.message);
 
-    if (profileErr) throw new Error(profileErr.message);
+      // 3. TERCERO: Crear influencer record
+      await ensureInfluencerRow(userId);
+
+    } catch (error) {
+      console.error("Error finalizing submit with session:", error);
+      throw error;
+    }
 
     clearDraft();
     router.push("/inf/pending");
@@ -784,21 +796,37 @@ export default function InfluencerApplyPage() {
                 <label htmlFor="niche" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
                   Nicho / Categoría <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>(Opcional)</span>
                 </label>
-                <Input
+                <select
                   id="niche"
                   name="niche"
-                  placeholder="Ej: Comida, Fitness, Tecnología"
                   value={niche}
                   onChange={(e) => {
                     setNiche(e.target.value);
                     saveDraft({ niche: e.target.value });
                   }}
-                  className="h-11"
+                  className="h-11 w-full rounded-lg border px-4"
                   style={{
                     backgroundColor: COLORS.background.tertiary,
                     borderColor: COLORS.border.main,
+                    color: COLORS.text.primary,
                   }}
-                />
+                >
+                  <option value="">Selecciona tu nicho principal</option>
+                  <option value="food">Comida</option>
+                  <option value="coffee">Café</option>
+                  <option value="dessert">Postres</option>
+                  <option value="bars">Bares & Vida Nocturna</option>
+                  <option value="beauty">Belleza</option>
+                  <option value="fitness">Fitness</option>
+                  <option value="health">Salud</option>
+                  <option value="services">Servicios</option>
+                  <option value="education">Educación</option>
+                  <option value="events">Eventos</option>
+                  <option value="shopping">Compras</option>
+                  <option value="kids">Niños</option>
+                  <option value="pets">Mascotas</option>
+                  <option value="other">Otro</option>
+                </select>
               </div>
 
               <div className="space-y-2">

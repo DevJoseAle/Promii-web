@@ -123,6 +123,7 @@ function MainHeaderContent() {
             />
           ) : isAuthenticated ? (
             <>
+              {/* Botón de cuenta según el tipo de usuario */}
               {isUser && (
                 <Button
                   asChild
@@ -133,6 +134,32 @@ function MainHeaderContent() {
                   <Link href="/profile">
                     <User className="size-5 mr-2" />
                     Mi Cuenta
+                  </Link>
+                </Button>
+              )}
+              {isMerchant && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                  style={{ color: COLORS.text.primary }}
+                >
+                  <Link href="/business/dashboard">
+                    <User className="size-5 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
+              )}
+              {isInfluencer && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                  style={{ color: COLORS.text.primary }}
+                >
+                  <Link href="/inf/dashboard">
+                    <User className="size-5 mr-2" />
+                    Mi Panel
                   </Link>
                 </Button>
               )}

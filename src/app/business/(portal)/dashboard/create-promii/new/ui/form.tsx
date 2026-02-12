@@ -93,6 +93,10 @@ type FormState = {
   // ✅ Influencers
   assignToInfluencer: boolean;
   default_influencer_id: string;
+  useAutoCode: boolean; // true = automático, false = manual
+  manualReferralCode: string; // código manual del merchant
+  extraDiscountType: "percentage" | "fixed" | "";
+  extraDiscountValue: string;
   photos: File[]; // ✅ nuevas fotos (locales)
 };
 
@@ -179,6 +183,10 @@ const DEFAULTS: FormState = {
 
   assignToInfluencer: false,
   default_influencer_id: "",
+  useAutoCode: true,
+  manualReferralCode: "",
+  extraDiscountType: "",
+  extraDiscountValue: "",
   photos: [],
 };
 
@@ -367,6 +375,18 @@ function validate(values: FormState): Errors {
   const lng = toNumberOrNull(values.geo_lng);
   if (values.geo_lng.trim() && (lng === null || lng < -180 || lng > 180)) {
     e.geo_lng = "Longitud inválida (-180 a 180).";
+  }
+
+  // Validar código manual si está activado
+  if (values.assignToInfluencer && !values.useAutoCode) {
+    const code = values.manualReferralCode.trim();
+    if (!code) {
+      e.manualReferralCode = "El código es requerido si eliges código manual";
+    } else if (code.length < 8 || code.length > 17) {
+      e.manualReferralCode = "El código debe tener entre 8 y 17 caracteres";
+    } else if (!/^[A-Z0-9_-]+$/i.test(code)) {
+      e.manualReferralCode = "Solo letras, números, guiones (-) y guiones bajos (_)";
+    }
   }
 
   return e;
@@ -662,17 +682,33 @@ export function CreatePromiiForm({
       // Create influencer assignment if selected
       if (values.assignToInfluencer && values.default_influencer_id) {
         console.log("[CreatePromiiForm] Creating influencer assignment...");
+
+        // Preparar descuento extra si está definido
+        let extraDiscount;
+        if (values.extraDiscountType && values.extraDiscountValue) {
+          const discountValue = toNumberOrNull(values.extraDiscountValue);
+          if (discountValue && discountValue > 0) {
+            extraDiscount = {
+              type: values.extraDiscountType as "percentage" | "fixed",
+              value: discountValue,
+            };
+          }
+        }
+
         const assignmentResponse = await assignInfluencerToPromii({
           promii_id: data.id,
           influencer_id: values.default_influencer_id,
           merchant_id: payload.merchant_id,
+          referral_code: values.useAutoCode ? undefined : values.manualReferralCode.trim(),
+          extra_discount: extraDiscount,
         });
 
         if (assignmentResponse.status === "success") {
           console.log("[CreatePromiiForm] Assignment created successfully");
         } else {
           console.warn("[CreatePromiiForm] Failed to create assignment:", assignmentResponse.error);
-          // Don't block the flow, just warn
+          ToastService.showErrorToast(assignmentResponse.error || "Error al asignar influencer");
+          // Don't block the flow, but show the error
         }
       }
 
@@ -1258,7 +1294,10 @@ export function CreatePromiiForm({
                   onChange={(e) => {
                     const on = e.target.value === "yes";
                     update("assignToInfluencer", on);
-                    if (!on) update("default_influencer_id", "");
+                    if (!on) {
+                      update("default_influencer_id", "");
+                      update("manualReferralCode", "");
+                    }
                   }}
                   className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                 >
@@ -1291,6 +1330,195 @@ export function CreatePromiiForm({
                 </select>
               </Field>
             </div>
+
+            {/* Código de referido: automático o manual */}
+            {values.assignToInfluencer && values.default_influencer_id && (
+              <>
+                <div
+                  className="rounded-lg border p-4"
+                  style={{
+                    backgroundColor: COLORS.primary.lighter,
+                    borderColor: COLORS.primary.light,
+                  }}
+                >
+                  <Field label="Tipo de código de referido">
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          update("useAutoCode", true);
+                          update("manualReferralCode", "");
+                        }}
+                        className={cn(
+                          "px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-all",
+                          values.useAutoCode
+                            ? "shadow-sm"
+                            : "opacity-60 hover:opacity-80"
+                        )}
+                        style={{
+                          backgroundColor: values.useAutoCode ? COLORS.primary.main : COLORS.background.secondary,
+                          borderColor: values.useAutoCode ? COLORS.primary.dark : COLORS.border.main,
+                          color: values.useAutoCode ? "white" : COLORS.text.primary,
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>Automático</span>
+                        </div>
+                        <p className="text-xs mt-1 opacity-90">
+                          Se genera al guardar
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => update("useAutoCode", false)}
+                        className={cn(
+                          "px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-all",
+                          !values.useAutoCode
+                            ? "shadow-sm"
+                            : "opacity-60 hover:opacity-80"
+                        )}
+                        style={{
+                          backgroundColor: !values.useAutoCode ? COLORS.primary.main : COLORS.background.secondary,
+                          borderColor: !values.useAutoCode ? COLORS.primary.dark : COLORS.border.main,
+                          color: !values.useAutoCode ? "white" : COLORS.text.primary,
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Manual</span>
+                        </div>
+                        <p className="text-xs mt-1 opacity-90">
+                          Tú decides el código
+                        </p>
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+
+                {/* Input de código manual */}
+                {!values.useAutoCode && (
+                  <Field
+                    label="Código de referido personalizado"
+                    error={errors.manualReferralCode}
+                    hint="8-17 caracteres: letras, números, guiones (-) y guiones bajos (_)"
+                    required
+                  >
+                    <Input
+                      value={values.manualReferralCode}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+                        update("manualReferralCode", val);
+                      }}
+                      placeholder="Ej: CAFE_MARIA_2026"
+                      className="h-10 font-mono"
+                      maxLength={17}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs" style={{ color: COLORS.text.tertiary }}>
+                        {values.manualReferralCode.length}/17 caracteres
+                      </span>
+                      {values.manualReferralCode.length >= 8 && values.manualReferralCode.length <= 17 && (
+                        <span className="text-xs font-semibold flex items-center gap-1" style={{ color: COLORS.success.main }}>
+                          <svg className="size-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Longitud válida
+                        </span>
+                      )}
+                    </div>
+                  </Field>
+                )}
+
+                {/* Descuento extra */}
+                <div
+                  className="rounded-lg border p-4"
+                  style={{
+                    backgroundColor: COLORS.success.lighter,
+                    borderColor: COLORS.success.light,
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: COLORS.success.main }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-bold" style={{ color: COLORS.success.dark }}>
+                      Descuento extra con código (opcional)
+                    </span>
+                  </div>
+
+                  <p className="text-xs mb-4" style={{ color: COLORS.success.dark }}>
+                    Define un descuento adicional que se aplicará cuando usen el código de este influencer
+                  </p>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Tipo de descuento">
+                      <select
+                        value={values.extraDiscountType}
+                        onChange={(e) => update("extraDiscountType", e.target.value as any)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="">Sin descuento extra</option>
+                        <option value="percentage">Porcentaje (%)</option>
+                        <option value="fixed">Monto fijo ({values.price_currency})</option>
+                      </select>
+                    </Field>
+
+                    <Field
+                      label={
+                        values.extraDiscountType === "percentage"
+                          ? "Porcentaje de descuento"
+                          : values.extraDiscountType === "fixed"
+                          ? `Descuento en ${values.price_currency}`
+                          : "Valor"
+                      }
+                      hint={
+                        values.extraDiscountType === "percentage"
+                          ? "Ej: 10 (para 10% OFF adicional)"
+                          : values.extraDiscountType === "fixed"
+                          ? "Ej: 5.00"
+                          : undefined
+                      }
+                    >
+                      <Input
+                        value={values.extraDiscountValue}
+                        onChange={(e) => update("extraDiscountValue", e.target.value)}
+                        placeholder={values.extraDiscountType ? (values.extraDiscountType === "percentage" ? "Ej: 10" : "Ej: 5.00") : "Primero elige tipo"}
+                        inputMode="decimal"
+                        className="h-10"
+                        disabled={!values.extraDiscountType}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Preview del descuento */}
+                  {values.extraDiscountType && values.extraDiscountValue && toNumberOrNull(values.extraDiscountValue) && (
+                    <div
+                      className="mt-3 rounded-lg border p-3"
+                      style={{
+                        backgroundColor: "white",
+                        borderColor: COLORS.success.main,
+                      }}
+                    >
+                      <div className="text-xs font-semibold mb-1" style={{ color: COLORS.success.dark }}>
+                        Vista previa del beneficio:
+                      </div>
+                      <div className="text-sm font-bold" style={{ color: COLORS.success.main }}>
+                        {values.extraDiscountType === "percentage"
+                          ? `+${values.extraDiscountValue}% OFF adicional`
+                          : `${values.price_currency} ${values.extraDiscountValue} menos`
+                        } con código de influencer
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
             </div>
           </div>
 

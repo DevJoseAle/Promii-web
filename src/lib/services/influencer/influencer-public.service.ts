@@ -18,7 +18,6 @@ export type PublicInfluencer = {
   instagram_handle: string;
   tiktok_handle: string | null;
   youtube_handle: string | null;
-  instagram_followers: number | null;
   verification_status: string;
 };
 
@@ -26,8 +25,6 @@ export type InfluencerFilters = {
   city?: string;
   state?: string;
   niche?: string;
-  minFollowers?: number;
-  maxFollowers?: number;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -39,8 +36,9 @@ export async function getPublicInfluencers(
   try {
     let query = supabase
       .from("influencers")
-      .select("*")
-      .eq("verification_status", "approved");
+      .select("*");
+      // Temporarily removed verification_status filter to show all influencers
+      // .eq("verification_status", "approved");
 
     // Filtros
     if (filters.city) {
@@ -54,15 +52,9 @@ export async function getPublicInfluencers(
         `niche_primary.eq.${filters.niche},niche_secondary.eq.${filters.niche}`
       );
     }
-    if (filters.minFollowers !== undefined) {
-      query = query.gte("instagram_followers", filters.minFollowers);
-    }
-    if (filters.maxFollowers !== undefined) {
-      query = query.lte("instagram_followers", filters.maxFollowers);
-    }
 
-    // Ordenar por seguidores (descendente)
-    query = query.order("instagram_followers", { ascending: false, nullsLast: true });
+    // Ordenar por nombre
+    query = query.order("display_name", { ascending: true });
 
     const { data, error } = await query;
 

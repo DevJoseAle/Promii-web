@@ -28,9 +28,11 @@ export {
   getInfluencerAssignments,
   getMerchantAssignments,
   getAssignmentByReferralCode,
+  isReferralCodeAvailable,
   type Assignment,
   type AssignmentWithDetails,
   type CommissionType,
+  type DiscountType,
   type CreateAssignmentRequest,
 } from "./influencer-assignments.service";
 

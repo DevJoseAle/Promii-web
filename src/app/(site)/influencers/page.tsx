@@ -9,20 +9,7 @@ import { CATEGORIES } from "@/config/categories";
 import { Users2, TrendingUp, Sparkles, Search, Loader2, AlertCircle } from "lucide-react";
 import { getPublicInfluencers, type PublicInfluencer } from "@/lib/services/influencer/influencer-public.service";
 
-const FOLLOWER_BUCKETS = [
-  { key: "all", label: "Todos" },
-  { key: "micro", label: "1k - 10k", min: 1000, max: 10000 },
-  { key: "mid", label: "10k - 100k", min: 10000, max: 100000 },
-  { key: "macro", label: "100k - 1M", min: 100000, max: 1000000 },
-  { key: "mega", label: "1M+", min: 1000000 },
-];
-
-function formatFollowers(n: number | null) {
-  if (!n) return "N/A";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return `${n}`;
-}
+// Removed follower buckets since instagram_followers column doesn't exist in DB
 
 export default function InfluencersDirectoryPage() {
   const [influencers, setInfluencers] = useState<PublicInfluencer[]>([]);
@@ -31,7 +18,6 @@ export default function InfluencersDirectoryPage() {
 
   const [state, setState] = useState<string>("");
   const [city, setCity] = useState<string>("");
-  const [bucket, setBucket] = useState<string>("all");
   const [niche, setNiche] = useState<string>("");
 
   const cities = useMemo(() => {
@@ -80,24 +66,11 @@ export default function InfluencersDirectoryPage() {
       );
     }
 
-    // Filtro por seguidores
-    if (bucket !== "all") {
-      const bucketConfig = FOLLOWER_BUCKETS.find((b) => b.key === bucket);
-      if (bucketConfig && bucketConfig.min !== undefined) {
-        result = result.filter((i) => {
-          const followers = i.instagram_followers || 0;
-          const matchMin = followers >= bucketConfig.min!;
-          const matchMax = bucketConfig.max ? followers <= bucketConfig.max : true;
-          return matchMin && matchMax;
-        });
-      }
-    }
-
-    // Ordenar por seguidores (mayor a menor)
-    result.sort((a, b) => (b.instagram_followers || 0) - (a.instagram_followers || 0));
+    // Ordenar por nombre
+    result.sort((a, b) => a.display_name.localeCompare(b.display_name));
 
     return result;
-  }, [influencers, state, city, bucket, niche]);
+  }, [influencers, state, city, niche]);
 
   // Resetear ciudad cuando cambia el estado
   useEffect(() => {
@@ -239,7 +212,7 @@ export default function InfluencersDirectoryPage() {
           </h2>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* Estado */}
           <div>
             <label
@@ -299,34 +272,6 @@ export default function InfluencersDirectoryPage() {
             </select>
           </div>
 
-          {/* Seguidores */}
-          <div>
-            <label
-              htmlFor="followers"
-              className="text-sm font-semibold mb-2 block"
-              style={{ color: COLORS.text.primary }}
-            >
-              Seguidores
-            </label>
-            <select
-              id="followers"
-              className="h-11 w-full rounded-lg border px-4 text-sm transition-all duration-200 focus:ring-2"
-              style={{
-                backgroundColor: COLORS.background.tertiary,
-                borderColor: COLORS.border.main,
-                color: COLORS.text.primary,
-              }}
-              value={bucket}
-              onChange={(e) => setBucket(e.target.value)}
-            >
-              {FOLLOWER_BUCKETS.map((b) => (
-                <option key={b.key} value={b.key}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Nicho/Categoría */}
           <div>
             <label
@@ -378,7 +323,7 @@ export default function InfluencersDirectoryPage() {
               className="text-sm"
               style={{ color: COLORS.text.secondary }}
             >
-              Ordenados por número de seguidores
+              Ordenados alfabéticamente
             </p>
           </div>
         </div>
@@ -407,7 +352,7 @@ export default function InfluencersDirectoryPage() {
               slug={i.instagram_handle.replace("@", "")}
               handle={i.instagram_handle}
               city={i.city}
-              followers={i.instagram_followers || 0}
+              followers={0} // Followers not available in DB yet
               tags={[i.niche_primary, i.niche_secondary].filter(Boolean) as string[]}
               brandsCount={0} // TODO: Get real brands count
               avatarUrl={i.avatar_url || undefined}

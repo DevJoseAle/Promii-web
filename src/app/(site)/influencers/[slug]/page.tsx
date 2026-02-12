@@ -32,7 +32,7 @@ export default async function InfluencerProfilePage({
     handle: influencer.instagram_handle,
     bio: influencer.bio || "Creador de contenido verificado en Promii",
     city: influencer.city,
-    followers: influencer.instagram_followers || 0,
+    followers: 0, // Followers not available in DB yet
     tags: [influencer.niche_primary, influencer.niche_secondary].filter(Boolean) as string[],
     avatarUrl: influencer.avatar_url || undefined,
     tiktokHandle: influencer.tiktok_handle || undefined,

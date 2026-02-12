@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserCircle, Save, Camera, Instagram, Youtube, Twitter } from "lucide-react";
+import { UserCircle, Save, Camera, Instagram, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { ToastService } from "@/lib/toast/toast.service";
 import { VE_STATES, getCitiesForState } from "@/config/location";
-import { CATEGORIES } from "@/config/categories";
 import { IVzlaCity } from "@/config/types/locations";
 import Image from "next/image";
 
@@ -20,13 +19,12 @@ type InfluencerProfile = {
   bio: string;
   state: string;
   city: string;
-  niche: string;
+  niche_primary: string;
+  niche_secondary?: string;
   instagram_handle: string;
   tiktok_handle?: string;
   youtube_handle?: string;
-  twitter_handle?: string;
   avatar_url?: string;
-  followers_count?: number;
 };
 
 export function ProfileTab({ influencerId }: ProfileTabProps) {
@@ -35,7 +33,7 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
     bio: "",
     state: "",
     city: "",
-    niche: "",
+    niche_primary: "",
     instagram_handle: "",
   });
   const [loading, setLoading] = useState(true);
@@ -70,13 +68,12 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
         bio: data.bio || "",
         state: data.state || "",
         city: data.city || "",
-        niche: data.niche || "",
+        niche_primary: data.niche_primary || "",
+        niche_secondary: data.niche_secondary || "",
         instagram_handle: data.instagram_handle || "",
         tiktok_handle: data.tiktok_handle || "",
         youtube_handle: data.youtube_handle || "",
-        twitter_handle: data.twitter_handle || "",
         avatar_url: data.avatar_url || "",
-        followers_count: data.followers_count || 0,
       });
     }
 
@@ -111,11 +108,11 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
         bio: profile.bio.trim(),
         state: profile.state,
         city: profile.city,
-        niche: profile.niche,
+        niche_primary: profile.niche_primary,
+        niche_secondary: profile.niche_secondary || null,
         instagram_handle: profile.instagram_handle.trim().replace("@", ""),
         tiktok_handle: profile.tiktok_handle?.trim().replace("@", ""),
         youtube_handle: profile.youtube_handle?.trim().replace("@", ""),
-        twitter_handle: profile.twitter_handle?.trim().replace("@", ""),
       })
       .eq("id", influencerId);
 
@@ -306,8 +303,8 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
               Nicho / Categoría
             </label>
             <select
-              value={profile.niche}
-              onChange={(e) => setProfile({ ...profile, niche: e.target.value })}
+              value={profile.niche_primary}
+              onChange={(e) => setProfile({ ...profile, niche_primary: e.target.value })}
               className="w-full px-4 py-2 rounded-lg border"
               style={{
                 backgroundColor: COLORS.background.secondary,
@@ -316,11 +313,20 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
               }}
             >
               <option value="">Selecciona tu nicho</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat.key} value={cat.key}>
-                  {cat.label}
-                </option>
-              ))}
+              <option value="food">Comida</option>
+              <option value="coffee">Café</option>
+              <option value="dessert">Postres</option>
+              <option value="bars">Bares & Vida Nocturna</option>
+              <option value="beauty">Belleza</option>
+              <option value="fitness">Fitness</option>
+              <option value="health">Salud</option>
+              <option value="services">Servicios</option>
+              <option value="education">Educación</option>
+              <option value="events">Eventos</option>
+              <option value="shopping">Compras</option>
+              <option value="kids">Niños</option>
+              <option value="pets">Mascotas</option>
+              <option value="other">Otro</option>
             </select>
           </div>
         </div>
@@ -410,52 +416,8 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
             </div>
           </div>
 
-          {/* Twitter */}
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: COLORS.text.primary }}>
-              <Twitter className="inline size-4 mr-1" />
-              Twitter / X
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-2 rounded-lg border" style={{ backgroundColor: COLORS.background.secondary, borderColor: COLORS.border.light, color: COLORS.text.secondary }}>
-                @
-              </span>
-              <input
-                type="text"
-                value={profile.twitter_handle || ""}
-                onChange={(e) => setProfile({ ...profile, twitter_handle: e.target.value })}
-                className="flex-1 px-4 py-2 rounded-lg border"
-                style={{
-                  backgroundColor: COLORS.background.secondary,
-                  borderColor: COLORS.border.light,
-                  color: COLORS.text.primary,
-                }}
-                placeholder="tu_usuario"
-              />
-            </div>
-          </div>
-
-          {/* Followers Count */}
-          {profile.followers_count !== undefined && (
-            <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.text.primary }}>
-                Seguidores totales (aproximado)
-              </label>
-              <input
-                type="number"
-                value={profile.followers_count}
-                onChange={(e) => setProfile({ ...profile, followers_count: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 rounded-lg border"
-                style={{
-                  backgroundColor: COLORS.background.secondary,
-                  borderColor: COLORS.border.light,
-                  color: COLORS.text.primary,
-                }}
-                placeholder="50000"
-                min="0"
-              />
-            </div>
-          )}
+          {/* Twitter removed - column doesn't exist in DB */}
+          {/* Followers Count removed - column doesn't exist in DB */}
         </div>
       </div>
       </div>

@@ -12,6 +12,8 @@ import { hasApprovedPartnership } from "./influencer-partnerships.service";
 // ─────────────────────────────────────────────────────────────
 export type CommissionType = "percentage" | "fixed";
 
+export type DiscountType = "percentage" | "fixed";
+
 export type Assignment = {
   id: string;
   promii_id: string;
@@ -21,6 +23,8 @@ export type Assignment = {
   commission_type: CommissionType | null;
   commission_value: number | null;
   commission_notes: string | null;
+  extra_discount_type: DiscountType | null;
+  extra_discount_value: number | null;
   is_active: boolean;
   assigned_at: string;
   deactivated_at: string | null;
@@ -53,10 +57,15 @@ export type CreateAssignmentRequest = {
   promii_id: string;
   influencer_id: string;
   merchant_id: string;
+  referral_code?: string; // Código manual (opcional, 8-17 chars)
   commission?: {
     type: CommissionType;
     value: number;
     notes?: string;
+  };
+  extra_discount?: {
+    type: DiscountType;
+    value: number;
   };
 };
 
@@ -99,26 +108,72 @@ export async function assignInfluencerToPromii(
       };
     }
 
-    // 3. Generar código de referido único usando la función de Supabase
-    const { data: codeData, error: codeError } = await supabase.rpc(
-      "generate_referral_code",
-      {
-        p_influencer_id: request.influencer_id,
-        p_promii_id: request.promii_id,
+    // 3. Determinar código de referido (manual o automático)
+    let referralCode: string;
+
+    if (request.referral_code) {
+      // CÓDIGO MANUAL: Validar
+      const manualCode = request.referral_code.trim().toUpperCase();
+
+      // Validar longitud (8-17 caracteres)
+      if (manualCode.length < 8 || manualCode.length > 17) {
+        return {
+          status: "error",
+          data: null,
+          error: "El código debe tener entre 8 y 17 caracteres",
+          code: "INVALID_CODE_LENGTH",
+        };
       }
-    );
 
-    if (codeError || !codeData) {
-      console.error("[assignInfluencer] Error generating code:", codeError);
-      return {
-        status: "error",
-        data: null,
-        error: "Error generando código de referido",
-        code: "CODE_GENERATION_ERROR",
-      };
+      // Validar que solo contenga letras, números, guiones y guiones bajos
+      if (!/^[A-Z0-9_-]+$/.test(manualCode)) {
+        return {
+          status: "error",
+          data: null,
+          error: "El código solo puede contener letras, números, guiones (-) y guiones bajos (_)",
+          code: "INVALID_CODE_FORMAT",
+        };
+      }
+
+      // Verificar que sea único
+      const { data: existingCode } = await supabase
+        .from("promii_influencer_assignments")
+        .select("id")
+        .eq("referral_code", manualCode)
+        .maybeSingle();
+
+      if (existingCode) {
+        return {
+          status: "error",
+          data: null,
+          error: "Este código ya está en uso. Por favor elige otro.",
+          code: "CODE_ALREADY_EXISTS",
+        };
+      }
+
+      referralCode = manualCode;
+    } else {
+      // CÓDIGO AUTOMÁTICO: Generar usando función de Supabase
+      const { data: codeData, error: codeError } = await supabase.rpc(
+        "generate_referral_code",
+        {
+          p_influencer_id: request.influencer_id,
+          p_promii_id: request.promii_id,
+        }
+      );
+
+      if (codeError || !codeData) {
+        console.error("[assignInfluencer] Error generating code:", codeError);
+        return {
+          status: "error",
+          data: null,
+          error: "Error generando código de referido",
+          code: "CODE_GENERATION_ERROR",
+        };
+      }
+
+      referralCode = codeData as string;
     }
-
-    const referralCode = codeData as string;
 
     // 4. Crear asignación
     const { data, error } = await supabase
@@ -131,6 +186,8 @@ export async function assignInfluencerToPromii(
         commission_type: request.commission?.type || null,
         commission_value: request.commission?.value || null,
         commission_notes: request.commission?.notes || null,
+        extra_discount_type: request.extra_discount?.type || null,
+        extra_discount_value: request.extra_discount?.value || null,
         is_active: true,
         assigned_at: new Date().toISOString(),
       })
@@ -470,16 +527,73 @@ export async function getAssignmentByReferralCode(
   referralCode: string
 ): Promise<Assignment | null> {
   try {
-    const { data } = await supabase
+    console.log("[getAssignmentByReferralCode] Searching for code:", referralCode);
+    const { data, error } = await supabase
       .from("promii_influencer_assignments")
       .select("*")
       .eq("referral_code", referralCode)
       .eq("is_active", true)
       .maybeSingle();
 
+    console.log("[getAssignmentByReferralCode] Query result:", { data, error });
+
+    if (error) {
+      console.error("[getAssignmentByReferralCode] Query error:", error);
+      return null;
+    }
+
     return data || null;
   } catch (error) {
-    console.error("[getAssignmentByReferralCode] Error:", error);
+    console.error("[getAssignmentByReferralCode] Unexpected error:", error);
     return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// VALIDATE: Verificar si un código de referido está disponible
+// ─────────────────────────────────────────────────────────────
+export async function isReferralCodeAvailable(
+  code: string
+): Promise<{ available: boolean; error?: string }> {
+  try {
+    const trimmedCode = code.trim().toUpperCase();
+
+    // Validar longitud
+    if (trimmedCode.length < 8 || trimmedCode.length > 17) {
+      return {
+        available: false,
+        error: "El código debe tener entre 8 y 17 caracteres",
+      };
+    }
+
+    // Validar formato
+    if (!/^[A-Z0-9_-]+$/.test(trimmedCode)) {
+      return {
+        available: false,
+        error: "Solo letras, números, guiones (-) y guiones bajos (_)",
+      };
+    }
+
+    // Verificar si existe
+    const { data } = await supabase
+      .from("promii_influencer_assignments")
+      .select("id")
+      .eq("referral_code", trimmedCode)
+      .maybeSingle();
+
+    if (data) {
+      return {
+        available: false,
+        error: "Este código ya está en uso",
+      };
+    }
+
+    return { available: true };
+  } catch (error) {
+    console.error("[isReferralCodeAvailable] Error:", error);
+    return {
+      available: false,
+      error: "Error al verificar código",
+    };
   }
 }

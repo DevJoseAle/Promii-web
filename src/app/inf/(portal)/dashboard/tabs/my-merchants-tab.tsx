@@ -129,7 +129,7 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
                     {merchant.city}, {merchant.state}
                   </div>
 
-                  {merchant.category && (
+                  {merchant.category_primary && (
                     <span
                       className="inline-block px-2 py-1 rounded text-xs font-medium"
                       style={{
@@ -137,7 +137,7 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
                         color: COLORS.primary.main,
                       }}
                     >
-                      {merchant.category}
+                      {merchant.category_primary}
                     </span>
                   )}
                 </div>
@@ -151,9 +151,9 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
 
               {/* Contact Actions */}
               <div className="flex gap-2 flex-wrap">
-                {merchant.whatsapp_phone && (
+                {merchant.whatsapp && (
                   <Button
-                    onClick={() => window.open(`https://wa.me/${merchant.whatsapp_phone!.replace(/\D/g, "")}`, "_blank")}
+                    onClick={() => window.open(`https://wa.me/${merchant.whatsapp!.replace(/\D/g, "")}`, "_blank")}
                     size="sm"
                     className="h-8"
                     style={{
