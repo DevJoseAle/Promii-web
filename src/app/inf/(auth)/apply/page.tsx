@@ -110,6 +110,30 @@ export default function InfluencerApplyPage() {
     localStorage.removeItem(DRAFT_KEY);
   }
 
+  async function ensureInfluencerRow(userId: string) {
+    const stateName = VENEZUELA_STATES.find((s) => s.id === stateId)?.name || "";
+    const cityName = filteredCities.find((c) => c.id === cityId)?.name || "";
+
+    const { error: influencerErr } = await supabase.from("influencers").upsert(
+      {
+        id: userId,
+        display_name: fullName.trim(),
+        bio: notes.trim() || null,
+        state: stateName,
+        city: cityName,
+        niche: niche.trim() || null,
+        instagram_handle: instagramHandle.trim().replace("@", "") || null,
+        tiktok_handle: tiktokHandle.trim().replace("@", "") || null,
+        youtube_handle: youtubeHandle.trim().replace("@", "") || null,
+        twitter_handle: null,
+        followers_count: audienceSize.trim() === "" ? 0 : Number.parseInt(audienceSize.trim(), 10) || 0,
+      },
+      { onConflict: "id" }
+    );
+
+    if (influencerErr) throw new Error(influencerErr.message);
+  }
+
   async function finalizeSubmitWithSession(userId: string) {
     const audienceInt =
       audienceSize.trim() === ""
@@ -141,6 +165,9 @@ export default function InfluencerApplyPage() {
       );
 
     if (appErr) throw new Error(appErr.message);
+
+    // Create influencer record
+    await ensureInfluencerRow(userId);
 
     const { error: profileErr } = await supabase
       .from("profiles")

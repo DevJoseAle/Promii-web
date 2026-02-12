@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart3,
   Clock,
@@ -26,19 +26,24 @@ type NavItem = {
   href: string;
   icon: React.ElementType;
   badge?: string | number;
+  tab?: string; // Added tab identifier
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Resumen", href: "/inf/dashboard", icon: BarChart3 },
-  { label: "Solicitudes", href: "/inf/dashboard?tab=requests", icon: Clock },
-  { label: "Mis Marcas", href: "/inf/dashboard?tab=merchants", icon: Users },
-  { label: "Mis Promiis", href: "/inf/dashboard?tab=promiis", icon: Sparkles },
-  { label: "Mi Perfil", href: "/inf/dashboard?tab=profile", icon: UserCircle },
+  { label: "Resumen", href: "/inf/dashboard", icon: BarChart3, tab: "overview" },
+  { label: "Solicitudes", href: "/inf/dashboard?tab=requests", icon: Clock, tab: "requests" },
+  { label: "Mis Marcas", href: "/inf/dashboard?tab=merchants", icon: Users, tab: "merchants" },
+  { label: "Mis Promiis", href: "/inf/dashboard?tab=promiis", icon: Sparkles, tab: "promiis" },
+  { label: "Mi Perfil", href: "/inf/dashboard?tab=profile", icon: UserCircle, tab: "profile" },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
-  const active = pathname === item.href || pathname.startsWith(item.href);
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab") || "overview";
+
+  // Check if this nav item is active based on the current tab
+  const active = item.tab === currentTab;
   const Icon = item.icon;
 
   return (

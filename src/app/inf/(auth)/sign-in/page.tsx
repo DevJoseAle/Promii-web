@@ -22,50 +22,21 @@ export default function InfluencersSignInPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wrongRoleRedirect, setWrongRoleRedirect] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setWrongRoleRedirect(null);
 
     try {
       const formData = new FormData(e.currentTarget);
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "").trim();
 
-      // Validación previa por profile
-      const { data: profileCheck, error: profileCheckErr } = await supabase
-        .from("profiles")
-        .select("id, role, state")
-        .eq("email", email)
-        .maybeSingle<ProfileCheck>();
-
-      if (profileCheckErr) {
-        setError("Error verificando tu cuenta. Intenta nuevamente.");
-        return;
-      }
-
-      if (profileCheck) {
-        if (profileCheck.role !== ProfileRole.Influencer) {
-          setError(
-            "Esta cuenta no tiene permisos de influencer. Ingresa desde el módulo correcto."
-          );
-          return;
-        }
-
-        if (profileCheck.state === "blocked") {
-          setError("Tu cuenta de influencer ha sido bloqueada. Contacta soporte.");
-          return;
-        }
-
-        if (profileCheck.state === "rejected") {
-          setError("Tu solicitud de influencer fue rechazada. Contacta soporte.");
-          return;
-        }
-      }
-
-      // Login
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      // 1. Primero intentar hacer login
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -81,11 +52,58 @@ export default function InfluencersSignInPage() {
         return;
       }
 
-      // Determinar destino
+      if (!authData.user) {
+        setError("No se pudo obtener información del usuario");
+        return;
+      }
+
+      // 2. Obtener el perfil del usuario para verificar su rol
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, state")
+        .eq("id", authData.user.id)
+        .single<ProfileCheck>();
+
+      if (profileError) {
+        setError("Error al verificar el perfil del usuario");
+        console.error("Profile error:", profileError);
+        return;
+      }
+
+      // 3. Verificar que el rol sea "influencer"
+      if (profile.role !== ProfileRole.Influencer) {
+        // Cerrar la sesión que acabamos de abrir
+        await supabase.auth.signOut();
+
+        // Determinar a dónde redirigir según el rol
+        if (profile.role === ProfileRole.Merchant) {
+          setWrongRoleRedirect("/business/sign-in");
+          setError("Eres un comercio. Por favor usa el portal de negocios.");
+        } else if (profile.role === ProfileRole.User) {
+          setWrongRoleRedirect("/auth/sign-in");
+          setError("Eres un usuario. Por favor usa el acceso de clientes.");
+        } else {
+          setError("Tipo de usuario no válido para este portal");
+        }
+        return;
+      }
+
+      // 4. Verificar estado del influencer
+      if (profile.state === "blocked") {
+        await supabase.auth.signOut();
+        setError("Tu cuenta de influencer ha sido bloqueada. Contacta soporte.");
+        return;
+      }
+
+      if (profile.state === "rejected") {
+        await supabase.auth.signOut();
+        setError("Tu solicitud de influencer fue rechazada. Contacta soporte.");
+        return;
+      }
+
+      // 5. Determinar destino según estado
       let destination = "/inf/dashboard";
-      if (profileCheck?.state === "pending") destination = "/inf/pending";
-      else if (profileCheck?.state === "blocked") destination = "/inf/blocked";
-      else if (profileCheck?.state === "rejected") destination = "/inf/rejected";
+      if (profile.state === "pending") destination = "/inf/pending";
 
       router.replace(destination);
     } catch (err: any) {
@@ -178,27 +196,44 @@ export default function InfluencersSignInPage() {
           </div>
         )}
 
-        {/* Submit button */}
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
-          style={{
-            background: loading
-              ? COLORS.text.tertiary
-              : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
-            color: COLORS.text.inverse,
-          }}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="size-5 animate-spin" />
-              Entrando...
-            </span>
-          ) : (
-            "Entrar al Portal"
-          )}
-        </Button>
+        {/* Submit or Redirect button */}
+        {wrongRoleRedirect ? (
+          <Button
+            asChild
+            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
+          >
+            <Link href={wrongRoleRedirect}>
+              {wrongRoleRedirect === "/business/sign-in"
+                ? "Ir al portal de negocios"
+                : "Ir al acceso de clientes"}
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
+            style={{
+              background: loading
+                ? COLORS.text.tertiary
+                : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              color: COLORS.text.inverse,
+            }}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="size-5 animate-spin" />
+                Entrando...
+              </span>
+            ) : (
+              "Entrar al Portal"
+            )}
+          </Button>
+        )}
 
         {/* Divider */}
         <div className="relative py-4">
