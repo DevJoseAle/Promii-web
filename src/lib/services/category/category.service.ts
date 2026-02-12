@@ -70,11 +70,11 @@ const SUBCATEGORY_MAP: Record<string, string> = {
   tours: "other",
 };
 
-function mapCategoryToDb(categoryKey: string): string {
+export function mapCategoryToDb(categoryKey: string): string {
   return CATEGORY_MAP[categoryKey] || "other";
 }
 
-function mapSubcategoryToDb(subcategoryKey: string): string {
+export function mapSubcategoryToDb(subcategoryKey: string): string {
   return SUBCATEGORY_MAP[subcategoryKey] || "other";
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MapPin, Search, User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import Image from "next/image";
@@ -44,16 +44,14 @@ function MainHeaderContent() {
 
   function onSubmit(formData: FormData) {
     const q = String(formData.get("q") ?? "").trim();
-    const city = String(formData.get("city") ?? "").trim();
 
-    const params = new URLSearchParams(sp.toString());
+    // Si no hay búsqueda, no hacer nada
+    if (!q) return;
+
+    const params = new URLSearchParams();
     if (q) params.set("q", q);
-    else params.delete("q");
 
-    if (city) params.set("city", city);
-    else params.delete("city");
-
-    router.push(`/?${params.toString()}`);
+    router.push(`/search?${params.toString()}`);
   }
   if (logoutLoading) return <FullscreenLoading show={logoutLoading} />;
   return (
@@ -93,24 +91,6 @@ function MainHeaderContent() {
               name="q"
               defaultValue={sp.get("q") ?? ""}
               placeholder="Buscar promiis, categorías..."
-              className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2"
-              style={{
-                backgroundColor: COLORS.background.tertiary,
-                borderColor: COLORS.border.main,
-                color: COLORS.text.primary,
-              }}
-            />
-          </div>
-
-          <div className="relative w-[180px] shrink-0 max-sm:hidden">
-            <MapPin
-              className="absolute left-3 top-1/2 size-4 -translate-y-1/2"
-              style={{ color: COLORS.text.tertiary }}
-            />
-            <Input
-              name="city"
-              defaultValue={sp.get("city") ?? ""}
-              placeholder="Ciudad"
               className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2"
               style={{
                 backgroundColor: COLORS.background.tertiary,
