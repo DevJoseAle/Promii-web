@@ -1,59 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
-import { COLORS } from "@/config/colors";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/context/AuthContext";
-import { useRouter } from "next/navigation";
+import {
+  isFavorite,
+  toggleFavorite,
+} from "@/lib/services/favorites.service";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { COLORS } from "@/config/colors";
 
-type Props = {
+interface FavoriteButtonProps {
   promiiId: string;
-};
+}
 
-export function FavoriteButton({ promiiId }: Props) {
-  const router = useRouter();
-  const { user } = useAuth();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loading, setLoading] = useState(false);
+export function FavoriteButton({ promiiId }: FavoriteButtonProps) {
+  const { profile, isUser } = useAuth();
+  const [isFav, setIsFav] = useState(false);
+  const [animating, setAnimating] = useState(false);
 
-  const handleToggleFavorite = async () => {
-    if (!user) {
-      router.push("/auth/sign-in");
+  // ─────────────────────────────────────────────────────────────
+  // Verificar si está en favoritos al montar
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (profile?.id) {
+      setIsFav(isFavorite(profile.id, promiiId));
+    }
+  }, [profile, promiiId]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Handler: Toggle favorito
+  // ─────────────────────────────────────────────────────────────
+  const handleToggle = () => {
+    if (!profile?.id) {
+      // Redirigir a login
+      window.location.href = "/auth/sign-in";
       return;
     }
 
-    setLoading(true);
+    // Toggle
+    const newState = toggleFavorite(profile.id, promiiId);
+    setIsFav(!isFav);
 
-    try {
-      // TODO: Implement favorites API
-      // For now just toggle state
-      setIsFavorite(!isFavorite);
+    // Animación
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 300);
 
-      // await supabase.from("user_favorites").insert/delete...
-    } catch (err) {
-      console.error("Error toggling favorite:", err);
-    } finally {
-      setLoading(false);
-    }
+    // Disparar evento para que otros componentes se actualicen
+    window.dispatchEvent(new Event("favorites-updated"));
   };
+
+  // Si no es usuario, no mostrar botón
+  // (merchants e influencers no tienen favoritos por ahora)
+  if (!isUser) {
+    return null;
+  }
 
   return (
     <Button
-      onClick={handleToggleFavorite}
-      disabled={loading}
+      onClick={handleToggle}
       variant="outline"
-      className="h-12 font-semibold transition-all duration-200 hover:scale-105"
+      size="lg"
+      className={cn(
+        "font-semibold transition-all hover:scale-105 active:scale-95",
+        animating && "animate-pulse"
+      )}
       style={{
-        borderColor: isFavorite ? COLORS.error.main : COLORS.border.main,
-        backgroundColor: isFavorite ? COLORS.error.lighter : COLORS.background.primary,
-        color: isFavorite ? COLORS.error.main : COLORS.text.secondary,
+        backgroundColor: isFav ? COLORS.error.lighter : COLORS.background.primary,
+        borderColor: isFav ? COLORS.error.main : COLORS.border.main,
+        color: isFav ? COLORS.error.dark : COLORS.text.primary,
       }}
     >
       <Heart
-        className={`size-5 mr-2 transition-all duration-200 ${isFavorite ? "fill-current" : ""}`}
+        className={cn("size-5 mr-2 transition-all", isFav && "fill-current")}
+        style={{ color: isFav ? COLORS.error.main : "currentColor" }}
       />
-      {isFavorite ? "Guardado" : "Guardar"}
+      {isFav ? "En favoritos" : "Agregar a favoritos"}
     </Button>
   );
 }

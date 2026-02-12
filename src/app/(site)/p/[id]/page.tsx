@@ -108,7 +108,7 @@ export default async function PromiiDetailPage({
     categoryPrimary: promii.category_primary,
     excludeId: promii.id,
   });
-  const relatedPromiis = relatedResponse.success ? relatedResponse.data : [];
+  const relatedPromiis = relatedResponse.status === "success" ? relatedResponse.data : [];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: COLORS.background.secondary }}>

@@ -11,6 +11,7 @@ export type Profile = {
   state?: "pending" | "approved" | "rejected" | "blocked";
   first_name?: string | null;
   last_name?: string | null;
+  phone?: string | null;
 };
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";

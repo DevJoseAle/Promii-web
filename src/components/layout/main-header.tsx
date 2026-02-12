@@ -145,13 +145,15 @@ function MainHeaderContent() {
             <>
               {isUser && (
                 <Button
+                  asChild
                   variant="ghost"
-                  size="icon"
-                  aria-label="Cuenta"
-                  className="size-11 transition-colors duration-200"
-                  style={{ color: COLORS.text.secondary }}
+                  className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                  style={{ color: COLORS.text.primary }}
                 >
-                  <User className="size-5" />
+                  <Link href="/profile">
+                    <User className="size-5 mr-2" />
+                    Mi Cuenta
+                  </Link>
                 </Button>
               )}
               <Button
