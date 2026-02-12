@@ -4,7 +4,14 @@ import { CATEGORIES } from "@/config/categories";
 import { COLORS } from "@/config/colors";
 import { Store, Users, HelpCircle, FileText, Shield } from "lucide-react";
 
-const CITIES = ["Caracas", "Valencia", "Maracaibo", "Barquisimeto", "Puerto La Cruz", "Mérida"];
+const CITIES = [
+  { name: "Caracas", slug: "caracas" },
+  { name: "Valencia", slug: "valencia" },
+  { name: "Maracaibo", slug: "maracaibo" },
+  { name: "Barquisimeto", slug: "barquisimeto" },
+  { name: "Puerto La Cruz", slug: "puerto-la-cruz" },
+  { name: "Mérida", slug: "merida" },
+];
 
 export function AppFooter() {
   return (
@@ -84,13 +91,13 @@ export function AppFooter() {
             </div>
             <ul className="space-y-2.5">
               {CITIES.map((city) => (
-                <li key={city}>
+                <li key={city.slug}>
                   <Link
                     className="text-sm transition-colors duration-200 hover:underline"
-                    href={`/?city=${encodeURIComponent(city)}`}
+                    href={`/city/${city.slug}`}
                     style={{ color: COLORS.text.secondary }}
                   >
-                    {city}
+                    {city.name}
                   </Link>
                 </li>
               ))}
