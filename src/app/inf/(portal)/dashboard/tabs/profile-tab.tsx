@@ -130,11 +130,34 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-8" style={{ color: COLORS.text.secondary }}>Cargando perfil...</div>;
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+            Mi Perfil
+          </h1>
+          <p className="text-base" style={{ color: COLORS.text.secondary }}>
+            Actualiza tu información pública
+          </p>
+        </div>
+        <div className="text-center py-8" style={{ color: COLORS.text.secondary }}>Cargando perfil...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+          Mi Perfil
+        </h1>
+        <p className="text-base" style={{ color: COLORS.text.secondary }}>
+          Actualiza tu información pública
+        </p>
+      </div>
+
+      <div className="max-w-3xl space-y-6">
       {/* Avatar Section */}
       <div
         className="rounded-xl border p-6"
@@ -434,6 +457,7 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Save Button */}

@@ -43,25 +43,58 @@ export function MyPromiisTab({ influencerId }: MyPromiisTabProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-8" style={{ color: COLORS.text.secondary }}>Cargando...</div>;
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+            Mis Promiis
+          </h1>
+          <p className="text-base" style={{ color: COLORS.text.secondary }}>
+            Promiis asignados con tus códigos de referido
+          </p>
+        </div>
+        <div className="text-center py-8" style={{ color: COLORS.text.secondary }}>Cargando...</div>
+      </div>
+    );
   }
 
   if (assignments.length === 0) {
     return (
-      <div className="rounded-xl border p-12 text-center" style={{ backgroundColor: COLORS.background.primary, borderColor: COLORS.border.light }}>
-        <Sparkles className="size-16 mx-auto mb-4" style={{ color: COLORS.text.tertiary }} />
-        <h3 className="text-lg font-bold mb-2" style={{ color: COLORS.text.primary }}>
-          No tienes promiis asignados
-        </h3>
-        <p className="text-sm" style={{ color: COLORS.text.secondary }}>
-          Cuando una marca te asigne un promii para promocionar, aparecerá aquí con tu código único
-        </p>
+      <div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+            Mis Promiis
+          </h1>
+          <p className="text-base" style={{ color: COLORS.text.secondary }}>
+            Promiis asignados con tus códigos de referido
+          </p>
+        </div>
+        <div className="rounded-xl border p-12 text-center" style={{ backgroundColor: COLORS.background.primary, borderColor: COLORS.border.light }}>
+          <Sparkles className="size-16 mx-auto mb-4" style={{ color: COLORS.text.tertiary }} />
+          <h3 className="text-lg font-bold mb-2" style={{ color: COLORS.text.primary }}>
+            No tienes promiis asignados
+          </h3>
+          <p className="text-sm" style={{ color: COLORS.text.secondary }}>
+            Cuando una marca te asigne un promii para promocionar, aparecerá aquí con tu código único
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+          Mis Promiis
+        </h1>
+        <p className="text-base" style={{ color: COLORS.text.secondary }}>
+          Promiis asignados con tus códigos de referido
+        </p>
+      </div>
+
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold" style={{ color: COLORS.text.secondary }}>
           {assignments.length} promii{assignments.length !== 1 ? "s" : ""} asignado{assignments.length !== 1 ? "s" : ""}
@@ -210,6 +243,7 @@ export function MyPromiisTab({ influencerId }: MyPromiisTabProps) {
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

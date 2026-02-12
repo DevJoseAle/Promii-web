@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart3, Clock, Users, UserCircle, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { COLORS } from "@/config/colors";
 import { OverviewTab } from "./tabs/overview-tab";
@@ -29,7 +30,16 @@ const TABS: Tab[] = [
 
 export default function InfluencerDashboardPage() {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(tabParam || "overview");
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    if (tabParam && TABS.some(tab => tab.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   if (!profile) {
     return (
@@ -41,62 +51,12 @@ export default function InfluencerDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
-          Dashboard de Influencer
-        </h1>
-        <p className="text-base" style={{ color: COLORS.text.secondary }}>
-          Gestiona tus colaboraciones y códigos de referido
-        </p>
-      </div>
-
-      {/* Tabs Navigation */}
-      <div
-        className="border-b"
-        style={{ borderColor: COLORS.border.light }}
-      >
-        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "group inline-flex items-center gap-2 border-b-2 px-1 py-4 text-sm font-medium transition-colors whitespace-nowrap",
-                  isActive
-                    ? "border-current"
-                    : "border-transparent hover:border-gray-300"
-                )}
-                style={{
-                  color: isActive ? COLORS.primary.main : COLORS.text.secondary,
-                }}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon
-                  className={cn(
-                    "size-5 transition-transform group-hover:scale-110",
-                    isActive && "animate-pulse"
-                  )}
-                />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
       {/* Tab Content */}
-      <div className="mt-8">
-        {activeTab === "overview" && <OverviewTab influencerId={profile.id} />}
-        {activeTab === "requests" && <RequestsTab influencerId={profile.id} />}
-        {activeTab === "merchants" && <MyMerchantsTab influencerId={profile.id} />}
-        {activeTab === "promiis" && <MyPromiisTab influencerId={profile.id} />}
-        {activeTab === "profile" && <ProfileTab influencerId={profile.id} />}
-      </div>
+      {activeTab === "overview" && <OverviewTab influencerId={profile.id} />}
+      {activeTab === "requests" && <RequestsTab influencerId={profile.id} />}
+      {activeTab === "merchants" && <MyMerchantsTab influencerId={profile.id} />}
+      {activeTab === "promiis" && <MyPromiisTab influencerId={profile.id} />}
+      {activeTab === "profile" && <ProfileTab influencerId={profile.id} />}
     </div>
   );
 }

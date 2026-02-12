@@ -38,6 +38,16 @@ export function OverviewTab({ influencerId }: OverviewTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.text.primary }}>
+          Resumen
+        </h1>
+        <p className="text-base" style={{ color: COLORS.text.secondary }}>
+          Métricas generales de tu desempeño como influencer
+        </p>
+      </div>
+
       {/* Main Stats Grid */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {/* Total Partnerships */}
