@@ -51,25 +51,19 @@ export function useAuth() {
 // ═══════════════════════════════════════════════════════════════
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const initialized = useRef(false);
   const listenerInitialized = useRef(false);
-  const initialize = useAuthStore((s) => s.initialize);
   const hasHydrated = useAuthStore((s) => s._hasHydrated);
 
-  // Solo inicializar el listener UNA VEZ
-  useEffect(() => {
-    if (listenerInitialized.current) return;
-    listenerInitialized.current = true;
-    initAuthListener();
-  }, []);
-
-  // Inicializar después de hidratar - SOLO UNA VEZ
+  // ✅ SIMPLIFICADO: Solo iniciar listener después de hydrate
+  // onAuthStateChange automáticamente dispara INITIAL_SESSION
   useEffect(() => {
     if (!hasHydrated) return;
-    if (initialized.current) return;
-    initialized.current = true;
-    initialize();
-  }, [hasHydrated, initialize]);
+    if (listenerInitialized.current) return;
+
+    listenerInitialized.current = true;
+    console.log("[AuthProvider] Hydrated, initializing listener");
+    initAuthListener();
+  }, [hasHydrated]);
 
   return <>{children}</>;
 }

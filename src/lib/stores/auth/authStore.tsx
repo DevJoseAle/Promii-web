@@ -96,59 +96,12 @@ export const useAuthStore = create<AuthState>()(
 
       initialize: async () => {
         // ═══════════════════════════════════════════════════════════════
-        // INICIALIZACIÓN SIMPLIFICADA (sin duplicar trabajo)
+        // DEPRECATED: Esta función ya no es necesaria
         // ═══════════════════════════════════════════════════════════════
-        // ✅ onAuthStateChange dispara INITIAL_SESSION automáticamente
-        // ✅ INITIAL_SESSION maneja TODA la lógica de auth
-        // ✅ Solo marcamos estado inicial y esperamos el evento
+        // onAuthStateChange + INITIAL_SESSION manejan todo automáticamente
+        // Mantenemos esta función por compatibilidad con código legacy
 
-        if (get()._isInitializing) {
-          console.log("[AuthStore] ⚠️  Initialize: already in progress, skipping");
-          return;
-        }
-
-        const cachedProfile = get().profile;
-
-        console.log("[AuthStore] 🚀 Initialize: starting", {
-          hasCachedProfile: !!cachedProfile,
-          willWaitForEvent: "INITIAL_SESSION",
-        });
-
-        // Mostrar cached profile optimísticamente mientras esperamos INITIAL_SESSION
-        if (cachedProfile) {
-          console.log("[AuthStore] 💾 Using cached profile optimistically");
-          set({
-            status: "loading",
-            profile: cachedProfile,
-            _isInitializing: true,
-          });
-        } else {
-          set({
-            status: "loading",
-            _isInitializing: true,
-          });
-        }
-
-        // ✅ INITIAL_SESSION event se encargará del resto
-        console.log("[AuthStore] ⏳ Waiting for INITIAL_SESSION event...");
-
-        // ⏰ TIMEOUT DE MONITOREO (solo warning, no force logout)
-        // Si después de 10s aún está initializing, algo puede estar mal
-        setTimeout(() => {
-          const currentState = get();
-          if (currentState._isInitializing) {
-            console.warn(
-              "⚠️  [AuthStore] Initialize: Still initializing after 10s",
-              {
-                status: currentState.status,
-                hasSession: !!currentState.session,
-                hasProfile: !!currentState.profile,
-                suggestion: "Check if onAuthStateChange listener is registered",
-                debug: "Call useAuthStore.getState()._debugState() for details",
-              }
-            );
-          }
-        }, 10000);
+        console.log("[AuthStore] ⚠️  initialize() is deprecated, onAuthStateChange handles everything");
       },
 
       fetchProfile: async (userId: string): Promise<Profile | null> => {
@@ -309,6 +262,7 @@ export const useAuthStore = create<AuthState>()(
 );
 
 let listenerInitialized = false;
+let initialSessionReceived = false;
 
 export function initAuthListener() {
   if (listenerInitialized) {
@@ -319,6 +273,44 @@ export function initAuthListener() {
 
   listenerInitialized = true;
   console.log("[AuthStore] Initializing auth listener");
+
+  // ⏰ SAFETY: Si INITIAL_SESSION no llega en 5s, forzar resolución
+  setTimeout(() => {
+    if (!initialSessionReceived) {
+      console.warn("[AuthStore] ⚠️  INITIAL_SESSION not received after 5s, checking manually");
+
+      const currentState = useAuthStore.getState();
+
+      // Si aún está en loading, intentar resolver manualmente
+      if (currentState.status === "loading") {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            console.log("[AuthStore] Manual check: found session, will fetch profile");
+            currentState.fetchProfile(session.user.id).then((profile) => {
+              useAuthStore.setState({
+                status: "authenticated",
+                session,
+                user: session.user,
+                profile,
+                existSession: true,
+                _isInitializing: false,
+              });
+            });
+          } else {
+            console.log("[AuthStore] Manual check: no session");
+            useAuthStore.setState({
+              status: "unauthenticated",
+              session: null,
+              user: null,
+              profile: null,
+              existSession: false,
+              _isInitializing: false,
+            });
+          }
+        });
+      }
+    }
+  }, 5000);
 
   // ═══════════════════════════════════════════════════════════════
   // HELPER: Manejar sesión autenticada (usado por SIGNED_IN e INITIAL_SESSION)
@@ -448,6 +440,8 @@ export function initAuthListener() {
     // INITIAL_SESSION: SIEMPRE se dispara al cargar (con o sin sesión)
     // ─────────────────────────────────────────────────────────────
     if (event === "INITIAL_SESSION") {
+      initialSessionReceived = true; // ✅ Marcar que recibimos el evento
+
       // CASO 1: No hay sesión → usuario no autenticado
       if (!session?.user) {
         console.log("[AuthStore] INITIAL_SESSION: No active session");
