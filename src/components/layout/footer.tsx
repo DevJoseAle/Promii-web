@@ -136,7 +136,7 @@ export function AppFooter() {
               <li>
                 <Link
                   className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
-                  href="/legal/terms"
+                  href="/terms"
                   style={{ color: COLORS.text.secondary }}
                 >
                   <FileText className="size-3.5" />
@@ -146,7 +146,7 @@ export function AppFooter() {
               <li>
                 <Link
                   className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
-                  href="/legal/privacy"
+                  href="/terms"
                   style={{ color: COLORS.text.secondary }}
                 >
                   <Shield className="size-3.5" />
@@ -182,7 +182,7 @@ export function AppFooter() {
             </Link>
             <span style={{ color: COLORS.border.dark }}>·</span>
             <Link
-              href="/legal/privacy"
+              href="/terms"
               className="transition-colors duration-200 hover:underline"
               style={{ color: COLORS.text.tertiary }}
             >
