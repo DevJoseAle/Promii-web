@@ -56,10 +56,9 @@ function MainHeaderContent() {
   if (logoutLoading) return <FullscreenLoading show={logoutLoading} />;
   return (
     <header
-      className="sticky top-0 z-50 border-b shadow-sm"
+      className="sticky top-0 z-50 shadow-lg"
       style={{
-        backgroundColor: COLORS.background.primary,
-        borderColor: COLORS.border.light,
+        background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
       }}
     >
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
@@ -85,16 +84,15 @@ function MainHeaderContent() {
           <div className="relative w-full">
             <Search
               className="absolute left-3 top-1/2 size-4 -translate-y-1/2"
-              style={{ color: COLORS.text.tertiary }}
+              style={{ color: COLORS.text.secondary }}
             />
             <Input
               name="q"
               defaultValue={sp.get("q") ?? ""}
               placeholder="Buscar promiis, categorías..."
-              className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2"
+              className="h-11 pl-10 pr-4 transition-all duration-200 focus:ring-2 border-0"
               style={{
-                backgroundColor: COLORS.background.tertiary,
-                borderColor: COLORS.border.main,
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
                 color: COLORS.text.primary,
               }}
             />
@@ -102,10 +100,11 @@ function MainHeaderContent() {
 
           <Button
             type="submit"
-            className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+            className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95 border-0"
             style={{
-              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
               color: COLORS.text.inverse,
+              backdropFilter: "blur(10px)",
             }}
           >
             <Search className="size-4 sm:mr-2" />
@@ -129,7 +128,7 @@ function MainHeaderContent() {
                   asChild
                   variant="ghost"
                   className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                  style={{ color: COLORS.text.primary }}
+                  style={{ color: COLORS.text.inverse }}
                 >
                   <Link href="/profile">
                     <User className="size-5 mr-2" />
@@ -142,7 +141,7 @@ function MainHeaderContent() {
                   asChild
                   variant="ghost"
                   className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                  style={{ color: COLORS.text.primary }}
+                  style={{ color: COLORS.text.inverse }}
                 >
                   <Link href="/business/dashboard">
                     <User className="size-5 mr-2" />
@@ -155,7 +154,7 @@ function MainHeaderContent() {
                   asChild
                   variant="ghost"
                   className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
-                  style={{ color: COLORS.text.primary }}
+                  style={{ color: COLORS.text.inverse }}
                 >
                   <Link href="/inf/dashboard">
                     <User className="size-5 mr-2" />
@@ -166,11 +165,11 @@ function MainHeaderContent() {
               <Button
                 onClick={handleLogout}
                 disabled={logoutLoading}
-                className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+                className="h-11 px-4 font-semibold transition-all duration-200 hover:scale-105 active:scale-95 border-0"
                 style={{
-                  backgroundColor: COLORS.error.lighter,
-                  color: COLORS.error.dark,
-                  border: `1px solid ${COLORS.error.light}`,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                  color: COLORS.text.inverse,
+                  backdropFilter: "blur(10px)",
                 }}
               >
                 {logoutLoading ? "Cerrando..." : "Cerrar sesión"}
@@ -179,10 +178,10 @@ function MainHeaderContent() {
           ) : (
             <Button
               asChild
-              className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
+              className="h-11 px-6 font-semibold transition-all duration-200 hover:scale-105 active:scale-95 border-0"
               style={{
-                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
-                color: COLORS.text.inverse,
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                color: COLORS.primary.main,
               }}
             >
               <Link href="/auth/sign-in">

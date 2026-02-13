@@ -1,16 +1,30 @@
 export const COLORS = {
 // Marca principal (Startup moderna, tecnológica y confiable)
 primary: {
-main: "#9333EA",
-light: "#A855F7",
+main: "#46248c",      // Morado oscuro
+light: "#d35df3",     // Morado claro
 lighter: "#F3E8FF",
-dark: "#7E22CE",
-darker: "#581C87",
+dark: "#2d1557",
+darker: "#1a0d33",
 },
 
-bluePrimary: "#9333EA",
-blueSecondary: "#A855F7",
+bluePrimary: "#46248c",
+blueSecondary: "#d35df3",
 
+// Accent turquesa (para CTAs, precios, botones)
+accent: {
+main: "#2DD4BF",      // Turquesa principal
+light: "#2DD4BF",     // Turquesa claro
+lighter: "#CCFBF1",   // Turquesa muy claro
+dark: "#0F766E",      // Turquesa oscuro
+},
+
+// Discount badge (fucsia vibrante)
+discount: {
+main: "#ee3a94",      // Fucsia para badges de descuento
+light: "#f56bb7",
+dark: "#d11d73",
+},
 
 // Colores semánticos
 success: {

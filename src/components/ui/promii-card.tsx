@@ -118,7 +118,7 @@ export function PromiiCard({ p, data }: Props) {
           <div
             className="absolute bottom-3 left-3 rounded-lg px-3 py-1.5 font-bold shadow-md"
             style={{
-              backgroundColor: COLORS.error.main,
+              backgroundColor: COLORS.discount.main,
               color: COLORS.text.inverse,
             }}
           >
@@ -179,7 +179,7 @@ export function PromiiCard({ p, data }: Props) {
                   {promii.currency} {promii.oldPrice.toFixed(2)}
                 </div>
               )}
-              <div className="text-xl font-bold" style={{ color: COLORS.primary.main }}>
+              <div className="text-xl font-bold" style={{ color: COLORS.accent.main }}>
                 {promii.currency} {promii.price.toFixed(2)}
               </div>
             </div>
@@ -188,7 +188,7 @@ export function PromiiCard({ p, data }: Props) {
             <div
               className="rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
               style={{
-                background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                backgroundColor: COLORS.accent.main,
                 color: COLORS.text.inverse,
               }}
             >

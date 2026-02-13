@@ -9,27 +9,44 @@ export function TopBar() {
   const blue = COLORS.bluePrimary
 
   return (
-    <div className="border-b border-border bg-surface">
+    <div
+      style={{
+        background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+      }}
+    >
       {
         showTopBar && (
-          <div className="mx-auto flex max-w-6xl items-center justify-end gap-4 px-4 py-2 text-xs text-text-secondary">
+          <div className="mx-auto flex max-w-6xl items-center justify-end gap-4 px-4 py-2 text-xs">
         <Link
           href="/business/dashboard"
-          
-          className="flex items-center gap-1 font-semibold text-primary hover:underline"
+
+          className="flex items-center gap-1 font-semibold hover:underline"
+          style={{ color: COLORS.text.inverse }}
         >
-          <Building2 className="h-4 w-4" style={ { color: blue } }  />
+          <Building2 className="h-4 w-4" />
           Promii Empresas
         </Link>
 
-        <Link className="flex items-center gap-1 font-semibold text-primary hover:underline" href="/inf/dashboard">
-          <UserStarIcon className="h-4 w-4" color={blue} />
+        <Link
+          className="flex items-center gap-1 font-semibold hover:underline"
+          href="/inf/dashboard"
+          style={{ color: COLORS.text.inverse }}
+        >
+          <UserStarIcon className="h-4 w-4" />
           Promii Influencers
         </Link>
-        <Link className="hover:text-primary" href="/help">
+        <Link
+          className="hover:opacity-80"
+          href="/help"
+          style={{ color: COLORS.text.inverse }}
+        >
           Ayuda
         </Link>
-        <Link className="hover:text-primary" href="/auth/sign-in">
+        <Link
+          className="hover:opacity-80"
+          href="/auth/sign-in"
+          style={{ color: COLORS.text.inverse }}
+        >
           Acceder
         </Link>
       </div>
