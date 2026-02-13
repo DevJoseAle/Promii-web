@@ -12,14 +12,14 @@ import { COLORS } from "@/config/colors";
 import { getCitiesByState } from "@/config/locations/cities";
 import { VENEZUELA_STATES } from "@/config/locations/states";
 import { ToastService } from "@/lib/toast/toast.service";
-import { PhotosField } from "@/components/ui/merchant/image-uploader";
-import { uploadPromiiPhotos } from "@/lib/services/promiis/promiiPhotoUpload.service";
+import { PhotosField, type ExistingPhoto } from "@/components/ui/merchant/image-uploader";
+import { uploadPromiiPhotos, fetchPromiiPhotos, deletePromiiPhoto, type PromiiPhotoRow } from "@/lib/services/promiis/promiiPhotoUpload.service";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { useAuthStore } from "@/lib/stores/auth/authStore";
 import { getMerchantPartnerships, assignInfluencerToPromii, type PartnershipWithDetails } from "@/lib/services/influencer";
 
 type CurrencyCode = "USD" | "CLP";
-type PromiiStatus = "draft";
+type PromiiStatus = "draft" | "active" | "paused" | "expired";
 
 const PROMII_CATEGORIES = [
   "food",
@@ -368,9 +368,7 @@ function validate(values: FormState): Errors {
     e.geo_lat = "Latitud inválida (-90 a 90).";
   }
 
-  if (values.photos.length < 1) {
-    e.photos = "Debes subir al menos una foto.";
-  }
+  // photos validation is handled in onSubmit (needs existingPhotos state)
 
   const lng = toNumberOrNull(values.geo_lng);
   if (values.geo_lng.trim() && (lng === null || lng < -180 || lng > 180)) {
@@ -488,6 +486,11 @@ export function CreatePromiiForm({
 
   const [globalError, setGlobalError] = React.useState<string | null>(null);
 
+  // Existing photos (for edit mode)
+  const [existingPhotos, setExistingPhotos] = React.useState<ExistingPhoto[]>([]);
+  const [removedPhotoIds, setRemovedPhotoIds] = React.useState<string[]>([]);
+  const [existingPhotoRows, setExistingPhotoRows] = React.useState<PromiiPhotoRow[]>([]);
+
   // Influencer partnerships
   const [approvedInfluencers, setApprovedInfluencers] = React.useState<PartnershipWithDetails[]>([]);
   const [loadingInfluencers, setLoadingInfluencers] = React.useState(false);
@@ -504,6 +507,11 @@ export function CreatePromiiForm({
     setValues((p) => ({ ...p, [key]: val }));
     setErrors((p) => ({ ...p, [key]: undefined }));
     setGlobalError(null);
+  }
+
+  function handleRemoveExistingPhoto(photoId: string) {
+    setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    setRemovedPhotoIds((prev) => [...prev, photoId]);
   }
 
   // ✅ Reset city al cambiar state (con guard)
@@ -540,6 +548,29 @@ export function CreatePromiiForm({
     setValues(dbToForm(initialData));
   }, [initialData]);
 
+  // ✅ Cargar fotos existentes en modo edit
+  React.useEffect(() => {
+    if (type !== "edit" || !promiiId) return;
+
+    async function loadExistingPhotos() {
+      try {
+        const photos = await fetchPromiiPhotos(promiiId!);
+        setExistingPhotoRows(photos);
+        setExistingPhotos(
+          photos.map((p) => ({
+            id: p.id,
+            public_url: p.public_url,
+            sort_order: p.sort_order,
+          }))
+        );
+      } catch (err) {
+        console.error("[EditPromii] Error loading existing photos:", err);
+      }
+    }
+
+    loadExistingPhotos();
+  }, [type, promiiId]);
+
   const discountLabelPreview = React.useMemo(() => {
     const original = toNumberOrNull(values.original_price_amount);
     const current = toNumberOrNull(values.price_amount);
@@ -553,19 +584,21 @@ export function CreatePromiiForm({
     setGlobalError(null);
 
     const nextErrors = validate(values);
+
+    // Validate photos considering existing ones
+    const totalPhotos = existingPhotos.length + values.photos.length;
+    if (totalPhotos < 1) {
+      nextErrors.photos = "Debes subir al menos una foto.";
+    }
+    if (totalPhotos > 4) {
+      nextErrors.photos = "Máximo 4 fotos.";
+    }
+
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       ToastService.showErrorToast(
         "Por favor corrige los errores en el formulario",
       );
-      return;
-    }
-    if (values.photos.length < 1) {
-      ToastService.showErrorToast("Debes subir al menos 1 foto.");
-      return;
-    }
-    if (values.photos.length > 4) {
-      ToastService.showErrorToast("Máximo 4 fotos.");
       return;
     }
     if (submitting) return;
@@ -623,7 +656,8 @@ export function CreatePromiiForm({
 
     const payload = {
       merchant_id,
-      status: "draft" as PromiiStatus,
+      // En edit: preservar el status original; en new: siempre draft
+      status: (type === "edit" && initialData ? initialData.status : "draft") as PromiiStatus,
 
       title: values.title.trim(),
       description: values.description.trim(),
@@ -673,11 +707,28 @@ export function CreatePromiiForm({
       if (error) throw error;
       if (!data?.id) throw new Error("No se pudo obtener el ID del Promii");
 
-      await uploadPromiiPhotos({
-        promiiId: data.id, // ✅ CORRECTO
-        merchantId: payload.merchant_id,
-        files: values.photos,
-      });
+      // Delete removed existing photos
+      if (removedPhotoIds.length > 0) {
+        for (const photoId of removedPhotoIds) {
+          const photoRow = existingPhotoRows.find((p) => p.id === photoId);
+          if (photoRow) {
+            try {
+              await deletePromiiPhoto(photoRow);
+            } catch (err) {
+              console.warn("[EditPromii] Error deleting photo:", err);
+            }
+          }
+        }
+      }
+
+      // Upload new photos (only if there are new files)
+      if (values.photos.length > 0) {
+        await uploadPromiiPhotos({
+          promiiId: data.id,
+          merchantId: payload.merchant_id,
+          files: values.photos,
+        });
+      }
 
       // Create influencer assignment if selected
       if (values.assignToInfluencer && values.default_influencer_id) {
@@ -712,8 +763,10 @@ export function CreatePromiiForm({
         }
       }
 
-      ToastService.showSuccessToast("Promii guardado como borrador");
-      router.push("/business/dashboard/validate/pending");
+      ToastService.showSuccessToast(
+        type === "edit" ? "Promii actualizado correctamente" : "Promii guardado como borrador"
+      );
+      router.push("/business/dashboard/my-promiis");
     } catch (err: any) {
       const msg =
         err?.message ??
@@ -1250,9 +1303,11 @@ export function CreatePromiiForm({
                 <PhotosField
                   files={values.photos}
                   onChange={(photos) => update("photos", photos)}
+                  existingPhotos={existingPhotos}
+                  onRemoveExisting={handleRemoveExistingPhoto}
                   error={errors.photos}
                 />
-                {values.photos.length < 1 && (
+                {existingPhotos.length + values.photos.length < 1 && (
                   <div
                     className="mt-2 flex items-center gap-1.5 text-xs font-medium"
                     style={{ color: COLORS.error.dark }}

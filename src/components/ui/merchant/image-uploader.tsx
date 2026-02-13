@@ -4,17 +4,29 @@ import * as React from "react";
 const MAX_PHOTOS = 4;
 const MIN_PHOTOS = 1;
 
+export type ExistingPhoto = {
+  id: string;
+  public_url: string;
+  sort_order: number;
+};
+
 export function PhotosField({
   files,
   onChange,
+  existingPhotos = [],
+  onRemoveExisting,
   error,
 }: {
   files: File[];
   onChange: (next: File[]) => void;
+  existingPhotos?: ExistingPhoto[];
+  onRemoveExisting?: (photoId: string) => void;
   error?: string;
 }) {
   const urls = useObjectUrls(files);
   const [localError, setLocalError] = React.useState<string | null>(null);
+
+  const totalPhotos = existingPhotos.length + files.length;
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -27,7 +39,7 @@ export function PhotosField({
 
     if (incoming.length === 0) return;
 
-    if (files.length + incoming.length > MAX_PHOTOS) {
+    if (totalPhotos + incoming.length > MAX_PHOTOS) {
       setLocalError(`Puedes subir un máximo de ${MAX_PHOTOS} fotos.`);
       return;
     }
@@ -41,7 +53,7 @@ export function PhotosField({
     setLocalError(null);
   }
 
-  const canAddMore = files.length < MAX_PHOTOS;
+  const canAddMore = totalPhotos < MAX_PHOTOS;
 
   return (
     <div className="space-y-2">
@@ -85,12 +97,42 @@ export function PhotosField({
       ) : null}
 
       {/* Preview */}
-      {files.length === 0 ? (
+      {totalPhotos === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-background p-6 text-sm text-text-secondary">
           Debes subir al menos {MIN_PHOTOS} foto.
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* Existing photos (from DB) */}
+          {existingPhotos.map((photo, idx) => (
+            <div
+              key={photo.id}
+              className="group relative overflow-hidden rounded-xl border border-border bg-background"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.public_url}
+                alt={`foto-existente-${idx}`}
+                className="h-32 w-full object-cover"
+              />
+
+              {onRemoveExisting && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveExisting(photo.id)}
+                  className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs text-white opacity-0 transition group-hover:opacity-100"
+                >
+                  Quitar
+                </button>
+              )}
+
+              <div className="absolute bottom-2 left-2 rounded-md bg-black/70 px-2 py-1 text-xs text-white">
+                {idx + 1}
+              </div>
+            </div>
+          ))}
+
+          {/* New photos (local files) */}
           {urls.map((src, idx) => (
             <div
               key={src}
@@ -99,7 +141,7 @@ export function PhotosField({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={src}
-                alt={`foto-${idx}`}
+                alt={`foto-nueva-${idx}`}
                 className="h-32 w-full object-cover"
               />
 
@@ -112,7 +154,7 @@ export function PhotosField({
               </button>
 
               <div className="absolute bottom-2 left-2 rounded-md bg-black/70 px-2 py-1 text-xs text-white">
-                {idx + 1}
+                {existingPhotos.length + idx + 1}
               </div>
             </div>
           ))}
@@ -120,7 +162,7 @@ export function PhotosField({
       )}
 
       <div className="text-xs text-text-secondary">
-        {files.length}/{MAX_PHOTOS} fotos seleccionadas
+        {totalPhotos}/{MAX_PHOTOS} fotos seleccionadas
       </div>
     </div>
   );

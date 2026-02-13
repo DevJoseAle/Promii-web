@@ -72,7 +72,7 @@ function MainHeaderContent() {
             alt="Promii Logo"
             width={120}
             height={40}
-            className="h-10 w-auto object-contain"
+            className="h-12 w-auto object-contain"
           />
         </Link>
 

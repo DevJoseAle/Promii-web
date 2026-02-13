@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PhotoGallery } from "@/components/promii/photo-gallery";
+import { StaticMap } from "@/components/promii/static-map";
 import { PromiiDetailClient } from "./detail-client";
 
 export default async function PromiiDetailPage({
@@ -278,6 +279,16 @@ export default async function PromiiDetailPage({
                 </div>
               </div>
             )}
+
+            {/* Location map */}
+            <StaticMap
+              lat={promii.geo_lat}
+              lng={promii.geo_lng}
+              addressLine={promii.address_line}
+              zone={promii.zone}
+              city={promii.city}
+              state={promii.state}
+            />
 
             {/* Restrictions */}
             {(promii.max_redemptions || !promii.allow_multiple_per_user || promii.max_units_per_user) && (

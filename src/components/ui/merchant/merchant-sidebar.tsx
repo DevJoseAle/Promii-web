@@ -15,6 +15,7 @@ import {
   Menu,
   Settings,
   Search,
+  ShoppingBag,
 } from "lucide-react";
 
 // Tremor (Raw) components (si ya los copiaste a /components, ajusta rutas)
@@ -47,6 +48,7 @@ type NavGroup = {
 
 const TOP_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/business/dashboard", icon: LayoutDashboard },
+  { label: "Mis Compras", href: "/business/dashboard/purchases", icon: ShoppingBag },
 ];
 
 const GROUPS: NavGroup[] = [
@@ -491,6 +493,22 @@ function MobileBottomBar() {
                           </div>
                         </div>
                       ))}
+
+                      {/* Mis Compras */}
+                      <div className="mb-6">
+                        <Link
+                          href="/business/dashboard/purchases"
+                          onClick={() => setShowMore(false)}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
+                          style={{
+                            backgroundColor: pathname.startsWith("/business/dashboard/purchases") ? COLORS.primary.lighter : "transparent",
+                            color: pathname.startsWith("/business/dashboard/purchases") ? COLORS.primary.dark : COLORS.text.secondary,
+                          }}
+                        >
+                          <ShoppingBag className="size-5" />
+                          <span>Mis Compras</span>
+                        </Link>
+                      </div>
 
                       {/* Settings & Feedback */}
                       <div
