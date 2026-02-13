@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { CATEGORIES } from "@/config/categories";
 import { COLORS } from "@/config/colors";
-import { Store, Users, HelpCircle, FileText, Shield } from "lucide-react";
+import { Store, Users, HelpCircle, FileText, Shield, Tag, CreditCard } from "lucide-react";
 
 const CITIES = [
   { name: "Caracas", slug: "caracas" },
@@ -116,11 +116,41 @@ export function AppFooter() {
               <li>
                 <Link
                   className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
+                  href="/for-users"
+                  style={{ color: COLORS.text.secondary }}
+                >
+                  <Tag className="size-3.5" />
+                  Ofertas para ti
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
+                  href="/for-business"
+                  style={{ color: COLORS.text.secondary }}
+                >
+                  <CreditCard className="size-3.5" />
+                  Para comercios
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
                   href="/for-influencers"
                   style={{ color: COLORS.text.secondary }}
                 >
                   <Users className="size-3.5" />
-                  Programa de influencers
+                  Para influencers
+                </Link>
+              </li>
+              <li>
+                <Link
+                  className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
+                  href="/pricing"
+                  style={{ color: COLORS.text.secondary }}
+                >
+                  <Store className="size-3.5" />
+                  Planes y precios
                 </Link>
               </li>
               <li>
@@ -174,7 +204,7 @@ export function AppFooter() {
 
           <div className="flex items-center gap-6 text-xs">
             <Link
-              href="/legal/terms"
+              href="/terms"
               className="transition-colors duration-200 hover:underline"
               style={{ color: COLORS.text.tertiary }}
             >
@@ -190,7 +220,7 @@ export function AppFooter() {
             </Link>
             <span style={{ color: COLORS.border.dark }}>·</span>
             <Link
-              href="/help"
+              href="/faq"
               className="transition-colors duration-200 hover:underline"
               style={{ color: COLORS.text.tertiary }}
             >

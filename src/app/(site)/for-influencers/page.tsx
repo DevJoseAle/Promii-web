@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { COLORS } from "@/config/colors";
+import { WhatsAppShareButton } from "@/components/ui/whatsapp-share-button";
 import {
   Sparkles,
   DollarSign,
@@ -13,13 +14,25 @@ import {
   TrendingUp,
   Gift,
   Target,
+  Clock,
 } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Programa de Influencers - Promii",
   description:
-    "Monetiza tu audiencia con Promii. Comparte códigos de descuento, gana comisiones por cada venta y conecta con marcas verificadas.",
+    "Monetiza tu audiencia con Promii. Comparte códigos de descuento, gana comisiones por cada venta y conecta con marcas verificadas en Venezuela.",
+  openGraph: {
+    title: "Monetiza tu audiencia con Promii",
+    description: "Comparte códigos de descuento, gana comisiones por cada venta y conecta con marcas verificadas. 100% gratis.",
+    type: "website",
+    url: "https://promii.com/for-influencers",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Monetiza tu audiencia con Promii",
+    description: "Comparte códigos de descuento, gana comisiones por cada venta y conecta con marcas verificadas. 100% gratis.",
+  },
 };
 
 function StepCard({
@@ -119,11 +132,11 @@ export default function ForInfluencersPage() {
               style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white" }}
             >
               <Sparkles className="size-3.5" />
-              Programa de Influencers
+              Cupos limitados para fundadores
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-4">
-              Monetiza tu audiencia con Promii
+              Monetiza tu audiencia sin invertir un centavo
             </h1>
             <p className="text-base md:text-lg leading-relaxed text-white/80 mb-8">
               Comparte códigos de descuento exclusivos con tu comunidad, gana comisiones por cada venta y conecta con marcas verificadas en toda Venezuela.
@@ -141,17 +154,10 @@ export default function ForInfluencersPage() {
                 Aplicar ahora
                 <ArrowRight className="size-4" />
               </Link>
-              <Link
-                href="/inf/sign-in"
-                className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 hover:scale-105"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.15)",
-                  color: "white",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                }}
-              >
-                Ya tengo cuenta
-              </Link>
+              <WhatsAppShareButton
+                message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.com/for-influencers"
+                variant="hero"
+              />
             </div>
           </div>
 
@@ -162,7 +168,7 @@ export default function ForInfluencersPage() {
               <div className="text-xs text-white/70 mt-1">Comisión máx.</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white">0$</div>
+              <div className="text-2xl md:text-3xl font-bold text-white">$0</div>
               <div className="text-xs text-white/70 mt-1">Sin costo de entrada</div>
             </div>
             <div className="text-center">
@@ -369,23 +375,35 @@ export default function ForInfluencersPage() {
             background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
           }}
         >
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-4"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white" }}
+          >
+            <Clock className="size-3.5" />
+            Cupos limitados
+          </div>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
             ¿Listo para empezar a ganar?
           </h2>
           <p className="text-base text-white/80 max-w-lg mx-auto mb-8">
             Únete al programa de influencers de Promii y empieza a monetizar tu audiencia hoy mismo.
           </p>
-          <Link
-            href="/inf/apply"
-            className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition-all duration-200 hover:scale-105"
-            style={{
-              backgroundColor: COLORS.accent.main,
-              color: "white",
-            }}
-          >
-            Aplicar al programa
-            <ArrowRight className="size-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/inf/apply"
+              className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition-all duration-200 hover:scale-105"
+              style={{
+                backgroundColor: COLORS.accent.main,
+                color: "white",
+              }}
+            >
+              Aplicar al programa
+              <ArrowRight className="size-5" />
+            </Link>
+            <WhatsAppShareButton
+              message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.com/for-influencers"
+              variant="hero"
+            />
+          </div>
         </section>
       </div>
     </div>
