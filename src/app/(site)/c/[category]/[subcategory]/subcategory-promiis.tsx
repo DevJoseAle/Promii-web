@@ -190,13 +190,11 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => handleQuickFilter("best-rated")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-              filters.sortBy === "rating" ? "ring-2" : ""
-            }`}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105"
             style={{
               backgroundColor: COLORS.primary.lighter,
               color: COLORS.primary.dark,
-              ringColor: COLORS.primary.main,
+              boxShadow: filters.sortBy === "rating" ? `0 0 0 2px ${COLORS.primary.main}` : undefined,
             }}
           >
             <Star className="size-3.5 inline mr-1" />
@@ -205,14 +203,12 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
 
           <button
             onClick={() => handleQuickFilter("price-low-high")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-              filters.sortBy === "price_low" ? "ring-2" : ""
-            }`}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105"
             style={{
               backgroundColor: COLORS.background.tertiary,
               color: COLORS.text.primary,
               border: `1px solid ${COLORS.border.main}`,
-              ringColor: COLORS.primary.main,
+              boxShadow: filters.sortBy === "price_low" ? `0 0 0 2px ${COLORS.primary.main}` : undefined,
             }}
           >
             <DollarSign className="size-3.5 inline mr-1" />
@@ -221,14 +217,12 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
 
           <button
             onClick={() => handleQuickFilter("newest")}
-            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-              filters.sortBy === "newest" ? "ring-2" : ""
-            }`}
+            className="rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105"
             style={{
               backgroundColor: COLORS.background.tertiary,
               color: COLORS.text.primary,
               border: `1px solid ${COLORS.border.main}`,
-              ringColor: COLORS.primary.main,
+              boxShadow: filters.sortBy === "newest" ? `0 0 0 2px ${COLORS.primary.main}` : undefined,
             }}
           >
             <TrendingUp className="size-3.5 inline mr-1" />
@@ -276,14 +270,12 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
                   <button
                     key={range.value}
                     onClick={() => handlePriceRangeChange(range.value)}
-                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      filters.priceRange === range.value ? "ring-2" : ""
-                    }`}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors"
                     style={{
                       backgroundColor:
                         filters.priceRange === range.value ? COLORS.primary.lighter : "transparent",
                       color: filters.priceRange === range.value ? COLORS.primary.dark : COLORS.text.secondary,
-                      ringColor: COLORS.primary.main,
+                      boxShadow: filters.priceRange === range.value ? `0 0 0 2px ${COLORS.primary.main}` : undefined,
                     }}
                   >
                     <span className="text-sm">{range.label}</span>
@@ -308,14 +300,14 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
                     key={discount.value}
                     onClick={() => handleDiscountChange(discount.value)}
                     className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      filters.minDiscount === discount.value ? "ring-2" : ""
+                      ""
                     }`}
                     style={{
                       backgroundColor:
                         filters.minDiscount === discount.value ? COLORS.success.lighter : "transparent",
                       color:
                         filters.minDiscount === discount.value ? COLORS.success.dark : COLORS.text.secondary,
-                      ringColor: COLORS.success.main,
+                      boxShadow: filters.minDiscount === discount.value ? `0 0 0 2px ${COLORS.success.main}` : undefined,
                     }}
                   >
                     <span className="text-sm">{discount.label}</span>
@@ -339,14 +331,12 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
                   <button
                     key={rating.value}
                     onClick={() => handleRatingChange(rating.value)}
-                    className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      filters.minRating === rating.value ? "ring-2" : ""
-                    }`}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg transition-colors"
                     style={{
                       backgroundColor:
                         filters.minRating === rating.value ? COLORS.warning.lighter : "transparent",
                       color: filters.minRating === rating.value ? COLORS.warning.dark : COLORS.text.secondary,
-                      ringColor: COLORS.warning.main,
+                      boxShadow: filters.minRating === rating.value ? `0 0 0 2px ${COLORS.warning.main}` : undefined,
                     }}
                   >
                     <Star className="size-3.5 fill-current" style={{ color: COLORS.warning.main }} />

@@ -114,7 +114,7 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
           sale_amount: Number(purchase.paid_amount),
           commission_earned: commissionEarned,
           commission_type: assignment?.commission_type || "percentage",
-          status: "pending" as const, // Por ahora todas pending, luego se puede agregar sistema de payouts
+          status: "pending" as "pending" | "paid", // Por ahora todas pending, luego se puede agregar sistema de payouts
         };
       });
 

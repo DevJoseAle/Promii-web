@@ -265,8 +265,8 @@ export default function InfluencersDirectoryPage() {
             >
               <option value="">Todas las ciudades</option>
               {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+                <option key={c.id} value={c.name}>
+                  {c.name}
                 </option>
               ))}
             </select>

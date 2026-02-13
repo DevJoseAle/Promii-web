@@ -5,7 +5,7 @@ export function AuthCard({
   subheading,
   children,
 }: {
-  heading: string;
+  heading?: string;
   subheading?: string;
   children: ReactNode;
 }) {
