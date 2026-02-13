@@ -21,11 +21,37 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Validar que hay una sesión activa (token válido)
   useEffect(() => {
     checkSession();
   }, []);
+
+  // Detectar cuando la contraseña se actualiza exitosamente
+  useEffect(() => {
+    if (!isUpdating) return;
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[ResetPassword] Auth event:", event);
+
+      if (event === "USER_UPDATED" && isUpdating) {
+        console.log("[ResetPassword] ✅ Contraseña actualizada, redirigiendo...");
+        ToastService.showSuccessToast("Contraseña actualizada con éxito");
+
+        // Redirigir inmediatamente sin signOut (para evitar AbortError)
+        // El signOut se hará en la página de login si es necesario
+        setTimeout(() => {
+          console.log("[ResetPassword] 🚀 Ejecutando redirect...");
+          window.location.href = "/auth/sign-in?passwordReset=true";
+        }, 800);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [isUpdating]);
 
   async function checkSession() {
     setValidating(true);
@@ -61,25 +87,35 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
+    setIsUpdating(true);
 
     try {
-      const response = await updatePassword(password);
+      console.log("[ResetPassword] Iniciando actualización de contraseña...");
 
-      if (response.status === "success") {
-        ToastService.showSuccessToast("Contraseña actualizada con éxito");
+      // Llamar directamente a supabase.auth.updateUser sin esperar la promesa
+      // porque el evento USER_UPDATED manejará el redirect
+      supabase.auth.updateUser({
+        password: password,
+      }).then(({ error }) => {
+        if (error) {
+          console.error("[ResetPassword] ❌ Error:", error);
+          ToastService.showErrorToast(error.message || "Error al actualizar contraseña");
+          setLoading(false);
+          setIsUpdating(false);
+        }
+        // Si no hay error, el evento USER_UPDATED manejará el redirect
+      }).catch((error) => {
+        console.error("[ResetPassword] ❌ Error inesperado:", error);
+        ToastService.showErrorToast("Error inesperado");
+        setLoading(false);
+        setIsUpdating(false);
+      });
 
-        // Redirigir después de 1.5 segundos
-        setTimeout(() => {
-          router.push("/auth/sign-in");
-        }, 1500);
-      } else {
-        ToastService.showErrorToast(response.error || "Error al actualizar contraseña");
-      }
     } catch (error) {
-      console.error("[ResetPassword] Error:", error);
+      console.error("[ResetPassword] ❌ Error inesperado:", error);
       ToastService.showErrorToast("Error inesperado");
-    } finally {
       setLoading(false);
+      setIsUpdating(false);
     }
   }
 
@@ -151,7 +187,7 @@ export default function ResetPasswordPage() {
 
   // Form para resetear contraseña
   return (
-    <AuthShell>
+    <AuthShell blockNavigation={true}>
       <AuthCard>
         {/* Header */}
         <div className="text-center mb-8">

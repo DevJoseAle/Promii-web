@@ -7,11 +7,12 @@ import { Store, TrendingUp, Shield, Zap, Check, Sparkles, Users, DollarSign, Han
 
 type Props = {
   brandLabel?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   badgeText?: string;
   children: ReactNode;
   variant?: "consumer" | "business" | "influencer";
+  blockNavigation?: boolean;  // Para reset-password: bloquear navegación por seguridad
 };
 
 export function AuthShell({
@@ -21,7 +22,18 @@ export function AuthShell({
   badgeText,
   children,
   variant = "consumer",
+  blockNavigation = false,
 }: Props) {
+
+  const handleLogoClick = async (e: React.MouseEvent) => {
+    if (blockNavigation) {
+      e.preventDefault();
+      console.log("[AuthShell] Navegación bloqueada por seguridad - cerrando sesión");
+      const { supabase } = await import("@/lib/supabase/supabase.client");
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    }
+  };
   return (
     <div className="min-h-dvh" style={{ backgroundColor: COLORS.background.secondary }}>
       {/* Header con gradiente sutil */}
@@ -33,18 +45,33 @@ export function AuthShell({
         }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="transition-transform duration-200 hover:scale-105"
-          >
-            <Image
-              src="/images/promiiLogo.png"
-              alt="Promii"
-              width={120}
-              height={40}
-              className="h-10 w-auto object-contain"
-            />
-          </Link>
+          {blockNavigation ? (
+            <div
+              onClick={handleLogoClick}
+              className="cursor-pointer transition-transform duration-200 hover:scale-105"
+            >
+              <Image
+                src="/images/promiiLogo.png"
+                alt="Promii"
+                width={120}
+                height={40}
+                className="h-10 w-auto object-contain"
+              />
+            </div>
+          ) : (
+            <Link
+              href="/"
+              className="transition-transform duration-200 hover:scale-105"
+            >
+              <Image
+                src="/images/promiiLogo.png"
+                alt="Promii"
+                width={120}
+                height={40}
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+          )}
 
           {badgeText && (
             <div
