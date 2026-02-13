@@ -16,6 +16,7 @@ import {
   fetchTrendingPromiis,
   fetchPopularPromiis,
 } from "@/lib/services/promiis/homePromiis.service.server";
+import { PricingSection } from "@/components/pricing/pricing-section";
 
 export default async function HomePage() {
   // Fetch data from Supabase
@@ -314,6 +315,38 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Pricing section for merchants */}
+      <section
+        className="rounded-2xl border p-8 md:p-10"
+        style={{
+          backgroundColor: COLORS.background.secondary,
+          borderColor: COLORS.border.light,
+        }}
+      >
+        <div className="text-center mb-8">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-4"
+            style={{
+              backgroundColor: COLORS.primary.lighter,
+              color: COLORS.primary.main,
+            }}
+          >
+            <Store className="size-3.5" />
+            Para comercios
+          </div>
+          <h2
+            className="text-2xl md:text-3xl font-bold tracking-tight"
+            style={{ color: COLORS.text.primary }}
+          >
+            Publica tus promociones en Promii
+          </h2>
+          <p className="mt-2 text-sm max-w-lg mx-auto" style={{ color: COLORS.text.secondary }}>
+            Atrae nuevos clientes y aumenta tus ventas. Sin contratos largos, cancela cuando quieras.
+          </p>
+        </div>
+        <PricingSection compact />
+      </section>
 
       {/* Empty state */}
       {featuredPromiis.length === 0 && trendingPromiis.length === 0 && popularPromiis.length === 0 && (
