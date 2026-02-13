@@ -6,7 +6,7 @@ import { AuthProvider } from "@/lib/context/AuthContext";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://promii.com"),
+  metadataBase: new URL("https://promii.shop"),
   title: {
     default: "Promii — Descubre ofertas increíbles cerca de ti",
     template: "%s | Promii",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_VE",
-    url: "https://promii.com",
+    url: "https://promii.shop",
     siteName: "Promii",
     title: "Promii — Descubre ofertas increíbles cerca de ti",
     description:
@@ -49,7 +49,7 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "Promii",
-    url: "https://promii.com",
+    url: "https://promii.shop",
     description:
       "Plataforma de promociones locales verificadas en Venezuela. Descuentos en restaurantes, spas, entretenimiento y más.",
     applicationCategory: "ShoppingApplication",

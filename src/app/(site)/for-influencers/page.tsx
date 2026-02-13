@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: "Monetiza tu audiencia con Promii",
     description: "Comparte códigos de descuento, gana comisiones por cada venta y conecta con marcas verificadas. 100% gratis.",
     type: "website",
-    url: "https://promii.com/for-influencers",
+    url: "https://promii.shop/for-influencers",
   },
   twitter: {
     card: "summary_large_image",
@@ -155,7 +155,7 @@ export default function ForInfluencersPage() {
                 <ArrowRight className="size-4" />
               </Link>
               <WhatsAppShareButton
-                message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.com/for-influencers"
+                message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.shop/for-influencers"
                 variant="hero"
               />
             </div>
@@ -400,7 +400,7 @@ export default function ForInfluencersPage() {
               <ArrowRight className="size-5" />
             </Link>
             <WhatsAppShareButton
-              message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.com/for-influencers"
+              message="Mira este programa para influencers en Venezuela. Puedes ganar comisiones compartiendo descuentos con tu audiencia, es gratis 👀 https://promii.shop/for-influencers"
               variant="hero"
             />
           </div>

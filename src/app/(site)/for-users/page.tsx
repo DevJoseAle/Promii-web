@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: "Ahorra hasta 70% en lo que ya compras - Promii",
     description: "Descubre ofertas verificadas en restaurantes, spas, entretenimiento y más cerca de ti en Venezuela. Sin trucos.",
     type: "website",
-    url: "https://promii.com/for-users",
+    url: "https://promii.shop/for-users",
   },
   twitter: {
     card: "summary_large_image",
@@ -185,7 +185,7 @@ export default function ForUsersPage() {
                 <ArrowRight className="size-4" />
               </Link>
               <WhatsAppShareButton
-                message="Mira esta app para conseguir descuentos de hasta 70% en restaurantes, spas y más en tu ciudad 🔥 https://promii.com/for-users"
+                message="Mira esta app para conseguir descuentos de hasta 70% en restaurantes, spas y más en tu ciudad 🔥 https://promii.shop/for-users"
                 variant="hero"
               />
             </div>
@@ -517,7 +517,7 @@ export default function ForUsersPage() {
               <ArrowRight className="size-5" />
             </Link>
             <WhatsAppShareButton
-              message="Mira esta app para conseguir descuentos de hasta 70% en restaurantes, spas y más en tu ciudad 🔥 https://promii.com/for-users"
+              message="Mira esta app para conseguir descuentos de hasta 70% en restaurantes, spas y más en tu ciudad 🔥 https://promii.shop/for-users"
               variant="hero"
             />
           </div>
