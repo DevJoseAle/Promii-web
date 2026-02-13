@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://promii.com";
+const BASE_URL = "https://promii.shop";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

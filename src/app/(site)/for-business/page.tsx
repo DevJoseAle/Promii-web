@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Haz crecer tu negocio con Promii",
     description: "Publica promociones verificadas, conecta con influencers locales y atrae nuevos clientes. Planes desde $17/mes.",
     type: "website",
-    url: "https://promii.com/for-business",
+    url: "https://promii.shop/for-business",
   },
   twitter: {
     card: "summary_large_image",
@@ -166,7 +166,7 @@ export default function ForBusinessPage() {
                 <ArrowRight className="size-4" />
               </Link>
               <WhatsAppShareButton
-                message="Mira esta plataforma para publicar promociones de tu negocio y conectar con influencers en Venezuela. Planes desde $17/mes 🚀 https://promii.com/for-business"
+                message="Mira esta plataforma para publicar promociones de tu negocio y conectar con influencers en Venezuela. Planes desde $17/mes 🚀 https://promii.shop/for-business"
                 variant="hero"
               />
             </div>
@@ -491,7 +491,7 @@ export default function ForBusinessPage() {
               <ArrowRight className="size-5" />
             </Link>
             <WhatsAppShareButton
-              message="Mira esta plataforma para publicar promociones de tu negocio y conectar con influencers en Venezuela. Planes desde $17/mes 🚀 https://promii.com/for-business"
+              message="Mira esta plataforma para publicar promociones de tu negocio y conectar con influencers en Venezuela. Planes desde $17/mes 🚀 https://promii.shop/for-business"
               variant="hero"
             />
           </div>
