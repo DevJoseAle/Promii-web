@@ -126,7 +126,7 @@ export function AppFooter() {
               <li>
                 <Link
                   className="inline-flex items-center gap-2 text-sm transition-colors duration-200 hover:underline"
-                  href="/help"
+                  href="/faq"
                   style={{ color: COLORS.text.secondary }}
                 >
                   <HelpCircle className="size-3.5" />
