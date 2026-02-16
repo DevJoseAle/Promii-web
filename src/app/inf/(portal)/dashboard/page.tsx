@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BarChart3, Clock, Users, UserCircle, Sparkles, DollarSign, Wrench, ShoppingBag } from "lucide-react";
+import { BarChart3, Clock, Users, UserCircle, Sparkles, DollarSign, Wrench, ShoppingBag, Gift } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,9 @@ import { EarningsTab } from "./tabs/earnings-tab";
 import { ToolsTab } from "./tabs/tools-tab";
 import { MyCouponsTab } from "@/components/user-dashboard/my-coupons-tab";
 import { PurchaseHistoryTab } from "@/components/user-dashboard/purchase-history-tab";
+import { PromiiRedTab } from "@/components/user-dashboard/promii-red-tab";
 
-type TabId = "overview" | "requests" | "merchants" | "promiis" | "earnings" | "tools" | "purchases" | "profile";
+type TabId = "overview" | "requests" | "merchants" | "promiis" | "earnings" | "tools" | "purchases" | "promii-red" | "profile";
 
 type Tab = {
   id: TabId;
@@ -32,6 +33,7 @@ const TABS: Tab[] = [
   { id: "earnings", label: "Ganancias", icon: DollarSign },
   { id: "tools", label: "Herramientas", icon: Wrench },
   { id: "purchases", label: "Mis Compras", icon: ShoppingBag },
+  { id: "promii-red", label: "Promii Red", icon: Gift },
   { id: "profile", label: "Mi Perfil", icon: UserCircle },
 ];
 
@@ -87,6 +89,7 @@ export default function InfluencerDashboardPage() {
           </div>
         </div>
       )}
+      {activeTab === "promii-red" && <PromiiRedTab userId={profile.id} />}
       {activeTab === "profile" && <ProfileTab influencerId={profile.id} />}
     </div>
   );
