@@ -113,18 +113,29 @@ export async function getOrCreateReferralCode(
 
 /**
  * Valida que un código de referido existe y retorna el referrer_id
+ * Usa RPC para evitar problemas con RLS
  */
 export async function validateReferralCode(
   code: string
 ): Promise<SupabaseResponse<{ referrer_id: string; referrer_name: string }>> {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, first_name, last_name")
-      .eq("referral_code", code.trim().toUpperCase())
-      .single();
+    const cleanCode = code.trim().toUpperCase();
 
-    if (error || !data) {
+    // Usar RPC para evitar restricciones de RLS
+    const { data, error } = await supabase.rpc("validate_referral_code", {
+      code: cleanCode,
+    });
+
+    if (error) {
+      console.error("[validateReferralCode] RPC error:", error);
+      return failure(
+        "Código de referido no encontrado",
+        "El código ingresado no es válido",
+        "INVALID_CODE"
+      );
+    }
+
+    if (!data || !data.referrer_id) {
       return failure(
         "Código de referido no encontrado",
         "El código ingresado no es válido",
@@ -133,8 +144,8 @@ export async function validateReferralCode(
     }
 
     return success({
-      referrer_id: data.id,
-      referrer_name: `${data.first_name || ""} ${data.last_name || ""}`.trim() || "Usuario",
+      referrer_id: data.referrer_id,
+      referrer_name: data.referrer_name || "Usuario",
     });
   } catch (err) {
     console.error("[validateReferralCode] Error:", err);
@@ -154,57 +165,27 @@ export async function trackMerchantReferral(
   merchantId: string
 ): Promise<SupabaseResponse<MerchantReferral>> {
   try {
-    // 1. Validar que el código existe
-    const validation = await validateReferralCode(referralCode);
-    if (validation.status === "error") {
-      return failure(
-        validation.error,
-        "Código de referido inválido",
-        "INVALID_CODE"
-      );
-    }
-
-    const { referrer_id } = validation.data;
-
-    // 2. Verificar que el merchant no fue referido previamente
-    const { data: existing, error: checkError } = await supabase
-      .from("merchant_referrals")
-      .select("id")
-      .eq("referred_merchant_id", merchantId)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error("[trackMerchantReferral] Error checking existing:", checkError);
-      return failure(checkError.message, "Error al verificar referido", "CHECK_ERROR");
-    }
-
-    if (existing) {
-      return failure(
-        "Este merchant ya fue referido anteriormente",
-        "Referido duplicado",
-        "DUPLICATE_REFERRAL"
-      );
-    }
-
-    // 3. Crear el registro de referral
-    const { data, error } = await supabase
-      .from("merchant_referrals")
-      .insert({
-        referrer_id,
-        referred_merchant_id: merchantId,
-        referral_code: referralCode.trim().toUpperCase(),
-        status: "registered",
-        registered_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    // Usar RPC para evitar problemas de RLS
+    const { data, error } = await supabase.rpc("create_merchant_referral", {
+      p_referral_code: referralCode.trim().toUpperCase(),
+      p_merchant_id: merchantId,
+    });
 
     if (error) {
-      console.error("[trackMerchantReferral] Error inserting:", error);
-      return failure(error.message, "Error al registrar referido", "INSERT_ERROR");
+      console.error("[trackMerchantReferral] RPC error:", error);
+      return failure(error.message, "Error al registrar referido", "RPC_ERROR");
     }
 
-    return success(data as MerchantReferral);
+    // La función RPC retorna un JSON con { success, data?, error? }
+    if (!data || !data.success) {
+      return failure(
+        data?.error || "Error desconocido",
+        "No se pudo registrar el referido",
+        "REFERRAL_ERROR"
+      );
+    }
+
+    return success(data.data as MerchantReferral);
   } catch (err) {
     console.error("[trackMerchantReferral] Unexpected error:", err);
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");

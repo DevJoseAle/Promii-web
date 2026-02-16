@@ -40,6 +40,19 @@ type Draft = {
 const DRAFT_KEY = "promii_business_apply_draft_v1";
 const REFERRAL_KEY = "promii_merchant_referral_code";
 
+// Helper functions para manejar el código de referido en sessionStorage
+const saveReferralCode = (code: string) => {
+  sessionStorage.setItem(REFERRAL_KEY, code);
+};
+
+const loadReferralCode = (): string | null => {
+  return sessionStorage.getItem(REFERRAL_KEY);
+};
+
+const clearReferralCode = () => {
+  sessionStorage.removeItem(REFERRAL_KEY);
+};
+
 function BusinessApplyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,6 +62,11 @@ function BusinessApplyForm() {
   const [needsEmailVerify, setNeedsEmailVerify] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+
+  // Manual referral code input
+  const [manualReferralInput, setManualReferralInput] = useState("");
+  const [manualCodeStatus, setManualCodeStatus] = useState<"idle" | "validating" | "valid" | "invalid">("idle");
+  const [manualCodeError, setManualCodeError] = useState<string | null>(null);
 
   // Account
   const [email, setEmail] = useState("");
@@ -142,7 +160,7 @@ function BusinessApplyForm() {
   async function finalizeSubmitWithSession(userId: string) {
     try {
       // Obtener código de referido si existe
-      const savedReferralCode = localStorage.getItem(REFERRAL_KEY);
+      const savedReferralCode = loadReferralCode();
 
       // 1. Guardar en business_applications
       const { error: appErr } = await supabase
@@ -184,8 +202,8 @@ function BusinessApplyForm() {
         const referralResponse = await trackMerchantReferral(savedReferralCode, userId);
         if (referralResponse.status === "success") {
           console.log("[BusinessApply] Referral tracked successfully");
-          // Limpiar código de localStorage
-          localStorage.removeItem(REFERRAL_KEY);
+          // Limpiar código de sessionStorage
+          clearReferralCode();
         } else {
           console.warn("[BusinessApply] Failed to track referral:", referralResponse.error);
           // No bloqueamos el registro si falla el tracking
@@ -201,28 +219,35 @@ function BusinessApplyForm() {
     router.refresh();
   }
 
-  // Capturar código de referido de la URL
+  // Capturar código de referido de la URL o sessionStorage
   useEffect(() => {
     const refCode = searchParams.get("ref");
     if (refCode) {
-      // Guardar en localStorage
-      localStorage.setItem(REFERRAL_KEY, refCode.trim().toUpperCase());
+      // Prioridad 1: Código de URL
+      saveReferralCode(refCode.trim().toUpperCase());
 
       // Validar el código
       validateReferralCode(refCode).then((response) => {
         if (response.status === "success") {
           setReferralCode(refCode.trim().toUpperCase());
           setReferrerName(response.data.referrer_name);
+          setManualCodeStatus("valid"); // Marcar como válido
         }
       });
     } else {
-      // Intentar cargar de localStorage
-      const saved = localStorage.getItem(REFERRAL_KEY);
+      // Prioridad 2: Intentar cargar de sessionStorage (solo persiste en la sesión actual)
+      const saved = loadReferralCode();
       if (saved) {
+        setManualReferralInput(saved); // Mostrar en el input manual
         validateReferralCode(saved).then((response) => {
           if (response.status === "success") {
             setReferralCode(saved);
             setReferrerName(response.data.referrer_name);
+            setManualCodeStatus("valid");
+          } else {
+            setManualCodeStatus("invalid");
+            setManualCodeError("Código guardado no válido");
+            clearReferralCode(); // Limpiar si no es válido
           }
         });
       }
@@ -244,6 +269,58 @@ function BusinessApplyForm() {
       setZone(draft.zone || "");
     }
   }, []);
+
+  // Validar código de referido manual con debounce
+  useEffect(() => {
+    // No validar si ya hay un código de URL activo
+    if (referralCode && !manualReferralInput) {
+      return;
+    }
+
+    const trimmed = manualReferralInput.trim().toUpperCase();
+
+    // Si el campo está vacío, resetear
+    if (!trimmed) {
+      setManualCodeStatus("idle");
+      setManualCodeError(null);
+      // Si no hay código de URL, limpiar sessionStorage
+      if (!searchParams.get("ref")) {
+        clearReferralCode();
+        setReferralCode(null);
+        setReferrerName(null);
+      }
+      return;
+    }
+
+    // Validar formato básico (RU-XXXX o RI-XXXX)
+    const validFormat = /^R[UI]-[A-Z0-9]{4}$/i.test(trimmed);
+    if (!validFormat) {
+      setManualCodeStatus("invalid");
+      setManualCodeError("Formato inválido. Debe ser RU-XXXX o RI-XXXX");
+      return;
+    }
+
+    // Debounce: esperar 500ms antes de validar
+    setManualCodeStatus("validating");
+    const timer = setTimeout(async () => {
+      const response = await validateReferralCode(trimmed);
+
+      if (response.status === "success") {
+        setManualCodeStatus("valid");
+        setManualCodeError(null);
+        setReferralCode(trimmed);
+        setReferrerName(response.data.referrer_name);
+        saveReferralCode(trimmed);
+      } else {
+        setManualCodeStatus("invalid");
+        setManualCodeError(response.error || "Código no encontrado");
+        setReferralCode(null);
+        setReferrerName(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [manualReferralInput, referralCode, searchParams]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -847,6 +924,112 @@ function BusinessApplyForm() {
               </div>
             </div>
           </div>
+
+          {/* Sección: Código de Referido (Opcional) */}
+          {!referralCode && (
+            <div
+              className="rounded-xl border p-6 space-y-4"
+              style={{
+                backgroundColor: COLORS.background.primary,
+                borderColor: COLORS.border.light,
+              }}
+            >
+              <div className="flex items-center gap-3 pb-3 border-b" style={{ borderColor: COLORS.border.light }}>
+                <div
+                  className="flex size-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: COLORS.accent.lighter, color: COLORS.accent.main }}
+                >
+                  <Gift className="size-5" />
+                </div>
+                <div>
+                  <div className="font-semibold" style={{ color: COLORS.text.primary }}>
+                    ¿Tienes un código de referido?
+                  </div>
+                  <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                    Ingresa el código si alguien te refirió a Promii
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="manualReferralCode" className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                  Código de Referido{" "}
+                  <span className="text-xs font-normal" style={{ color: COLORS.text.tertiary }}>
+                    (Opcional)
+                  </span>
+                </label>
+                <div className="relative">
+                  <Gift
+                    className="absolute left-3 top-1/2 size-5 -translate-y-1/2"
+                    style={{ color: COLORS.text.tertiary }}
+                  />
+                  <Input
+                    id="manualReferralCode"
+                    name="manualReferralCode"
+                    placeholder="Ej: RU-A3F2 o RI-B7G9"
+                    value={manualReferralInput}
+                    onChange={(e) => setManualReferralInput(e.target.value)}
+                    className="h-11 pl-11 pr-11 uppercase"
+                    style={{
+                      backgroundColor: COLORS.background.tertiary,
+                      borderColor:
+                        manualCodeStatus === "valid"
+                          ? COLORS.success.main
+                          : manualCodeStatus === "invalid"
+                          ? COLORS.error.main
+                          : COLORS.border.main,
+                    }}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {manualCodeStatus === "validating" && (
+                      <Loader2 className="size-5 animate-spin" style={{ color: COLORS.text.tertiary }} />
+                    )}
+                    {manualCodeStatus === "valid" && (
+                      <CheckCircle2 className="size-5" style={{ color: COLORS.success.main }} />
+                    )}
+                    {manualCodeStatus === "invalid" && (
+                      <AlertCircle className="size-5" style={{ color: COLORS.error.main }} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Feedback messages */}
+                {manualCodeStatus === "valid" && referrerName && (
+                  <div
+                    className="flex items-start gap-2 rounded-lg border p-3"
+                    style={{
+                      backgroundColor: COLORS.success.lighter,
+                      borderColor: COLORS.success.light,
+                    }}
+                  >
+                    <CheckCircle2 className="size-4 shrink-0 mt-0.5" style={{ color: COLORS.success.main }} />
+                    <div className="text-sm" style={{ color: COLORS.success.dark }}>
+                      <span className="font-semibold">Código válido.</span> Referido por {referrerName}
+                    </div>
+                  </div>
+                )}
+
+                {manualCodeStatus === "invalid" && manualCodeError && (
+                  <div
+                    className="flex items-start gap-2 rounded-lg border p-3"
+                    style={{
+                      backgroundColor: COLORS.error.lighter,
+                      borderColor: COLORS.error.light,
+                    }}
+                  >
+                    <AlertCircle className="size-4 shrink-0 mt-0.5" style={{ color: COLORS.error.main }} />
+                    <div className="text-sm" style={{ color: COLORS.error.dark }}>
+                      {manualCodeError}
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-xs" style={{ color: COLORS.text.tertiary }}>
+                  Si alguien te compartió un código de Promii Red, ingrésalo aquí para que reciba su recompensa.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Error message */}
           {error && (
