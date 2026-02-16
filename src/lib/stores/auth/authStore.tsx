@@ -113,11 +113,18 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const { data, error } = await supabase
+          // ⏰ Timeout de 5s para evitar cuelgues
+          const fetchPromise = supabase
             .from("profiles")
             .select("id,email,role,state,first_name,last_name")
             .eq("id", userId)
             .maybeSingle();
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
+          );
+
+          const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
           if (error) {
             console.error("[AuthStore] fetchProfile: Database error", {
@@ -275,10 +282,10 @@ export function initAuthListener() {
   listenerInitialized = true;
   console.log("[AuthStore] Initializing auth listener");
 
-  // ⏰ SAFETY: Si INITIAL_SESSION no llega en 5s, forzar resolución
+  // ⏰ SAFETY: Si INITIAL_SESSION no llega en 2s, forzar resolución
   setTimeout(() => {
     if (!initialSessionReceived) {
-      console.warn("[AuthStore] ⚠️  INITIAL_SESSION not received after 5s, checking manually");
+      console.warn("[AuthStore] ⚠️  INITIAL_SESSION not received after 2s, checking manually");
 
       const currentState = useAuthStore.getState();
 
@@ -296,6 +303,17 @@ export function initAuthListener() {
                 existSession: true,
                 _isInitializing: false,
               });
+            }).catch((err) => {
+              console.error("[AuthStore] Manual check: profile fetch failed", err);
+              // Incluso si falla el profile, mostrar como autenticado sin profile
+              useAuthStore.setState({
+                status: "authenticated",
+                session,
+                user: session.user,
+                profile: null,
+                existSession: true,
+                _isInitializing: false,
+              });
             });
           } else {
             console.log("[AuthStore] Manual check: no session");
@@ -308,10 +326,21 @@ export function initAuthListener() {
               _isInitializing: false,
             });
           }
+        }).catch((err) => {
+          console.error("[AuthStore] Manual check: getSession failed", err);
+          // Si falla completamente, marcar como no autenticado
+          useAuthStore.setState({
+            status: "unauthenticated",
+            session: null,
+            user: null,
+            profile: null,
+            existSession: false,
+            _isInitializing: false,
+          });
         });
       }
     }
-  }, 5000);
+  }, 2000);
 
   // ═══════════════════════════════════════════════════════════════
   // HELPER: Manejar sesión autenticada (usado por SIGNED_IN e INITIAL_SESSION)
