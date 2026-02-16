@@ -23,6 +23,7 @@ import {
   Gift,
 } from "lucide-react";
 import { validateReferralCode, trackMerchantReferral } from "@/lib/services/referral/promii-red.service";
+import { useAuth } from "@/lib/context/AuthContext";
 
 type Draft = {
   email: string;
@@ -56,6 +57,7 @@ const clearReferralCode = () => {
 function BusinessApplyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +195,9 @@ function BusinessApplyForm() {
         .eq("id", userId);
 
       if (profileErr) throw new Error(profileErr.message);
+
+      // 2.1. Refrescar profile en el authStore para actualizar el role
+      await refreshProfile();
 
       // 3. Crear/actualizar merchant row
       await ensureMerchantRow(userId);
