@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,9 @@ import {
   CheckCircle2,
   Loader2,
   User,
+  Gift,
 } from "lucide-react";
+import { validateReferralCode, trackMerchantReferral } from "@/lib/services/referral/promii-red.service";
 
 type Draft = {
   email: string;
@@ -36,13 +38,17 @@ type Draft = {
 };
 
 const DRAFT_KEY = "promii_business_apply_draft_v1";
+const REFERRAL_KEY = "promii_merchant_referral_code";
 
-export default function BusinessApplyPage() {
+function BusinessApplyForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsEmailVerify, setNeedsEmailVerify] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   // Account
   const [email, setEmail] = useState("");
@@ -135,6 +141,9 @@ export default function BusinessApplyPage() {
 
   async function finalizeSubmitWithSession(userId: string) {
     try {
+      // Obtener código de referido si existe
+      const savedReferralCode = localStorage.getItem(REFERRAL_KEY);
+
       // 1. Guardar en business_applications
       const { error: appErr } = await supabase
         .from("business_applications")
@@ -147,6 +156,7 @@ export default function BusinessApplyPage() {
             state: stateId,
             city: cityId,
             zone: zone.trim() || null,
+            referred_by_code: savedReferralCode || null,
           },
           { onConflict: "owner_id" }
         );
@@ -168,6 +178,19 @@ export default function BusinessApplyPage() {
 
       // 3. Crear/actualizar merchant row
       await ensureMerchantRow(userId);
+
+      // 4. Si hay código de referido, crear el registro de referral
+      if (savedReferralCode) {
+        const referralResponse = await trackMerchantReferral(savedReferralCode, userId);
+        if (referralResponse.status === "success") {
+          console.log("[BusinessApply] Referral tracked successfully");
+          // Limpiar código de localStorage
+          localStorage.removeItem(REFERRAL_KEY);
+        } else {
+          console.warn("[BusinessApply] Failed to track referral:", referralResponse.error);
+          // No bloqueamos el registro si falla el tracking
+        }
+      }
     } catch (error) {
       console.error("Error finalizing submit with session:", error);
       throw error;
@@ -177,6 +200,34 @@ export default function BusinessApplyPage() {
     router.push("/business/pending");
     router.refresh();
   }
+
+  // Capturar código de referido de la URL
+  useEffect(() => {
+    const refCode = searchParams.get("ref");
+    if (refCode) {
+      // Guardar en localStorage
+      localStorage.setItem(REFERRAL_KEY, refCode.trim().toUpperCase());
+
+      // Validar el código
+      validateReferralCode(refCode).then((response) => {
+        if (response.status === "success") {
+          setReferralCode(refCode.trim().toUpperCase());
+          setReferrerName(response.data.referrer_name);
+        }
+      });
+    } else {
+      // Intentar cargar de localStorage
+      const saved = localStorage.getItem(REFERRAL_KEY);
+      if (saved) {
+        validateReferralCode(saved).then((response) => {
+          if (response.status === "success") {
+            setReferralCode(saved);
+            setReferrerName(response.data.referrer_name);
+          }
+        });
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -410,6 +461,27 @@ export default function BusinessApplyPage() {
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
+          {/* Banner de Referido */}
+          {referralCode && referrerName && (
+            <div
+              className="rounded-xl border p-4 flex items-center gap-3"
+              style={{
+                backgroundColor: COLORS.success.lighter,
+                borderColor: COLORS.success.light,
+              }}
+            >
+              <Gift className="size-6 shrink-0" style={{ color: COLORS.success.main }} />
+              <div>
+                <div className="font-semibold text-sm" style={{ color: COLORS.text.primary }}>
+                  Fuiste referido por {referrerName}
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: COLORS.text.secondary }}>
+                  Código: <span className="font-mono font-semibold">{referralCode}</span>
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Sección: Tu Cuenta */}
           <div
             className="rounded-xl border p-6 space-y-4"
@@ -831,5 +903,13 @@ export default function BusinessApplyPage() {
         </form>
       )}
     </AuthShell>
+  );
+}
+
+export default function BusinessApplyPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <BusinessApplyForm />
+    </Suspense>
   );
 }
