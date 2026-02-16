@@ -32,7 +32,42 @@ export async function middleware(request: NextRequest) {
   );
 
   // ✅ Refrescar sesión para mantener cookies sincronizadas
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 🔒 Proteger rutas /admin/*
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    // Si no hay usuario autenticado, redirigir a login admin
+    if (!user) {
+      console.log("🔒 [Middleware] No user, redirecting to login");
+      return NextResponse.redirect(new URL("/4dm1n/login", request.url));
+    }
+
+    // Verificar que el usuario tenga role = "admin"
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    console.log("🔍 [Middleware] Admin check:", {
+      userId: user.id,
+      profile,
+      profileError,
+      hasProfile: !!profile,
+      role: profile?.role,
+    });
+
+    // Si no es admin, redirigir a login admin
+    if (!profile || profile.role !== "admin") {
+      console.log("❌ [Middleware] NOT admin, redirecting to login", {
+        hasProfile: !!profile,
+        role: profile?.role,
+      });
+      return NextResponse.redirect(new URL("/4dm1n/login", request.url));
+    }
+
+    console.log("✅ [Middleware] Admin verified, allowing access");
+  }
 
   return response;
 }
