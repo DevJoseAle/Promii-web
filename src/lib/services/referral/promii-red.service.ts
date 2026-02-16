@@ -207,26 +207,26 @@ export async function getUserReferralStats(
       .from("user_referral_stats")
       .select("*")
       .eq("referrer_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // Si no tiene referrals, retornar stats en 0
-      if (error.code === "PGRST116") {
-        return success({
-          total_referrals: 0,
-          registered: 0,
-          approved: 0,
-          activated: 0,
-          bonus_eligible: 0,
-          paid: 0,
-          total_base_earned: 0,
-          total_bonus_earned: 0,
-          total_earned: 0,
-        });
-      }
-
       console.error("[getUserReferralStats] Error:", error);
       return failure(error.message, "Error al obtener estadísticas", "FETCH_ERROR");
+    }
+
+    // Si no tiene referrals (data es null), retornar stats en 0
+    if (!data) {
+      return success({
+        total_referrals: 0,
+        registered: 0,
+        approved: 0,
+        activated: 0,
+        bonus_eligible: 0,
+        paid: 0,
+        total_base_earned: 0,
+        total_bonus_earned: 0,
+        total_earned: 0,
+      });
     }
 
     return success(data as ReferralStats);
