@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Ticket, History, Settings, Heart } from "lucide-react";
+import { Ticket, History, Settings, Heart, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COLORS } from "@/config/colors";
 import { MyCouponsTab } from "./my-coupons-tab";
 import { PurchaseHistoryTab } from "./purchase-history-tab";
 import { ProfileEditTab } from "./profile-edit-tab";
 import { FavoritesTab } from "./favorites-tab";
+import { PromiiRedTab } from "./promii-red-tab";
 
-type TabId = "coupons" | "history" | "profile" | "favorites";
+type TabId = "coupons" | "history" | "profile" | "favorites" | "promii-red";
 
 type Tab = {
   id: TabId;
@@ -20,6 +21,7 @@ type Tab = {
 const TABS: Tab[] = [
   { id: "coupons", label: "Mis Cupones", icon: Ticket },
   { id: "history", label: "Historial", icon: History },
+  { id: "promii-red", label: "Promii Red", icon: Gift },
   { id: "profile", label: "Mis Datos", icon: Settings },
   { id: "favorites", label: "Favoritos", icon: Heart },
 ];
@@ -76,6 +78,8 @@ export function UserDashboardTabs({ userId }: UserDashboardTabsProps) {
         {activeTab === "coupons" && <MyCouponsTab userId={userId} />}
 
         {activeTab === "history" && <PurchaseHistoryTab userId={userId} />}
+
+        {activeTab === "promii-red" && <PromiiRedTab userId={userId} />}
 
         {activeTab === "profile" && <ProfileEditTab />}
 
