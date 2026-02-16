@@ -15,6 +15,7 @@ import {
   DollarSign,
   Wrench,
   ShoppingBag,
+  Gift,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Ganancias", href: "/inf/dashboard?tab=earnings", icon: DollarSign, tab: "earnings" },
   { label: "Herramientas", href: "/inf/dashboard?tab=tools", icon: Wrench, tab: "tools" },
   { label: "Mis Compras", href: "/inf/dashboard?tab=purchases", icon: ShoppingBag, tab: "purchases" },
+  { label: "Promii Red", href: "/inf/dashboard?tab=promii-red", icon: Gift, tab: "promii-red" },
   { label: "Mi Perfil", href: "/inf/dashboard?tab=profile", icon: UserCircle, tab: "profile" },
 ];
 
