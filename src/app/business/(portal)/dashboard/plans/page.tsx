@@ -5,8 +5,8 @@ import { Check, Crown, Sparkles, Rocket, Building2, Loader2, BadgeCheck } from "
 import { COLORS } from "@/config/colors";
 import { useAuth } from "@/lib/context/AuthContext";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { PLANS } from "@/lib/payments";
-import type { PlanId } from "@/lib/payments";
+import { PLANS } from "@/lib/payments/types";
+import type { PlanId } from "@/lib/payments/types";
 import { PlanCheckoutModal } from "./plan-checkout-modal";
 
 // ─── Config visual de cada plan ───────────────────────────────────────────────

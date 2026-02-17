@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { X, Loader2, CreditCard, MessageCircle, Check } from "lucide-react";
 import { COLORS } from "@/config/colors";
-import { PLANS } from "@/lib/payments";
-import type { PlanId, BillingType } from "@/lib/payments";
+import { PLANS } from "@/lib/payments/types";
+import type { PlanId, BillingType } from "@/lib/payments/types";
 
 // Número de WhatsApp para pagos en BsF — actualizar en producción
 const WHATSAPP_NUMBER = "584120000000"; // +58 412-000-0000

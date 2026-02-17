@@ -1,3 +1,4 @@
+import "server-only"; // Stripe SDK y secrets nunca van al bundle del cliente
 import type { PaymentProvider } from "./types";
 import { StripeProvider } from "./stripe/stripe.provider";
 
