@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaymentProvider } from "@/lib/payments";
-import { PLANS } from "@/lib/payments";
+import { getPaymentProvider, PLANS } from "@/lib/payments";
 import type { WebhookEvent } from "@/lib/payments";
 import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
+// ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  // ── 1. Leer body raw (necesario para verificar firma de Stripe) ──────────────
+  // ── 1. Leer body raw (necesario para verificar firma de Stripe) ───────────────
   const rawBody = await request.text();
   const signature = request.headers.get("stripe-signature") ?? "";
 
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // ── 2. Verificar firma y normalizar evento ────────────────────────────────────
+  // ── 2. Verificar firma y normalizar evento ─────────────────────────────────────
   let event: WebhookEvent;
   try {
     const provider = getPaymentProvider("stripe");
@@ -30,12 +29,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Ignorar eventos desconocidos sin error (Stripe puede enviar tipos extra)
+  // Ignorar eventos desconocidos (Stripe puede enviar tipos no relevantes)
   if (event.type === "unknown" || !event.merchantId) {
     return NextResponse.json({ received: true });
   }
 
-  // ── 3. Actualizar plan del merchant en Supabase ───────────────────────────────
+  // ── 3. Aplicar cambios en DB ───────────────────────────────────────────────────
   try {
     await applyPlanUpdate(event);
   } catch (error) {
@@ -49,86 +48,153 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-// ─── Actualizar merchants según el evento normalizado ────────────────────────
+// ─── Lógica principal: actualiza merchants + registra en merchant_subscriptions ─
 
 async function applyPlanUpdate(event: WebhookEvent): Promise<void> {
   const supabase = createServiceRoleClient();
   const planConfig = PLANS[event.plan];
+  const now = new Date();
 
   switch (event.type) {
+
+    // ── Pago único completado ────────────────────────────────────────────────
     case "payment.succeeded": {
-      // Pago único completado → activar plan por 30 días
-      const now = new Date();
-      const periodEnd = event.periodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const endsAt = event.periodEnd ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      const { error } = await supabase
-        .from("merchants")
-        .update({
-          plan_id: event.plan,
-          plan_status: "active",
-          plan_start_at: now.toISOString(),
-          plan_end_at: periodEnd.toISOString(),
-          monthly_promii_limit: planConfig.monthlyPromiiLimit,
-          updated_at: now.toISOString(),
-        })
-        .eq("id", event.merchantId);
-
-      if (error) throw new Error(`[webhook] payment.succeeded update failed: ${error.message}`);
-      break;
-    }
-
-    case "subscription.activated": {
-      // Suscripción activa o renovada
-      const now = new Date();
-
-      const updatePayload: Record<string, unknown> = {
+      await updateMerchantPlan(supabase, event.merchantId, {
         plan_id: event.plan,
         plan_status: "active",
         plan_start_at: now.toISOString(),
-        plan_end_at: event.periodEnd?.toISOString() ?? null,
+        plan_end_at: endsAt.toISOString(),
         monthly_promii_limit: planConfig.monthlyPromiiLimit,
-        updated_at: now.toISOString(),
-      };
+      });
 
-      // Guardar ID de suscripción externa si está disponible
-      if (event.externalSubscriptionId) {
-        updatePayload.external_subscription_id = event.externalSubscriptionId;
-      }
-
-      const { error } = await supabase
-        .from("merchants")
-        .update(updatePayload)
-        .eq("id", event.merchantId);
-
-      if (error) throw new Error(`[webhook] subscription.activated update failed: ${error.message}`);
+      await upsertSubscription(supabase, {
+        merchant_id: event.merchantId,
+        plan_id: event.plan,
+        billing_type: "one_time",
+        status: "active",
+        gateway: "stripe",
+        external_id: event.externalSubscriptionId ?? null,
+        amount_usd: planConfig.priceUsd,
+        started_at: now.toISOString(),
+        ends_at: endsAt.toISOString(),
+      });
       break;
     }
 
+    // ── Suscripción activada o renovada ──────────────────────────────────────
+    case "subscription.activated": {
+      const endsAt = event.periodEnd ?? null;
+
+      await updateMerchantPlan(supabase, event.merchantId, {
+        plan_id: event.plan,
+        plan_status: "active",
+        plan_start_at: now.toISOString(),
+        plan_end_at: endsAt?.toISOString() ?? null,
+        monthly_promii_limit: planConfig.monthlyPromiiLimit,
+        external_subscription_id: event.externalSubscriptionId ?? null,
+      });
+
+      // Upsert por external_id para no duplicar en cada renovación
+      await upsertSubscription(supabase, {
+        merchant_id: event.merchantId,
+        plan_id: event.plan,
+        billing_type: "recurring",
+        status: "active",
+        gateway: "stripe",
+        external_id: event.externalSubscriptionId ?? null,
+        amount_usd: planConfig.priceUsd,
+        started_at: now.toISOString(),
+        ends_at: endsAt?.toISOString() ?? null,
+      });
+      break;
+    }
+
+    // ── Suscripción cancelada ─────────────────────────────────────────────────
     case "subscription.cancelled": {
-      const { error } = await supabase
-        .from("merchants")
-        .update({
-          plan_status: "cancelled",
-          external_subscription_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", event.merchantId);
+      await updateMerchantPlan(supabase, event.merchantId, {
+        plan_status: "cancelled",
+        external_subscription_id: null,
+      });
 
-      if (error) throw new Error(`[webhook] subscription.cancelled update failed: ${error.message}`);
+      if (event.externalSubscriptionId) {
+        await supabase
+          .from("merchant_subscriptions")
+          .update({ status: "cancelled", updated_at: now.toISOString() })
+          .eq("external_id", event.externalSubscriptionId);
+      }
       break;
     }
 
+    // ── Pago fallido → expirar ────────────────────────────────────────────────
     case "subscription.expired": {
-      const { error } = await supabase
-        .from("merchants")
-        .update({
-          plan_status: "expired",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", event.merchantId);
+      await updateMerchantPlan(supabase, event.merchantId, {
+        plan_status: "expired",
+      });
 
-      if (error) throw new Error(`[webhook] subscription.expired update failed: ${error.message}`);
+      if (event.externalSubscriptionId) {
+        await supabase
+          .from("merchant_subscriptions")
+          .update({ status: "expired", updated_at: now.toISOString() })
+          .eq("external_id", event.externalSubscriptionId);
+      }
       break;
+    }
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+async function updateMerchantPlan(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  merchantId: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const { error } = await supabase
+    .from("merchants")
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq("id", merchantId);
+
+  if (error) {
+    throw new Error(`[webhook] merchants update failed: ${error.message}`);
+  }
+}
+
+async function upsertSubscription(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  data: {
+    merchant_id: string;
+    plan_id: string;
+    billing_type: string;
+    status: string;
+    gateway: string;
+    external_id: string | null;
+    amount_usd: number;
+    started_at: string;
+    ends_at: string | null;
+  }
+): Promise<void> {
+  // Si hay external_id, upsert para no duplicar renovaciones de la misma suscripción
+  if (data.external_id) {
+    const { error } = await supabase
+      .from("merchant_subscriptions")
+      .upsert(
+        { ...data, updated_at: new Date().toISOString() },
+        { onConflict: "external_id" }
+      );
+
+    if (error) {
+      throw new Error(`[webhook] merchant_subscriptions upsert failed: ${error.message}`);
+    }
+  } else {
+    // Pago único sin subscription ID: siempre insertar
+    const { error } = await supabase
+      .from("merchant_subscriptions")
+      .insert({ ...data, updated_at: new Date().toISOString() });
+
+    if (error) {
+      throw new Error(`[webhook] merchant_subscriptions insert failed: ${error.message}`);
     }
   }
 }
