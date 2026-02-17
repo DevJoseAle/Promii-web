@@ -4,9 +4,6 @@ import { PLANS } from "@/lib/payments";
 import type { WebhookEvent } from "@/lib/payments";
 import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 
-// Next.js necesita leer el body como texto sin parsear para verificar la firma
-export const config = { api: { bodyParser: false } };
-
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
