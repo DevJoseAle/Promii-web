@@ -19,10 +19,13 @@ import {
   Ban,
   Loader2,
   Filter,
+  Pencil,
 } from "lucide-react";
 import { ToastService } from "@/lib/toast/toast.service";
+import { PromiiEditModal } from "./promii-edit-modal";
 
 const STATUS_CONFIG = {
+  draft: { label: "Borrador", icon: Ban, color: COLORS.text.tertiary, bg: COLORS.neutral[200] },
   active: { label: "Activo", icon: CheckCircle, color: COLORS.success.main, bg: COLORS.success.lighter },
   paused: { label: "Pausado", icon: Pause, color: COLORS.warning.main, bg: COLORS.warning.lighter },
   expired: { label: "Expirado", icon: Clock, color: COLORS.error.main, bg: COLORS.error.lighter },
@@ -33,6 +36,10 @@ export default function PromiisAdminPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<PromiiStatus | "all">("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingPromii, setEditingPromii] = useState<PromiiAdmin | null>(null);
 
   useEffect(() => {
     loadPromiis();
@@ -310,11 +317,22 @@ export default function PromiisAdminPage() {
                               )}
                             </Button>
                           )}
-                          {promii.status === "expired" && (
-                            <span className="text-xs" style={{ color: COLORS.text.tertiary }}>
-                              -
-                            </span>
-                          )}
+                          <Button
+                            onClick={() => {
+                              setEditingPromii(promii);
+                              setEditModalOpen(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="transition-all duration-200"
+                            style={{
+                              color: COLORS.text.secondary,
+                              borderColor: COLORS.border.main,
+                            }}
+                          >
+                            <Pencil className="size-4 mr-1" />
+                            Editar
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -325,6 +343,19 @@ export default function PromiisAdminPage() {
           </div>
         )}
       </div>
+      {/* Edit Modal */}
+      {editingPromii && (
+        <PromiiEditModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setEditingPromii(null);
+          }}
+          promiiId={editingPromii.id}
+          promiiTitle={editingPromii.title}
+          onSaved={loadPromiis}
+        />
+      )}
     </div>
   );
 }

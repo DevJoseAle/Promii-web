@@ -3,6 +3,30 @@ import { SupabaseResponse, success, failure } from "@/config/types/supabase-resp
 
 export type InfluencerStatus = "pending" | "approved" | "rejected" | "blocked";
 
+export type InfluencerFull = {
+  id: string;
+  verification_status: InfluencerStatus;
+  display_name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  niche_primary: string;
+  niche_secondary: string | null;
+  state: string;
+  city: string;
+  zone: string | null;
+  instagram_handle: string;
+  tiktok_handle: string | null;
+  youtube_handle: string | null;
+  link_in_bio_url: string | null;
+  collaboration_types: string[];
+  accepts_barter: boolean;
+  min_fee_usd: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InfluencerUpdatePayload = Partial<Omit<InfluencerFull, "id" | "created_at" | "updated_at">>;
+
 export type InfluencerProfile = {
   id: string;
   first_name: string | null;
@@ -33,6 +57,52 @@ export async function getInfluencers(
     return success(data as InfluencerProfile[]);
   } catch (err) {
     console.error("[getInfluencers] Unexpected error:", err);
+    return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
+  }
+}
+
+/**
+ * Obtiene todos los campos de un influencer por ID
+ */
+export async function getInfluencerById(influencerId: string): Promise<SupabaseResponse<InfluencerFull>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("influencers")
+      .select("*")
+      .eq("id", influencerId)
+      .single();
+
+    if (error) {
+      return failure(error.message, "Error al obtener influencer", "FETCH_ERROR");
+    }
+
+    return success(data as InfluencerFull);
+  } catch (err) {
+    return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
+  }
+}
+
+/**
+ * Actualiza campos editables de un influencer
+ */
+export async function updateInfluencer(
+  influencerId: string,
+  payload: InfluencerUpdatePayload
+): Promise<SupabaseResponse<InfluencerFull>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("influencers")
+      .update(payload)
+      .eq("id", influencerId)
+      .select()
+      .single();
+
+    if (error) {
+      return failure(error.message, "Error al actualizar influencer", "UPDATE_ERROR");
+    }
+
+    return success(data as InfluencerFull);
+  } catch (err) {
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
   }
 }

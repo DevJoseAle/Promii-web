@@ -3,6 +3,50 @@ import { SupabaseResponse, success, failure } from "@/config/types/supabase-resp
 
 export type MerchantStatus = "pending" | "approved" | "rejected" | "blocked";
 
+export type MerchantFull = {
+  id: string;
+  verification_status: MerchantStatus;
+  business_name: string;
+  description: string | null;
+  logo_url: string | null;
+  cover_image_url: string | null;
+  category_primary: string;
+  category_secondary: string | null;
+  address_line: string;
+  state: string;
+  city: string;
+  zone: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  contact_name: string;
+  contact_email: string;
+  phone: string;
+  whatsapp: string | null;
+  instagram_handle: string | null;
+  website_url: string | null;
+  merchant_code: string;
+  pago_movil_bank: string | null;
+  pago_movil_phone: string | null;
+  pago_movil_id_number: string | null;
+  pago_movil_beneficiary_name: string | null;
+  transfer_bank_name: string | null;
+  transfer_account_number: string | null;
+  transfer_account_type: string | null;
+  transfer_id_number: string | null;
+  transfer_beneficiary_name: string | null;
+  usdt_wallet_address: string | null;
+  crypto_network: string | null;
+  plan_id: string;
+  plan_status: string;
+  plan_start_at: string | null;
+  plan_end_at: string | null;
+  monthly_promii_limit: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MerchantUpdatePayload = Partial<Omit<MerchantFull, "id" | "merchant_code" | "created_at" | "updated_at">>;
+
 export type MerchantWithApplication = {
   id: string;
   business_name: string;
@@ -85,6 +129,52 @@ export async function approveMerchant(merchantId: string): Promise<SupabaseRespo
     return success(undefined);
   } catch (err) {
     console.error("[approveMerchant] Unexpected error:", err);
+    return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
+  }
+}
+
+/**
+ * Obtiene todos los campos de un merchant por ID
+ */
+export async function getMerchantById(merchantId: string): Promise<SupabaseResponse<MerchantFull>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("merchants")
+      .select("*")
+      .eq("id", merchantId)
+      .single();
+
+    if (error) {
+      return failure(error.message, "Error al obtener merchant", "FETCH_ERROR");
+    }
+
+    return success(data as MerchantFull);
+  } catch (err) {
+    return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
+  }
+}
+
+/**
+ * Actualiza campos editables de un merchant
+ */
+export async function updateMerchant(
+  merchantId: string,
+  payload: MerchantUpdatePayload
+): Promise<SupabaseResponse<MerchantFull>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("merchants")
+      .update(payload)
+      .eq("id", merchantId)
+      .select()
+      .single();
+
+    if (error) {
+      return failure(error.message, "Error al actualizar merchant", "UPDATE_ERROR");
+    }
+
+    return success(data as MerchantFull);
+  } catch (err) {
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
   }
 }

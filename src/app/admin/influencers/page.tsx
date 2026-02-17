@@ -18,8 +18,10 @@ import {
   Ban,
   Loader2,
   Filter,
+  Pencil,
 } from "lucide-react";
 import { ToastService } from "@/lib/toast/toast.service";
+import { InfluencerEditModal } from "./influencer-edit-modal";
 
 const STATUS_CONFIG = {
   pending: { label: "Pendiente", icon: Clock, color: COLORS.warning.main, bg: COLORS.warning.lighter },
@@ -33,6 +35,10 @@ export default function InfluencersAdminPage() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<InfluencerStatus | "all">("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingInfluencer, setEditingInfluencer] = useState<InfluencerProfile | null>(null);
 
   useEffect(() => {
     loadInfluencers();
@@ -276,11 +282,22 @@ export default function InfluencersAdminPage() {
                               </Button>
                             </>
                           )}
-                          {influencer.state !== "pending" && (
-                            <span className="text-xs" style={{ color: COLORS.text.tertiary }}>
-                              -
-                            </span>
-                          )}
+                          <Button
+                            onClick={() => {
+                              setEditingInfluencer(influencer);
+                              setEditModalOpen(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="transition-all duration-200"
+                            style={{
+                              color: COLORS.text.secondary,
+                              borderColor: COLORS.border.main,
+                            }}
+                          >
+                            <Pencil className="size-4 mr-1" />
+                            Editar
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -291,6 +308,23 @@ export default function InfluencersAdminPage() {
           </div>
         )}
       </div>
+      {/* Edit Modal */}
+      {editingInfluencer && (
+        <InfluencerEditModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setEditingInfluencer(null);
+          }}
+          influencerId={editingInfluencer.id}
+          influencerName={
+            editingInfluencer.first_name || editingInfluencer.last_name
+              ? `${editingInfluencer.first_name || ""} ${editingInfluencer.last_name || ""}`.trim()
+              : editingInfluencer.email
+          }
+          onSaved={loadInfluencers}
+        />
+      )}
     </div>
   );
 }

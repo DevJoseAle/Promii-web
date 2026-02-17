@@ -19,9 +19,11 @@ import {
   Loader2,
   Filter,
   FileText,
+  Pencil,
 } from "lucide-react";
 import { ToastService } from "@/lib/toast/toast.service";
 import { DocumentsModal } from "./documents-modal";
+import { MerchantEditModal } from "./merchant-edit-modal";
 
 const STATUS_CONFIG = {
   pending: { label: "Pendiente", icon: Clock, color: COLORS.warning.main, bg: COLORS.warning.lighter },
@@ -39,6 +41,10 @@ export default function MerchantsAdminPage() {
   // Documents modal
   const [documentsModalOpen, setDocumentsModalOpen] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantWithApplication | null>(null);
+
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingMerchant, setEditingMerchant] = useState<MerchantWithApplication | null>(null);
 
   useEffect(() => {
     loadMerchants();
@@ -307,6 +313,22 @@ export default function MerchantsAdminPage() {
                             <FileText className="size-4 mr-1" />
                             Documentos
                           </Button>
+                          <Button
+                            onClick={() => {
+                              setEditingMerchant(merchant);
+                              setEditModalOpen(true);
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="transition-all duration-200"
+                            style={{
+                              color: COLORS.text.secondary,
+                              borderColor: COLORS.border.main,
+                            }}
+                          >
+                            <Pencil className="size-4 mr-1" />
+                            Editar
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -328,6 +350,20 @@ export default function MerchantsAdminPage() {
           }}
           merchantId={selectedMerchant.id}
           merchantName={selectedMerchant.business_name}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingMerchant && (
+        <MerchantEditModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setEditingMerchant(null);
+          }}
+          merchantId={editingMerchant.id}
+          merchantName={editingMerchant.business_name}
+          onSaved={loadMerchants}
         />
       )}
     </div>
