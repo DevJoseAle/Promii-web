@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/supabase.server";
 import { getPaymentProvider } from "@/lib/payments";
-import { PLANS } from "@/lib/payments";
 import type { PlanId, BillingType } from "@/lib/payments";
 
 export async function POST(request: NextRequest) {
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
     // ── 4. Construir URLs de retorno ───────────────────────────────────────────
     const origin = request.headers.get("origin") ?? "https://promii.shop";
     const successUrl = `${origin}/business/dashboard?payment=success&plan=${plan}`;
-    const cancelUrl = `${origin}/business/dashboard/plan?payment=cancelled`;
+    const cancelUrl = `${origin}/business/dashboard/plans?payment=cancelled`;
 
     // ── 5. Crear sesión de checkout ────────────────────────────────────────────
     const provider = getPaymentProvider("stripe");
