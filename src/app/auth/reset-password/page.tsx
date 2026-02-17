@@ -23,9 +23,9 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Validar que hay una sesión activa (token válido)
+  // Validar / canjear el token al cargar la página
   useEffect(() => {
-    checkSession();
+    handleTokenExchange();
   }, []);
 
   // Detectar cuando la contraseña se actualiza exitosamente
@@ -39,10 +39,7 @@ export default function ResetPasswordPage() {
         console.log("[ResetPassword] ✅ Contraseña actualizada, redirigiendo...");
         ToastService.showSuccessToast("Contraseña actualizada con éxito");
 
-        // Redirigir inmediatamente sin signOut (para evitar AbortError)
-        // El signOut se hará en la página de login si es necesario
         setTimeout(() => {
-          console.log("[ResetPassword] 🚀 Ejecutando redirect...");
           window.location.href = "/auth/sign-in?passwordReset=true";
         }, 800);
       }
@@ -53,20 +50,58 @@ export default function ResetPasswordPage() {
     };
   }, [isUpdating]);
 
-  async function checkSession() {
+  async function handleTokenExchange() {
     setValidating(true);
+
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get("token") || searchParams.get("token_hash");
+      const type = searchParams.get("type");
+
+      console.log("[ResetPassword] URL params:", { token: token ? "present" : "missing", type });
+
+      // Caso 1: Token en query params (formato de Supabase email template)
+      if (token && type === "recovery") {
+        console.log("[ResetPassword] Exchanging token for session...");
+
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: "recovery",
+        });
+
+        if (error) {
+          console.error("[ResetPassword] verifyOtp error:", error);
+          setIsValidToken(false);
+          ToastService.showErrorToast("Enlace inválido o expirado");
+          return;
+        }
+
+        console.log("[ResetPassword] ✅ Token exchanged successfully");
+        setIsValidToken(true);
+        return;
+      }
+
+      // Caso 2: Sin token en URL — verificar si ya hay sesión activa
+      // (llegó desde el redirect de authStore via PASSWORD_RECOVERY event)
       const { data, error } = await supabase.auth.getSession();
 
-      if (error || !data.session) {
+      console.log("[ResetPassword] Session check:", {
+        hasSession: !!data?.session,
+        error: error?.message,
+      });
+
+      if (error || !data?.session) {
+        console.error("[ResetPassword] No valid session or token found");
         setIsValidToken(false);
         ToastService.showErrorToast("Enlace inválido o expirado");
       } else {
+        console.log("[ResetPassword] ✅ Active session found");
         setIsValidToken(true);
       }
     } catch (error) {
-      console.error("[ResetPassword] Error checking session:", error);
+      console.error("[ResetPassword] Error:", error);
       setIsValidToken(false);
+      ToastService.showErrorToast("Error al procesar el enlace");
     } finally {
       setValidating(false);
     }

@@ -244,6 +244,15 @@ export async function approvePurchase(
     }
 
     console.log("[approvePurchase] Purchase approved, coupon:", data.coupon_code);
+
+    // 🎯 Enviar email con el cupón al usuario (en background, no bloquear)
+    if (data.coupon_code && data.user_id) {
+      sendCouponEmail(data).catch((emailError) => {
+        console.error("[approvePurchase] Email sending failed (non-blocking):", emailError);
+        // No fallar la aprobación si el email falla
+      });
+    }
+
     return success(data, "Compra aprobada exitosamente");
   } catch (err: any) {
     console.error("[approvePurchase] Unexpected error:", err);
@@ -364,5 +373,70 @@ export async function updatePurchaseProof(
   } catch (err: any) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
+  }
+}
+
+/**
+ * Helper: Enviar email con cupón al usuario
+ * Se ejecuta en background después de aprobar el purchase
+ */
+async function sendCouponEmail(purchase: PromiiPurchase): Promise<void> {
+  try {
+    console.log("[sendCouponEmail] Fetching purchase details for email...");
+
+    // Obtener detalles completos del purchase (user + merchant + promii)
+    const { data: fullPurchase, error: fetchError } = await supabase
+      .from("promii_purchases")
+      .select(`
+        *,
+        user:profiles!promii_purchases_user_id_fkey(email, first_name, last_name),
+        merchant:merchants!promii_purchases_merchant_id_fkey(business_name)
+      `)
+      .eq("id", purchase.id)
+      .single();
+
+    if (fetchError || !fullPurchase) {
+      console.error("[sendCouponEmail] Failed to fetch purchase details:", fetchError);
+      return;
+    }
+
+    const userEmail = (fullPurchase.user as any)?.email;
+    const userName = (fullPurchase.user as any)?.first_name;
+    const merchantName = (fullPurchase.merchant as any)?.business_name;
+
+    if (!userEmail) {
+      console.error("[sendCouponEmail] No user email found");
+      return;
+    }
+
+    // Llamar a la API route para enviar el email
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/send-coupon-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userEmail,
+        userName,
+        couponCode: fullPurchase.coupon_code,
+        promiiTitle: fullPurchase.promii_snapshot_title,
+        promiiDiscount: fullPurchase.promii_snapshot_discount_label,
+        promiiPrice: fullPurchase.final_price,
+        merchantName,
+        promiiId: fullPurchase.promii_id,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("[sendCouponEmail] API error:", error);
+      return;
+    }
+
+    const result = await response.json();
+    console.log("[sendCouponEmail] ✅ Email sent successfully:", result);
+  } catch (error) {
+    console.error("[sendCouponEmail] Unexpected error:", error);
+    // No lanzar error - esto es background, no debe fallar la aprobación
   }
 }

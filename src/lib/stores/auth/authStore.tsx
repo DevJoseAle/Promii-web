@@ -551,7 +551,19 @@ export function initAuthListener() {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Otros eventos (PASSWORD_RECOVERY, etc.)
+    // PASSWORD_RECOVERY: Usuario llegó desde el link del correo
+    // ─────────────────────────────────────────────────────────────
+    if (event === "PASSWORD_RECOVERY" && session) {
+      console.log("[AuthStore] PASSWORD_RECOVERY: Redirecting to reset-password page");
+      // La sesión ya está establecida, redirigir a la página de reset
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/auth/reset-password")) {
+        window.location.href = "/auth/reset-password";
+      }
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Otros eventos no manejados
     // ─────────────────────────────────────────────────────────────
     console.log(`[AuthStore] Unhandled event: ${event}`);
 
