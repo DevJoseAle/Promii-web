@@ -41,6 +41,7 @@ export type MerchantFull = {
   plan_start_at: string | null;
   plan_end_at: string | null;
   monthly_promii_limit: number;
+  external_subscription_id: string | null;
   created_at: string;
   updated_at: string;
 };
