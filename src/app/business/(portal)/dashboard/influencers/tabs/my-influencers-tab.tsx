@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Users, Phone, Instagram, Copy, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -17,11 +17,7 @@ export function MyInfluencersTab({ merchantId }: MyInfluencersTabProps) {
   const [loading, setLoading] = useState(true);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPartnerships();
-  }, [merchantId]);
-
-  async function loadPartnerships() {
+  const loadPartnerships = useCallback(async () => {
     setLoading(true);
     const response = await getMerchantPartnerships(merchantId, "approved");
     
@@ -30,7 +26,14 @@ export function MyInfluencersTab({ merchantId }: MyInfluencersTabProps) {
     }
     
     setLoading(false);
-  }
+  }, [merchantId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPartnerships();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPartnerships]);
 
   async function handleCopyPhone(phone: string) {
     await navigator.clipboard.writeText(phone);
@@ -51,7 +54,7 @@ export function MyInfluencersTab({ merchantId }: MyInfluencersTabProps) {
           No tienes influencers aún
         </h3>
         <p className="text-sm" style={{ color: COLORS.text.secondary }}>
-          Ve al tab "Buscar Influencers" para solicitar partnerships
+          Ve al tab &quot;Buscar Influencers&quot; para solicitar partnerships
         </p>
       </div>
     );

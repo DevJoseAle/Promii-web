@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { createPurchase } from "@/lib/services/orders/orders.service";
 import { trackReferralConversion } from "@/lib/services/influencer";
+import type { CreatePurchasePayload } from "@/config/types/orders";
 
 type Props = {
   promiiId: string;
@@ -74,8 +75,9 @@ export function PurchaseModal({
 
       // Success - modal will detect user and show purchase flow
       setShowExpressSignin(false);
-    } catch (err: any) {
-      setError(err?.message ?? "Error al iniciar sesión");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al iniciar sesión";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -106,12 +108,12 @@ export function PurchaseModal({
         user_id: user.id,
         influencer_id: null, // Will be populated by referral tracking
         paid_amount: priceAmount,
-        paid_currency: priceCurrency as any,
+        paid_currency: priceCurrency as CreatePurchasePayload["paid_currency"],
         payment_method: "transfer",
         promii_snapshot_title: promiiTitle,
         promii_snapshot_terms: null,
         promii_snapshot_price_amount: priceAmount,
-        promii_snapshot_price_currency: priceCurrency as any,
+        promii_snapshot_price_currency: priceCurrency as CreatePurchasePayload["paid_currency"],
       });
 
       if (orderResponse.status !== "success") {
@@ -140,9 +142,10 @@ export function PurchaseModal({
       setTimeout(() => {
         onClose();
       }, 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[PurchaseModal] Error:", err);
-      setError(err?.message ?? "Error al procesar la compra");
+      const errorMessage = err instanceof Error ? err.message : "Error al procesar la compra";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

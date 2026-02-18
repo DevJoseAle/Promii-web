@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Callout, Text } from "@tremor/react";
@@ -13,10 +13,7 @@ export function PendingBanner() {
   const { profile, user } = useAuth();
 
   // 1) estado instantáneo desde cache
-  const [cachedState, setCachedState] = useState<MerchantState>("unknown");
-  useEffect(() => {
-    setCachedState(readMerchantState());
-  }, []);
+  const cachedState = useMemo(() => readMerchantState(), []);
 
   // 2) si llega profile real, lo usa y actualiza cache
   const serverState = (profile?.role === "merchant" ? (profile?.state as MerchantState) : "unknown") ?? "unknown";
@@ -24,7 +21,6 @@ export function PendingBanner() {
   useEffect(() => {
     if (serverState !== "unknown") {
       writeMerchantState(serverState);
-      setCachedState(serverState);
     }
   }, [serverState]);
 
@@ -37,8 +33,9 @@ export function PendingBanner() {
 
   if (!isMerchant || !isPending) return null;
 
+  const userWithConfirmation = user as { email_confirmed_at?: string | null; confirmed_at?: string | null } | null;
   const emailConfirmed =
-    !!(user as any)?.email_confirmed_at || !!(user as any)?.confirmed_at;
+    !!userWithConfirmation?.email_confirmed_at || !!userWithConfirmation?.confirmed_at;
 
   return (
     <div className="max-w-3xl">

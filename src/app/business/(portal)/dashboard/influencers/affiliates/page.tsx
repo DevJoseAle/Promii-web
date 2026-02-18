@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Users, MapPin, ExternalLink, Instagram, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -13,13 +13,7 @@ export default function InfluencersAffiliatedPage() {
   const [partnerships, setPartnerships] = useState<PartnershipWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (profile?.id) {
-      loadPartnerships();
-    }
-  }, [profile?.id]);
-
-  async function loadPartnerships() {
+  const loadPartnerships = useCallback(async () => {
     if (!profile?.id) return;
 
     setLoading(true);
@@ -30,7 +24,15 @@ export default function InfluencersAffiliatedPage() {
     }
 
     setLoading(false);
-  }
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    const timeoutId = setTimeout(() => {
+      loadPartnerships();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [profile, loadPartnerships]);
 
   if (loading) {
     return (

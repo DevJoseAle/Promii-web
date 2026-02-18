@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -23,11 +23,7 @@ export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
 
   const LIMIT = 12;
 
-  useEffect(() => {
-    loadPromiis();
-  }, [categoryKey]);
-
-  async function loadPromiis(isLoadMore = false) {
+  const loadPromiis = useCallback(async (isLoadMore = false) => {
     if (isLoadMore) {
       setLoadingMore(true);
     } else {
@@ -59,7 +55,14 @@ export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
 
     setLoading(false);
     setLoadingMore(false);
-  }
+  }, [categoryKey, offset]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPromiis();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPromiis]);
 
   function handleLoadMore() {
     loadPromiis(true);

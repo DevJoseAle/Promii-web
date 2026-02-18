@@ -388,8 +388,9 @@ function BusinessApplyForm() {
       if (userId) {
         try {
           await finalizeSubmitWithSession(userId);
-        } catch (e: any) {
-          setError(e?.message ?? "No se pudo enviar la solicitud.");
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : "No se pudo enviar la solicitud.";
+          setError(errorMessage);
           setLoading(false);
         }
         return;
@@ -457,9 +458,10 @@ function BusinessApplyForm() {
       }
 
       await finalizeSubmitWithSession(userId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error en verificación:", error);
-      setError(error?.message ?? "Error al procesar la verificación.");
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar la verificación.";
+      setError(errorMessage);
       setLoading(false);
     }
   }

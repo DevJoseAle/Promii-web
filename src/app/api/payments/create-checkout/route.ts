@@ -67,9 +67,15 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 4. Construir URLs de retorno ───────────────────────────────────────────
-    const origin = request.headers.get("origin") ?? "https://promii.shop";
-    const successUrl = `${origin}/business/dashboard?payment=success&plan=${plan}`;
-    const cancelUrl = `${origin}/business/dashboard/plans?payment=cancelled`;
+    const envBaseUrl =
+      process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+    const baseUrl =
+      envBaseUrl.trim() ||
+      (process.env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : "https://promii.shop");
+    const successUrl = `${baseUrl}/business/dashboard?payment=success&plan=${plan}`;
+    const cancelUrl = `${baseUrl}/business/dashboard/plans?payment=cancelled`;
 
     // ── 5. Crear sesión de checkout ────────────────────────────────────────────
     const provider = getPaymentProvider("stripe");

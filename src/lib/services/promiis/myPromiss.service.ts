@@ -5,12 +5,12 @@ import { PostgrestError } from "@supabase/supabase-js";
 
 //Instacias y Mapeadores
 
-function normalizeSupabaseError(err: any) {
+function normalizeSupabaseError(err: unknown) {
   const e = err as PostgrestError & { code?: string; details?: string; hint?: string };
   return {
     error: e?.message ?? "Error desconocido",
     message: e?.details ?? e?.hint ?? undefined,
-    code: (e as any)?.code ?? undefined,
+    code: e?.code ?? undefined,
   };
 }
 
@@ -62,7 +62,7 @@ export async function fetchMyPromiis(params: {
       page,
       pageSize,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
@@ -88,7 +88,7 @@ export async function createPromii(
     }
 
     return success({ id: data.id, status: data.status }, "Promii guardado");
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
@@ -116,7 +116,7 @@ export async function pausePromii(
     }
 
     return success({ id: data.id, status: data.status }, "Promii pausado");
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
@@ -141,7 +141,7 @@ export async function activatePromii(
     }
 
     return success({ id: data.id, status: data.status }, "Promii activado");
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }

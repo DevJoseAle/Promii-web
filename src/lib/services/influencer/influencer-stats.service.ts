@@ -39,6 +39,30 @@ export type AssignmentPerformance = {
   total_revenue: number;
 };
 
+type PurchaseAmountRow = {
+  paid_amount: number | string | null;
+};
+
+type InfluencerAssignmentRow = {
+  id: string;
+  promii_id: string;
+  referral_code: string;
+  promii?: {
+    title?: string | null;
+  } | null;
+};
+
+type PartnershipRow = {
+  influencer_id: string;
+  influencer?: {
+    display_name?: string | null;
+  } | null;
+};
+
+type AssignmentIdRow = {
+  id: string;
+};
+
 // ─────────────────────────────────────────────────────────────
 // FETCH: Estadísticas generales del influencer
 // ─────────────────────────────────────────────────────────────
@@ -161,7 +185,7 @@ export async function getInfluencerAssignmentPerformance(
 
     // Para cada asignación, obtener stats
     const performanceData = await Promise.all(
-      assignments.map(async (assignment: any) => {
+      (assignments as InfluencerAssignmentRow[]).map(async (assignment) => {
         // Visitas
         const { count: visits } = await supabase
           .from("influencer_referral_visits")
@@ -182,7 +206,7 @@ export async function getInfluencerAssignmentPerformance(
           .eq("referral_code", assignment.referral_code)
           .in("status", ["approved", "redeemed"]);
 
-        const revenue = purchases?.reduce(
+        const revenue = (purchases as PurchaseAmountRow[] | null | undefined)?.reduce(
           (sum, p) => sum + Number(p.paid_amount),
           0
         ) || 0;
@@ -254,7 +278,7 @@ export async function getMerchantInfluencersStats(
 
     // Para cada influencer, calcular stats
     const statsData = await Promise.all(
-      partnerships.map(async (partnership: any) => {
+      (partnerships as PartnershipRow[]).map(async (partnership) => {
         const influencerId = partnership.influencer_id;
 
         // Asignaciones totales de este influencer para este merchant
@@ -272,7 +296,7 @@ export async function getMerchantInfluencersStats(
           .eq("influencer_id", influencerId)
           .eq("merchant_id", merchantId);
 
-        const ids = assignmentIds?.map((a: any) => a.id) || [];
+        const ids = (assignmentIds as AssignmentIdRow[] | null | undefined)?.map((a) => a.id) || [];
 
         let totalVisits = 0;
         let totalConversions = 0;
@@ -301,7 +325,7 @@ export async function getMerchantInfluencersStats(
           .in("merchant_id", [merchantId])
           .in("status", ["approved", "redeemed"]);
 
-        const totalRevenue = purchases?.reduce(
+        const totalRevenue = (purchases as PurchaseAmountRow[] | null | undefined)?.reduce(
           (sum, p) => sum + Number(p.paid_amount),
           0
         ) || 0;
@@ -367,7 +391,7 @@ export async function getPromiiInfluencerStats(
     }
 
     const performanceData = await Promise.all(
-      assignments.map(async (assignment: any) => {
+      (assignments as InfluencerAssignmentRow[]).map(async (assignment) => {
         const { count: visits } = await supabase
           .from("influencer_referral_visits")
           .select("*", { count: "exact", head: true })
@@ -385,7 +409,7 @@ export async function getPromiiInfluencerStats(
           .eq("referral_code", assignment.referral_code)
           .in("status", ["approved", "redeemed"]);
 
-        const revenue = purchases?.reduce(
+        const revenue = (purchases as PurchaseAmountRow[] | null | undefined)?.reduce(
           (sum, p) => sum + Number(p.paid_amount),
           0
         ) || 0;
@@ -397,7 +421,7 @@ export async function getPromiiInfluencerStats(
         return {
           assignment_id: assignment.id,
           promii_id: assignment.promii_id,
-          promii_title: assignment.influencer?.display_name || "Sin nombre",
+          promii_title: assignment.promii?.title || "Sin nombre",
           referral_code: assignment.referral_code,
           total_visits: v,
           total_conversions: c,

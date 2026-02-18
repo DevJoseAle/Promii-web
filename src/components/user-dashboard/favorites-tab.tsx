@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Heart, AlertCircle } from "lucide-react";
 import { getFavorites } from "@/lib/services/favorites.service";
 import { supabase } from "@/lib/supabase/supabase.client";
@@ -32,24 +32,7 @@ export function FavoritesTab({ userId }: FavoritesTabProps) {
   // ─────────────────────────────────────────────────────────────
   // Cargar favoritos al montar
   // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    loadFavorites();
-
-    // Escuchar cambios en localStorage (cuando se agrega/quita desde otra parte)
-    const handleStorageChange = () => {
-      loadFavorites();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("favorites-updated", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("favorites-updated", handleStorageChange);
-    };
-  }, [userId]);
-
-  async function loadFavorites() {
+  const loadFavorites = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -90,7 +73,27 @@ export function FavoritesTab({ userId }: FavoritesTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadFavorites();
+    }, 0);
+
+    // Escuchar cambios en localStorage (cuando se agrega/quita desde otra parte)
+    const handleStorageChange = () => {
+      loadFavorites();
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("favorites-updated", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("favorites-updated", handleStorageChange);
+      clearTimeout(timeoutId);
+    };
+  }, [loadFavorites]);
 
   // ─────────────────────────────────────────────────────────────
   // Loading state
@@ -191,7 +194,7 @@ export function FavoritesTab({ userId }: FavoritesTabProps) {
           Guarda tus promiis favoritos para acceder rápido a ellos.<br />
           Haz click en el ❤️ de cualquier promii para agregarlo.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
           style={{
@@ -200,7 +203,7 @@ export function FavoritesTab({ userId }: FavoritesTabProps) {
           }}
         >
           Explorar Promiis
-        </a>
+        </Link>
       </div>
     );
   }

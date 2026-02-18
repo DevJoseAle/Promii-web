@@ -120,7 +120,11 @@ export default function MerchantPlansPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get("payment");
-    if (payment === "cancelled") setPaymentMsg("El pago fue cancelado. Puedes intentarlo de nuevo cuando quieras.");
+    const timeoutId = payment === "cancelled"
+      ? setTimeout(() => {
+          setPaymentMsg("El pago fue cancelado. Puedes intentarlo de nuevo cuando quieras.");
+        }, 0)
+      : null;
     // Limpiar el query param sin recargar
     if (payment) {
       const url = new URL(window.location.href);
@@ -128,6 +132,9 @@ export default function MerchantPlansPage() {
       url.searchParams.delete("plan");
       window.history.replaceState({}, "", url.toString());
     }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,12 +128,7 @@ export function InfluencerEditModal({ isOpen, onClose, influencerId, influencerN
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<InfluencerFull | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    loadInfluencer();
-  }, [isOpen, influencerId]);
-
-  async function loadInfluencer() {
+  const loadInfluencer = useCallback(async () => {
     setLoading(true);
     const res = await getInfluencerById(influencerId);
     if (res.status === "success") {
@@ -143,7 +138,15 @@ export function InfluencerEditModal({ isOpen, onClose, influencerId, influencerN
       onClose();
     }
     setLoading(false);
-  }
+  }, [influencerId, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeoutId = setTimeout(() => {
+      loadInfluencer();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, loadInfluencer]);
 
   function set(field: keyof InfluencerFull, value: string | number | boolean | string[] | null) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));

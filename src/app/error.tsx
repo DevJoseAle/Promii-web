@@ -2,6 +2,7 @@
 
 import { COLORS } from "@/config/colors";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function Error({
   reset,
@@ -53,7 +54,7 @@ export default function Error({
             <RotateCcw className="size-4" />
             Intentar de nuevo
           </button>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-semibold transition-all duration-200 hover:scale-105"
             style={{
@@ -63,7 +64,7 @@ export default function Error({
           >
             <Home className="size-4" />
             Ir al inicio
-          </a>
+          </Link>
         </div>
       </div>
     </div>

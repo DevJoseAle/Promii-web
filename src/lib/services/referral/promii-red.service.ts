@@ -426,9 +426,8 @@ export async function getPendingActivations(): Promise<
     }
 
     // Filtrar solo los que tienen plan activo
-    const filtered = (data || []).filter(
-      (ref: any) => ref.merchant?.plan_status === "active"
-    );
+    const referrals = (data ?? []) as ReferralWithMerchant[];
+    const filtered = referrals.filter((ref) => ref.merchant?.plan_status === "active");
 
     return success(filtered as ReferralWithMerchant[]);
   } catch (err) {
@@ -472,9 +471,8 @@ export async function getPendingBonuses(): Promise<
     }
 
     // Filtrar solo los que tienen plan activo
-    const filtered = (data || []).filter(
-      (ref: any) => ref.merchant?.plan_status === "active"
-    );
+    const referrals = (data ?? []) as ReferralWithMerchant[];
+    const filtered = referrals.filter((ref) => ref.merchant?.plan_status === "active");
 
     return success(filtered as ReferralWithMerchant[]);
   } catch (err) {

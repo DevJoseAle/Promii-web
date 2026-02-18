@@ -106,9 +106,10 @@ export default function InfluencersSignInPage() {
       if (profile.state === "pending") destination = "/inf/pending";
 
       router.replace(destination);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Sign-in error:", err);
-      setError(err?.message ?? "Error al iniciar sesión");
+      const errorMessage = err instanceof Error ? err.message : "Error al iniciar sesión";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
