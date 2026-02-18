@@ -17,6 +17,7 @@ import {
   getMerchantDocuments,
   uploadMerchantDocument,
   deleteMerchantDocument,
+  getMerchantDocumentSignedUrl,
   type MerchantDocument,
   type DocumentType,
 } from "@/lib/services/admin/merchant-documents.admin.service";
@@ -115,6 +116,15 @@ export function DocumentsModal({
       ToastService.showErrorToast(response.error || "Error al eliminar");
     }
     setDeleting(null);
+  }
+
+  async function handleDownload(doc: MerchantDocument) {
+    const response = await getMerchantDocumentSignedUrl(doc.id);
+    if (response.status === "success") {
+      window.open(response.data.signedUrl, "_blank", "noopener,noreferrer");
+    } else {
+      ToastService.showErrorToast(response.error || "Error al generar enlace");
+    }
   }
 
   function formatFileSize(bytes: number | null): string {
@@ -370,14 +380,12 @@ export function DocumentsModal({
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => handleDownload(doc)}
                         className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
                       >
                         <Download className="size-4" style={{ color: COLORS.primary.main }} />
-                      </a>
+                      </button>
                       <button
                         onClick={() => handleDelete(doc)}
                         disabled={deleting === doc.id}
