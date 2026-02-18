@@ -1,35 +1,128 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createSupabaseServerClient } from "@/lib/supabase/supabase.server";
+import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+type OrderRow = {
+  id: string;
+  user_id: string;
+  merchant_id: string;
+  coupon_code: string | null;
+  promii_snapshot_title: string | null;
+  promii_snapshot_discount_label: string | null;
+  final_price: number | null;
+  paid_currency: string | null;
+  user: {
+    email: string | null;
+    first_name: string | null;
+  } | null;
+  merchant: {
+    business_name: string | null;
+  } | null;
+};
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const {
-      userEmail,
-      userName,
-      couponCode,
-      promiiTitle,
-      promiiDiscount,
-      promiiPrice,
-      merchantName,
-      promiiId,
-    } = body;
+    // 1) Auth required (session cookie)
+    const supabaseAuth = await createSupabaseServerClient();
+    const { data: authData, error: authError } = await supabaseAuth.auth.getUser();
+    const caller = authData?.user;
 
-    // Validar datos requeridos
+    if (authError || !caller) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // 2) Input contract: only orderId or purchaseId
+    const body = await request.json();
+    const orderId = (body?.orderId || body?.purchaseId) as string | undefined;
+    if (!orderId || typeof orderId !== "string") {
+      return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+    }
+
+    // 3) Fetch order with service role
+    const supabase = createServiceRoleClient();
+    const { data: order, error: orderError } = await supabase
+      .from("promii_purchases")
+      .select(
+        `
+        id,
+        user_id,
+        merchant_id,
+        coupon_code,
+        promii_snapshot_title,
+        promii_snapshot_discount_label,
+        final_price,
+        paid_currency,
+        user:profiles!promii_purchases_user_id_fkey(email, first_name),
+        merchant:merchants!promii_purchases_merchant_id_fkey(business_name)
+      `
+      )
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      console.warn("[send-coupon-email] Order not found");
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // 4) Authorization: purchaser OR merchant OR admin
+    if (caller.id !== order.user_id && caller.id !== order.merchant_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", caller.id)
+        .single();
+
+      if (!profile || profile.role !== "admin") {
+        console.warn("[send-coupon-email] Forbidden");
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    const orderRow = order as OrderRow;
+    const userEmail = orderRow.user?.email || "";
+    const userName = orderRow.user?.first_name || "";
+    const couponCode = orderRow.coupon_code || "";
+    const promiiTitle = orderRow.promii_snapshot_title || "";
+    const promiiDiscount = orderRow.promii_snapshot_discount_label || "";
+    const promiiPrice = orderRow.final_price ?? null;
+    const currency = orderRow.paid_currency || "USD";
+    const merchantName = orderRow.merchant?.business_name || "";
+
     if (!userEmail || !couponCode || !promiiTitle) {
+      console.warn("[send-coupon-email] Missing required order fields");
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required order fields" },
         { status: 400 }
       );
     }
+
+    const safeUserName = escapeHtml(userName);
+    const safeCouponCode = escapeHtml(couponCode);
+    const safePromiiTitle = escapeHtml(promiiTitle);
+    const safeMerchantName = escapeHtml(merchantName || "El merchant");
+    const safeDiscount = escapeHtml(promiiDiscount || "");
+    const safePrice =
+      promiiPrice !== null && Number.isFinite(promiiPrice)
+        ? `${currency} ${Number(promiiPrice).toFixed(2)}`
+        : "";
 
     // Enviar email
     const { data, error } = await resend.emails.send({
       from: "Promii <noreply@promii.shop>",
       to: userEmail,
-      subject: `🎉 ¡Tu Promii está listo! - ${promiiTitle}`,
+      subject: `🎉 ¡Tu Promii está listo! - ${safePromiiTitle}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -186,81 +279,56 @@ export async function POST(request: NextRequest) {
               <!-- Content -->
               <div class="content">
                 <p class="greeting">
-                  Hola${userName ? ` ${userName}` : ""},
+                  Hola${safeUserName ? ` ${safeUserName}` : ""},
                 </p>
 
                 <p>
-                  ¡Excelente noticia! <strong>${merchantName || "El merchant"}</strong> ha aprobado tu compra.
+                  ¡Excelente noticia! <strong>${safeMerchantName}</strong> ha aprobado tu compra.
                   Tu cupón está listo para ser canjeado.
                 </p>
 
                 <!-- Coupon Box -->
                 <div class="coupon-box">
                   <div class="coupon-label">Tu Código de Cupón</div>
-                  <div class="coupon-code">${couponCode}</div>
-                  <div style="color: rgba(255, 255, 255, 0.9); font-size: 14px; margin-top: 10px;">
-                    Muestra este código al merchant para canjear
-                  </div>
+                  <div class="coupon-code">${safeCouponCode}</div>
                 </div>
 
                 <!-- Promii Details -->
                 <div class="promii-details">
-                  <h3>${promiiTitle}</h3>
-                  ${promiiDiscount ? `
-                    <div class="detail-row">
-                      <span class="detail-label">Descuento:</span>
-                      <span class="detail-value">${promiiDiscount}</span>
-                    </div>
-                  ` : ""}
-                  ${promiiPrice ? `
-                    <div class="detail-row">
-                      <span class="detail-label">Precio Final:</span>
-                      <span class="detail-value">$${promiiPrice}</span>
-                    </div>
-                  ` : ""}
+                  <h3>${safePromiiTitle}</h3>
                   <div class="detail-row">
-                    <span class="detail-label">Comercio:</span>
-                    <span class="detail-value">${merchantName || "N/A"}</span>
+                    <span class="detail-label">Descuento</span>
+                    <span class="detail-value">${safeDiscount || "Promoción especial"}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Precio Final</span>
+                    <span class="detail-value">${safePrice || "Ver detalles"}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Comercio</span>
+                    <span class="detail-value">${safeMerchantName || "Ver detalles"}</span>
                   </div>
                 </div>
 
                 <!-- Instructions -->
                 <div class="instructions">
-                  <h3>📋 Cómo Canjear tu Promii</h3>
+                  <h3>¿Cómo canjear tu Promii?</h3>
                   <ol>
-                    <li>Visita el comercio <strong>${merchantName || "indicado"}</strong></li>
-                    <li>Muestra este código: <strong>${couponCode}</strong></li>
-                    <li>El merchant validará tu cupón y aplicará el descuento</li>
-                    <li>¡Disfruta de tu Promii!</li>
+                    <li>Presenta este correo o el código del cupón al comercio</li>
+                    <li>El comercio verificará tu código</li>
+                    <li>¡Disfruta tu promoción!</li>
                   </ol>
                 </div>
 
-                <!-- CTA Button -->
-                <div style="text-align: center;">
-                  <a href="https://promii.shop/profile?tab=coupons" class="cta-button">
-                    Ver Mis Cupones
-                  </a>
-                </div>
-
-                <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-                  💡 <strong>Tip:</strong> Guarda este email o toma una captura del código para tenerlo a mano cuando vayas a canjear.
+                <p>
+                  Si tienes alguna pregunta, no dudes en contactarnos.
                 </p>
               </div>
 
               <!-- Footer -->
               <div class="footer">
-                <p style="margin: 10px 0;">
-                  <strong>Promii</strong> - Descuentos y promociones exclusivas
-                </p>
-                <p style="margin: 10px 0;">
-                  <a href="https://promii.shop">promii.shop</a> |
-                  <a href="https://promii.shop/terms">Términos</a> |
-                  <a href="https://promii.shop/faq">FAQ</a>
-                </p>
-                <p style="margin: 10px 0; color: #9ca3af; font-size: 12px;">
-                  Este es un email automático de confirmación de tu Promii.
-                  Si tienes dudas, contacta al merchant directamente.
-                </p>
+                <p>Gracias por usar Promii</p>
+                <p>© 2026 Promii. Todos los derechos reservados.</p>
               </div>
             </div>
           </body>
@@ -269,19 +337,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error("[send-coupon-email] Resend error:", error);
-      return NextResponse.json(
-        { error: "Failed to send email", details: error },
-        { status: 500 }
-      );
+      console.warn("[send-coupon-email] Resend error");
+      return NextResponse.json({ error: "Email send failed" }, { status: 500 });
     }
 
-    console.log("[send-coupon-email] Email sent successfully:", data);
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("[send-coupon-email] Unexpected error:", error);
+    console.warn("[send-coupon-email] Unexpected error");
     return NextResponse.json(
-      { error: "Internal server error", details: String(error) },
+      { error: "Error interno" },
       { status: 500 }
     );
   }
