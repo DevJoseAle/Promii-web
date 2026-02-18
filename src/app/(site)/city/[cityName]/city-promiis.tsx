@@ -115,7 +115,7 @@ export default function CityPromiis({ cityName }: Props) {
               : `${promii.city} · ${promii.state}`,
             rating: 4.5,
             sold: purchaseCount || 0,
-            oldPrice: promii.original_price_amount || undefined,
+            oldPrice: promii.original_price_amount ?? promii.price_amount,
             price: promii.price_amount,
             discountPct: discount,
             tag: undefined,
