@@ -6,7 +6,8 @@ export function InfluencerPendingBanner() {
   const { profile, user } = useAuth();
 
   const needsApproval = profile?.role === "influencer" && profile?.state === "pending";
-  const emailConfirmed = !!(user as any)?.email_confirmed_at || !!(user as any)?.confirmed_at;
+  const userWithConfirmation = user as { email_confirmed_at?: string | null; confirmed_at?: string | null } | null;
+  const emailConfirmed = !!userWithConfirmation?.email_confirmed_at || !!userWithConfirmation?.confirmed_at;
 
   if (!needsApproval) return null;
 

@@ -74,11 +74,15 @@ export async function signUpUser({
   // Si hay sesión (confirm OFF), ahora sí:
   try {
     await ensureProfile(role);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage =
+      typeof err === "object" && err !== null && "message" in err
+        ? String((err as { message?: unknown }).message)
+        : "Error creando perfil";
     return {
       status: "error",
       data: null,
-      error: err?.message ?? "Error creando perfil",
+      error: errorMessage,
       message: "La cuenta fue creada, pero ocurrió un problema al crear el perfil.",
     };
   }
@@ -111,11 +115,15 @@ export async function logoutUser(): Promise<SupabaseResponse<true>> {
       error: null,
       message: "Sesión cerrada con éxito.",
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errorMessage =
+      typeof e === "object" && e !== null && "message" in e
+        ? String((e as { message?: unknown }).message)
+        : "Error desconocido";
     return {
       status: "error",
       data: null,
-      error: e?.message ?? "Error desconocido",
+      error: errorMessage,
       message: "No se pudo cerrar sesión.",
     };
   }
@@ -152,11 +160,15 @@ export async function requestPasswordReset(
       error: null,
       message: "Se ha enviado un correo con las instrucciones para recuperar tu contraseña.",
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errorMessage =
+      typeof e === "object" && e !== null && "message" in e
+        ? String((e as { message?: unknown }).message)
+        : "Error desconocido";
     return {
       status: "error",
       data: null,
-      error: e?.message ?? "Error desconocido",
+      error: errorMessage,
       message: "No se pudo enviar el correo de recuperación.",
     };
   }
@@ -190,11 +202,15 @@ export async function updatePassword(
       error: null,
       message: "Contraseña actualizada con éxito.",
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errorMessage =
+      typeof e === "object" && e !== null && "message" in e
+        ? String((e as { message?: unknown }).message)
+        : "Error desconocido";
     return {
       status: "error",
       data: null,
-      error: e?.message ?? "Error desconocido",
+      error: errorMessage,
       message: "No se pudo actualizar la contraseña.",
     };
   }

@@ -155,7 +155,7 @@ export default function ForBusinessPage() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                href="/business/apply"
+                href="/business/sign-in"
                 className="inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold transition-all duration-200 hover:scale-105"
                 style={{
                   backgroundColor: COLORS.accent.main,
@@ -480,7 +480,7 @@ export default function ForBusinessPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              href="/business/apply"
+              href="/business/sign-in"
               className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-base font-bold transition-all duration-200 hover:scale-105"
               style={{
                 backgroundColor: COLORS.accent.main,

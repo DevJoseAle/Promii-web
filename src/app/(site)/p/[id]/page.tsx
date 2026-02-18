@@ -17,6 +17,8 @@ import { PhotoGallery } from "@/components/promii/photo-gallery";
 import { StaticMap } from "@/components/promii/static-map";
 import { PromiiDetailClient } from "./detail-client";
 
+type RelatedPromii = NonNullable<Awaited<ReturnType<typeof fetchRelatedPromiis>>["data"]>[number];
+
 export default async function PromiiDetailPage({
   params,
   searchParams,
@@ -333,7 +335,7 @@ export default async function PromiiDetailPage({
                   Promiis similares
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {relatedPromiis.map((related: any) => (
+                  {relatedPromiis.map((related: RelatedPromii) => (
                     <Link
                       key={related.id}
                       href={`/p/${related.id}`}

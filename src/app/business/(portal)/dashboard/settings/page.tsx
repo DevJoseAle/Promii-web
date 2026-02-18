@@ -156,9 +156,9 @@ export default function SettingsPage() {
         usdt_wallet_address: merchantData.usdt_wallet_address || "",
         crypto_network: merchantData.crypto_network || "",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error loading merchant data:", err);
-      setError(err.message || "Error cargando datos");
+      setError(err instanceof Error ? err.message : "Error cargando datos");
     } finally {
       setLoading(false);
     }
@@ -238,9 +238,9 @@ export default function SettingsPage() {
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving:", err);
-      setError(err.message || "Error guardando cambios");
+      setError(err instanceof Error ? err.message : "Error guardando cambios");
     } finally {
       setSaving(false);
     }

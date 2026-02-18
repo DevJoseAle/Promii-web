@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserCircle, Save, Camera, Instagram, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -38,19 +38,12 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [cities, setCities] = useState<IVzlaCity[]>([]);
-
-  useEffect(() => {
-    loadProfile();
-  }, [influencerId]);
-
-  useEffect(() => {
-    if (profile.state) {
-      setCities(getCitiesForState(profile.state));
-    }
+  const cities: IVzlaCity[] = useMemo(() => {
+    if (!profile.state) return [];
+    return getCitiesForState(profile.state);
   }, [profile.state]);
 
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
 
     const { data, error } = await supabase
@@ -78,7 +71,14 @@ export function ProfileTab({ influencerId }: ProfileTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadProfile();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadProfile]);
 
   async function handleSave() {
     // Validation

@@ -7,11 +7,13 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        name: "promii-auth",
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -34,39 +36,71 @@ export async function middleware(request: NextRequest) {
   // ✅ Refrescar sesión para mantener cookies sincronizadas
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 🔒 Proteger rutas /admin/*
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    // Si no hay usuario autenticado, redirigir a login admin
-    if (!user) {
-      console.log("🔒 [Middleware] No user, redirecting to login");
-      return NextResponse.redirect(new URL("/4dm1n/login", request.url));
-    }
-
-    // Verificar que el usuario tenga role = "admin"
-    const { data: profile, error: profileError } = await supabase
+  async function getProfileRole() {
+    if (!user) return null;
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
+    return profile?.role ?? null;
+  }
 
-    console.log("🔍 [Middleware] Admin check:", {
-      userId: user.id,
-      profile,
-      profileError,
-      hasProfile: !!profile,
-      role: profile?.role,
-    });
+  const path = request.nextUrl.pathname;
 
-    // Si no es admin, redirigir a login admin
-    if (!profile || profile.role !== "admin") {
-      console.log("❌ [Middleware] NOT admin, redirecting to login", {
-        hasProfile: !!profile,
-        role: profile?.role,
-      });
+  // 🔒 Proteger rutas /admin/**
+  if (path.startsWith("/admin")) {
+    if (!user) {
       return NextResponse.redirect(new URL("/4dm1n/login", request.url));
     }
+    const role = await getProfileRole();
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/4dm1n/login", request.url));
+    }
+  }
 
-    console.log("✅ [Middleware] Admin verified, allowing access");
+  const businessAuthPaths = new Set([
+    "/business/sign-in",
+    "/business/apply",
+  ]);
+
+  const influencerAuthPaths = new Set([
+    "/inf/sign-in",
+    "/inf/apply",
+  ]);
+
+  // 🔒 Proteger rutas /business/**
+  if (path.startsWith("/business")) {
+    if (!user) {
+      if (!businessAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/business/sign-in", request.url));
+      }
+    } else {
+      const role = await getProfileRole();
+      if (role !== "merchant") {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      if (businessAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/business/dashboard", request.url));
+      }
+    }
+  }
+
+  // 🔒 Proteger rutas /inf/**
+  if (path.startsWith("/inf")) {
+    if (!user) {
+      if (!influencerAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/inf/sign-in", request.url));
+      }
+    } else {
+      const role = await getProfileRole();
+      if (role !== "influencer") {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      if (influencerAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/inf/dashboard", request.url));
+      }
+    }
   }
 
   return response;

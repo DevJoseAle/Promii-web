@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Clock, X, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -17,11 +17,7 @@ export function PendingRequestsTab({ merchantId }: PendingRequestsTabProps) {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPartnerships();
-  }, [merchantId]);
-
-  async function loadPartnerships() {
+  const loadPartnerships = useCallback(async () => {
     setLoading(true);
     const response = await getMerchantPartnerships(merchantId, "pending");
     
@@ -30,7 +26,23 @@ export function PendingRequestsTab({ merchantId }: PendingRequestsTabProps) {
     }
     
     setLoading(false);
-  }
+  }, [merchantId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPartnerships();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPartnerships]);
+
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setNow(Date.now());
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   async function handleCancel(partnershipId: string) {
     setCancelling(partnershipId);
@@ -76,9 +88,9 @@ export function PendingRequestsTab({ merchantId }: PendingRequestsTabProps) {
           const influencer = partnership.influencer;
           if (!influencer) return null;
 
-          const daysSince = Math.floor(
-            (Date.now() - new Date(partnership.requested_at).getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysSince = now
+            ? Math.floor((now - new Date(partnership.requested_at).getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
 
           return (
             <div

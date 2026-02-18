@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import {
   getInfluencers,
@@ -40,11 +40,7 @@ export default function InfluencersAdminPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<InfluencerProfile | null>(null);
 
-  useEffect(() => {
-    loadInfluencers();
-  }, [filterStatus]);
-
-  async function loadInfluencers() {
+  const loadInfluencers = useCallback(async () => {
     setLoading(true);
     const status = filterStatus === "all" ? undefined : filterStatus;
     const response = await getInfluencers(status);
@@ -55,7 +51,14 @@ export default function InfluencersAdminPage() {
       ToastService.showErrorToast(response.error || "Error al cargar influencers");
     }
     setLoading(false);
-  }
+  }, [filterStatus]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadInfluencers();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadInfluencers]);
 
   async function handleApprove(influencerId: string) {
     setActionLoading(influencerId);

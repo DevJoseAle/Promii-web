@@ -60,12 +60,12 @@ export type PromiiDetail = {
   merchant: MerchantInfo | null;
 };
 
-function normalizeSupabaseError(err: any) {
+function normalizeSupabaseError(err: unknown) {
   const e = err as PostgrestError & { code?: string; details?: string; hint?: string };
   return {
     error: e?.message ?? "Error desconocido",
     message: e?.details ?? e?.hint ?? undefined,
-    code: (e as any)?.code ?? undefined,
+    code: e?.code ?? undefined,
   };
 }
 
@@ -133,17 +133,29 @@ export async function fetchPromiiDetail(
       photos: photos ?? [],
       merchant: merchant ?? null,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
 }
 
+type RelatedPromii = {
+  id: string;
+  title: string;
+  price_amount: number;
+  price_currency: string;
+  original_price_amount: number | null;
+  discount_label: string | null;
+  city: string;
+  state: string;
+  photo_url: string | null;
+};
+
 export async function fetchRelatedPromiis(params: {
   categoryPrimary: string;
   excludeId: string;
   limit?: number;
-}): Promise<SupabaseResponse<any[]>> {
+}): Promise<SupabaseResponse<RelatedPromii[]>> {
   try {
     const { categoryPrimary, excludeId, limit = 4 } = params;
     const supabase = await createSupabaseServerClient();
@@ -173,7 +185,7 @@ export async function fetchRelatedPromiis(params: {
     }
 
     // Fetch first photo for each promii
-    const promiisWithPhotos = await Promise.all(
+    const promiisWithPhotos: RelatedPromii[] = await Promise.all(
       (data ?? []).map(async (promii) => {
         const { data: photo } = await supabase
           .from("promii_photos")
@@ -191,7 +203,7 @@ export async function fetchRelatedPromiis(params: {
     );
 
     return success(promiisWithPhotos);
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }

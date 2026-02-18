@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { InfluencerCard } from "@/components/ui/influencer-card";
 import { COLORS } from "@/config/colors";
@@ -25,12 +25,7 @@ export default function InfluencersDirectoryPage() {
     return getCitiesForState(state);
   }, [state]);
 
-  // Cargar influencers al montar
-  useEffect(() => {
-    loadInfluencers();
-  }, []);
-
-  async function loadInfluencers() {
+  const loadInfluencers = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -43,7 +38,15 @@ export default function InfluencersDirectoryPage() {
     }
 
     setLoading(false);
-  }
+  }, []);
+
+  // Cargar influencers al montar
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadInfluencers();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadInfluencers]);
 
   // Filtrar influencers en memoria
   const filtered = useMemo(() => {
@@ -74,7 +77,10 @@ export default function InfluencersDirectoryPage() {
 
   // Resetear ciudad cuando cambia el estado
   useEffect(() => {
-    setCity("");
+    const timeoutId = setTimeout(() => {
+      setCity("");
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [state]);
 
   // Loading state

@@ -46,7 +46,10 @@ export default function InfluencerDashboardPage() {
   // Update active tab when URL changes
   useEffect(() => {
     if (tabParam && TABS.some(tab => tab.id === tabParam)) {
-      setActiveTab(tabParam);
+      const timeoutId = setTimeout(() => {
+        setActiveTab(tabParam);
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [tabParam]);
 
