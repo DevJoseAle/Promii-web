@@ -98,10 +98,12 @@ export class StripeProvider implements PaymentProvider {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode !== "payment") break;
         return {
+          eventId: event.id,
           type: "payment.succeeded",
           merchantId: session.metadata?.merchant_id ?? "",
           plan: (session.metadata?.plan ?? "starter") as PlanId,
           billingType: "one_time",
+          externalSubscriptionId: session.id,
           periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         };
       }
@@ -117,6 +119,7 @@ export class StripeProvider implements PaymentProvider {
           ?? {};
         const periodEnd = invoice.lines?.data?.[0]?.period?.end;
         return {
+          eventId: event.id,
           type: "subscription.activated",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
@@ -130,6 +133,7 @@ export class StripeProvider implements PaymentProvider {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         return {
+          eventId: event.id,
           type: "subscription.cancelled",
           merchantId: subscription.metadata?.merchant_id ?? "",
           plan: (subscription.metadata?.plan ?? "starter") as PlanId,
@@ -148,6 +152,7 @@ export class StripeProvider implements PaymentProvider {
           ?? subscription?.metadata
           ?? {};
         return {
+          eventId: event.id,
           type: "subscription.expired",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
@@ -158,6 +163,7 @@ export class StripeProvider implements PaymentProvider {
     }
 
     return {
+      eventId: event.id,
       type: "unknown",
       merchantId: "",
       plan: "starter",

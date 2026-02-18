@@ -44,6 +44,7 @@ export type WebhookEventType =
   | "unknown";
 
 export type WebhookEvent = {
+  eventId: string;
   type: WebhookEventType;
   merchantId: string;
   plan: PlanId;

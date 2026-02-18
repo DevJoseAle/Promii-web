@@ -29,14 +29,34 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ── 3. Idempotencia: registrar event_id (evitar replays) ─────────────────────
+  const supabase = createServiceRoleClient();
+  const { error: eventInsertError } = await supabase
+    .from("stripe_webhook_events")
+    .insert({
+      event_id: event.eventId,
+      event_type: event.type,
+    });
+
+  if (eventInsertError) {
+    if (eventInsertError.code === "23505") {
+      return NextResponse.json({ received: true, status: "already_processed" });
+    }
+    const message = eventInsertError.message;
+    return NextResponse.json(
+      { error: "Error recording webhook event", details: message },
+      { status: 500 }
+    );
+  }
+
   // Ignorar eventos desconocidos (Stripe puede enviar tipos no relevantes)
   if (event.type === "unknown" || !event.merchantId) {
     return NextResponse.json({ received: true });
   }
 
-  // ── 3. Aplicar cambios en DB ───────────────────────────────────────────────────
+  // ── 4. Aplicar cambios en DB ───────────────────────────────────────────────────
   try {
-    await applyPlanUpdate(event);
+    await applyPlanUpdate(supabase, event);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
@@ -50,8 +70,10 @@ export async function POST(request: NextRequest) {
 
 // ─── Lógica principal: actualiza merchants + registra en merchant_subscriptions ─
 
-async function applyPlanUpdate(event: WebhookEvent): Promise<void> {
-  const supabase = createServiceRoleClient();
+async function applyPlanUpdate(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  event: WebhookEvent
+): Promise<void> {
   const planConfig = PLANS[event.plan];
   const now = new Date();
 
