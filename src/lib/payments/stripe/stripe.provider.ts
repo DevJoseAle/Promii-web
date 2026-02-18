@@ -34,7 +34,8 @@ const PRICE_IDS: Record<PlanId, Record<BillingType, string>> = {
 
 export class StripeProvider implements PaymentProvider {
   async createCheckout(params: CheckoutParams): Promise<CheckoutResult> {
-    const priceId = PRICE_IDS[params.plan][params.billingType];
+    try {
+      const priceId = PRICE_IDS[params.plan][params.billingType];
     const isSubscription = params.billingType === "recurring";
 
     const session = await stripeClient.checkout.sessions.create({
@@ -64,6 +65,10 @@ export class StripeProvider implements PaymentProvider {
       checkoutUrl: session.url!,
       sessionId: session.id,
     };
+    } catch (error) {
+      console.error("Error creating Stripe checkout session:", error);
+      throw new Error("Failed to create checkout session");
+    }
   }
 
   async handleWebhook(rawBody: string, signature: string): Promise<WebhookEvent> {
