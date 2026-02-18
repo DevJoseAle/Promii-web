@@ -1,22 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/supabase.server";
+import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 import { getPaymentProvider } from "@/lib/payments";
 import type { PlanId, BillingType } from "@/lib/payments";
 
 export async function POST(request: NextRequest) {
   try {
-    // ── 1. Autenticar al merchant ──────────────────────────────────────────────
-    const supabase = await createSupabaseServerClient();
+    // ── 1. Autenticar: leer JWT del header Authorization ───────────────────────
+    // El browser client guarda la sesión en localStorage (no en cookies),
+    // por eso el modal envía el token como Bearer en el header.
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "").trim();
+
+    if (!token) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const supabase = createServiceRoleClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // ── 2. Obtener datos del merchant desde la tabla merchants ─────────────────
+    // ── 2. Obtener datos del merchant ──────────────────────────────────────────
     const { data: merchant, error: merchantError } = await supabase
       .from("merchants")
       .select("id, contact_email, verification_status")

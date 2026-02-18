@@ -5,6 +5,7 @@ import { X, Loader2, CreditCard, MessageCircle, Check } from "lucide-react";
 import { COLORS } from "@/config/colors";
 import { PLANS } from "@/lib/payments/types";
 import type { PlanId, BillingType } from "@/lib/payments/types";
+import { supabase } from "@/lib/supabase/supabase.client";
 
 // Número de WhatsApp para pagos en BsF — actualizar en producción
 const WHATSAPP_NUMBER = "584120000000"; // +58 412-000-0000
@@ -28,9 +29,22 @@ export function PlanCheckoutModal({ planId, merchantEmail, onClose }: Props) {
     setError(null);
 
     try {
+      // Obtener JWT desde localStorage (el cliente browser no usa cookies)
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        setError("No hay sesión activa. Recarga la página.");
+        setLoading(null);
+        return;
+      }
+
       const res = await fetch("/api/payments/create-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({ plan: planId, billingType }),
       });
 
