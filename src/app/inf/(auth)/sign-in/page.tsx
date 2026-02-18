@@ -57,55 +57,8 @@ export default function InfluencersSignInPage() {
         return;
       }
 
-      // 2. Obtener el perfil del usuario para verificar su rol
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role, state")
-        .eq("id", authData.user.id)
-        .single<ProfileCheck>();
-
-      if (profileError) {
-        setError("Error al verificar el perfil del usuario");
-        console.error("Profile error:", profileError);
-        return;
-      }
-
-      // 3. Verificar que el rol sea "influencer"
-      if (profile.role !== ProfileRole.Influencer) {
-        // Cerrar la sesión que acabamos de abrir
-        await supabase.auth.signOut();
-
-        // Determinar a dónde redirigir según el rol
-        if (profile.role === ProfileRole.Merchant) {
-          setWrongRoleRedirect("/business/sign-in");
-          setError("Eres un comercio. Por favor usa el portal de negocios.");
-        } else if (profile.role === ProfileRole.User) {
-          setWrongRoleRedirect("/auth/sign-in");
-          setError("Eres un usuario. Por favor usa el acceso de clientes.");
-        } else {
-          setError("Tipo de usuario no válido para este portal");
-        }
-        return;
-      }
-
-      // 4. Verificar estado del influencer
-      if (profile.state === "blocked") {
-        await supabase.auth.signOut();
-        setError("Tu cuenta de influencer ha sido bloqueada. Contacta soporte.");
-        return;
-      }
-
-      if (profile.state === "rejected") {
-        await supabase.auth.signOut();
-        setError("Tu solicitud de influencer fue rechazada. Contacta soporte.");
-        return;
-      }
-
-      // 5. Determinar destino según estado
-      let destination = "/inf/dashboard";
-      if (profile.state === "pending") destination = "/inf/pending";
-
-      router.replace(destination);
+      // Ir al dashboard; el middleware y el portal gate validan rol/estado
+      window.location.assign("/inf/dashboard");
     } catch (err: unknown) {
       console.error("Sign-in error:", err);
       const errorMessage = err instanceof Error ? err.message : "Error al iniciar sesión";

@@ -7,11 +7,14 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
-
+  console.log({requestUrl: request.url, path: request.nextUrl.pathname}, 'Middleware triggered');
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: {
+        name: "promii-auth",
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -57,37 +60,47 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const businessPublicPaths = new Set([
+  const businessAuthPaths = new Set([
     "/business/sign-in",
     "/business/apply",
-    "/business/pending",
   ]);
 
-  const influencerPublicPaths = new Set([
+  const influencerAuthPaths = new Set([
     "/inf/sign-in",
     "/inf/apply",
-    "/inf/pending",
   ]);
 
   // 🔒 Proteger rutas /business/**
-  if (path.startsWith("/business") && !businessPublicPaths.has(path)) {
+  if (path.startsWith("/business")) {
     if (!user) {
-      return NextResponse.redirect(new URL("/business/sign-in", request.url));
-    }
-    const role = await getProfileRole();
-    if (role !== "merchant") {
-      return NextResponse.redirect(new URL("/business/apply", request.url));
+      if (!businessAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/business/sign-in", request.url));
+      }
+    } else {
+      const role = await getProfileRole();
+      if (role !== "merchant") {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      if (businessAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/business/dashboard", request.url));
+      }
     }
   }
 
   // 🔒 Proteger rutas /inf/**
-  if (path.startsWith("/inf") && !influencerPublicPaths.has(path)) {
+  if (path.startsWith("/inf")) {
     if (!user) {
-      return NextResponse.redirect(new URL("/inf/sign-in", request.url));
-    }
-    const role = await getProfileRole();
-    if (role !== "influencer") {
-      return NextResponse.redirect(new URL("/inf/apply", request.url));
+      if (!influencerAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/inf/sign-in", request.url));
+      }
+    } else {
+      const role = await getProfileRole();
+      if (role !== "influencer") {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+      if (influencerAuthPaths.has(path)) {
+        return NextResponse.redirect(new URL("/inf/dashboard", request.url));
+      }
     }
   }
 
