@@ -1,25 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { ProfileRole } from "@/config/types/profile";
 import { COLORS } from "@/config/colors";
 import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 
-type ProfileCheck = {
-  id: string;
-  role: ProfileRole;
-  state: "pending" | "approved" | "rejected" | "blocked";
-};
-
 export default function BusinessSignInPage() {
-  const router = useRouter();
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,37 +22,6 @@ export default function BusinessSignInPage() {
       const formData = new FormData(e.currentTarget);
       const email = String(formData.get("email") ?? "").trim();
       const password = String(formData.get("password") ?? "").trim();
-
-      // Validación previa por profile
-      const { data: profileCheck, error: profileCheckErr } = await supabase
-        .from("profiles")
-        .select("id, role, state")
-        .eq("email", email)
-        .maybeSingle<ProfileCheck>();
-
-      if (profileCheckErr) {
-        setError("Error verificando tu cuenta. Intenta nuevamente.");
-        return;
-      }
-
-      if (profileCheck) {
-        if (profileCheck.role !== ProfileRole.Merchant) {
-          setError(
-            "Esta cuenta no tiene permisos de empresa. Ingresa desde el módulo de usuarios."
-          );
-          return;
-        }
-
-        if (profileCheck.state === "blocked") {
-          setError("Tu cuenta de empresa ha sido bloqueada. Contacta soporte.");
-          return;
-        }
-
-        if (profileCheck.state === "rejected") {
-          setError("Tu solicitud de empresa fue rechazada. Contacta soporte.");
-          return;
-        }
-      }
 
       // Login
       const { data, error: signInError } = await supabase.auth.signInWithPassword(
@@ -80,11 +39,13 @@ export default function BusinessSignInPage() {
         return;
       }
 
-      // Determinar destino
-      let destination = "/business/dashboard";
-      if (profileCheck?.state === "blocked") destination = "/business/blocked";
-      else if (profileCheck?.state === "rejected") destination = "/business/rejected";
-      router.replace(destination);
+      if (!data.user) {
+        setError("No se pudo obtener información del usuario");
+        return;
+      }
+
+      // Ir al dashboard; el middleware y el portal gate validan rol/estado
+      window.location.assign("/business/dashboard");
     } catch (err: unknown) {
       console.error("Sign-in error:", err);
       const errorMessage = err instanceof Error ? err.message : "Error al iniciar sesión";
