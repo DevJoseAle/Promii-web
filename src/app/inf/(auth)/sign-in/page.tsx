@@ -1,34 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { ProfileRole } from "@/config/types/profile";
 import { COLORS } from "@/config/colors";
 import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 
-type ProfileCheck = {
-  id: string;
-  role: ProfileRole;
-  state: "pending" | "approved" | "rejected" | "blocked";
-};
-
 export default function InfluencersSignInPage() {
-  const router = useRouter();
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [wrongRoleRedirect, setWrongRoleRedirect] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setWrongRoleRedirect(null);
 
     try {
       const formData = new FormData(e.currentTarget);
@@ -150,44 +138,27 @@ export default function InfluencersSignInPage() {
           </div>
         )}
 
-        {/* Submit or Redirect button */}
-        {wrongRoleRedirect ? (
-          <Button
-            asChild
-            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02]"
-            style={{
-              background: `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
-              color: COLORS.text.inverse,
-            }}
-          >
-            <Link href={wrongRoleRedirect}>
-              {wrongRoleRedirect === "/business/sign-in"
-                ? "Ir al portal de negocios"
-                : "Ir al acceso de clientes"}
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
-            style={{
-              background: loading
-                ? COLORS.text.tertiary
-                : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
-              color: COLORS.text.inverse,
-            }}
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="size-5 animate-spin" />
-                Entrando...
-              </span>
-            ) : (
-              "Entrar al Portal"
-            )}
-          </Button>
-        )}
+        {/* Submit button */}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-12 font-semibold text-base transition-all duration-200 hover:scale-[1.02] disabled:scale-100"
+          style={{
+            background: loading
+              ? COLORS.text.tertiary
+              : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+            color: COLORS.text.inverse,
+          }}
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="size-5 animate-spin" />
+              Entrando...
+            </span>
+          ) : (
+            "Entrar al Portal"
+          )}
+        </Button>
 
         {/* Divider */}
         <div className="relative py-4">

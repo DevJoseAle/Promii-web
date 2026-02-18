@@ -6,15 +6,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/supabase.client";
-import { ProfileRole } from "@/config/types/profile";
 import { COLORS } from "@/config/colors";
 import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
-
-type ProfileCheck = {
-  id: string;
-  role: ProfileRole;
-  state: "pending" | "approved" | "rejected" | "blocked";
-};
 
 export default function BusinessSignInPage() {
   const [loading, setLoading] = useState(false);
@@ -51,7 +44,6 @@ export default function BusinessSignInPage() {
         return;
       }
 
-      // Asegurar sesión antes de consultar profile (evita race de cookies)
       // Ir al dashboard; el middleware y el portal gate validan rol/estado
       window.location.assign("/business/dashboard");
     } catch (err: unknown) {

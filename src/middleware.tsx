@@ -7,7 +7,6 @@ export async function middleware(request: NextRequest) {
       headers: request.headers,
     },
   });
-  console.log({requestUrl: request.url, path: request.nextUrl.pathname}, 'Middleware triggered');
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
