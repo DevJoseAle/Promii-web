@@ -91,19 +91,16 @@ export class StripeProvider implements PaymentProvider {
   // ─── Normaliza eventos de Stripe al formato genérico ───────────────────────
 
   private normalizeEvent(event: Stripe.Event): WebhookEvent {
-    // Usamos any para los objetos del evento porque los tipos de Stripe
-    // cambian entre versiones del SDK. La lógica de negocio es la misma.
-    const obj = event.data.object as any;
-
     switch (event.type) {
 
       // Pago one-time completado
       case "checkout.session.completed": {
-        if (obj.mode !== "payment") break;
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode !== "payment") break;
         return {
           type: "payment.succeeded",
-          merchantId: obj.metadata?.merchant_id ?? "",
-          plan: (obj.metadata?.plan ?? "starter") as PlanId,
+          merchantId: session.metadata?.merchant_id ?? "",
+          plan: (session.metadata?.plan ?? "starter") as PlanId,
           billingType: "one_time",
           periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         };
@@ -111,42 +108,51 @@ export class StripeProvider implements PaymentProvider {
 
       // Suscripción activada/renovada
       case "invoice.payment_succeeded": {
-        const metadata = obj.subscription_details?.metadata
-          ?? obj.subscription?.metadata
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscription = typeof invoice.subscription === "string"
+          ? null
+          : invoice.subscription;
+        const metadata = invoice.subscription_details?.metadata
+          ?? subscription?.metadata
           ?? {};
-        const periodEnd = obj.lines?.data?.[0]?.period?.end;
+        const periodEnd = invoice.lines?.data?.[0]?.period?.end;
         return {
           type: "subscription.activated",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
           billingType: "recurring",
-          externalSubscriptionId: obj.subscription?.id ?? obj.subscription,
+          externalSubscriptionId: subscription?.id ?? invoice.subscription,
           periodEnd: periodEnd ? new Date(periodEnd * 1000) : undefined,
         };
       }
 
       // Suscripción cancelada por el usuario
       case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
         return {
           type: "subscription.cancelled",
-          merchantId: obj.metadata?.merchant_id ?? "",
-          plan: (obj.metadata?.plan ?? "starter") as PlanId,
+          merchantId: subscription.metadata?.merchant_id ?? "",
+          plan: (subscription.metadata?.plan ?? "starter") as PlanId,
           billingType: "recurring",
-          externalSubscriptionId: obj.id,
+          externalSubscriptionId: subscription.id,
         };
       }
 
       // Pago fallido → expirar
       case "invoice.payment_failed": {
-        const metadata = obj.subscription_details?.metadata
-          ?? obj.subscription?.metadata
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscription = typeof invoice.subscription === "string"
+          ? null
+          : invoice.subscription;
+        const metadata = invoice.subscription_details?.metadata
+          ?? subscription?.metadata
           ?? {};
         return {
           type: "subscription.expired",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
           billingType: "recurring",
-          externalSubscriptionId: obj.subscription?.id ?? obj.subscription,
+          externalSubscriptionId: subscription?.id ?? invoice.subscription,
         };
       }
     }

@@ -8,12 +8,32 @@ import {
 import { SupabaseResponse, success, failure } from "@/config/types/supabase-response.type";
 import { PostgrestError } from "@supabase/supabase-js";
 
-function normalizeSupabaseError(err: any) {
-  const e = err as PostgrestError & { code?: string; details?: string; hint?: string };
+type SupabaseErrorLike = PostgrestError & { code?: string; details?: string; hint?: string };
+
+type ProfileRow = {
+  id: string;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
+type FullPurchaseRow = PromiiPurchase & {
+  user?: {
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+  merchant?: {
+    business_name?: string | null;
+  } | null;
+};
+
+function normalizeSupabaseError(err: unknown) {
+  const e = err as SupabaseErrorLike;
   return {
     error: e?.message ?? "Error desconocido",
     message: e?.details ?? e?.hint ?? undefined,
-    code: (e as any)?.code ?? undefined,
+    code: e?.code ?? undefined,
   };
 }
 
@@ -44,7 +64,7 @@ export async function createPurchase(
 
     console.log("[createPurchase] Order created:", data.id);
     return success(data, "Orden creada exitosamente");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[createPurchase] Unexpected error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -103,8 +123,9 @@ export async function fetchMerchantPurchases(params: {
       });
     }
 
+    const purchases = (data ?? []) as PromiiPurchase[];
     // Get unique user IDs
-    const userIds = [...new Set(data.map((p: any) => p.user_id))];
+    const userIds = [...new Set(purchases.map((p) => p.user_id))];
 
     // Fetch user profiles
     const { data: profiles, error: profilesError } = await supabase
@@ -117,10 +138,12 @@ export async function fetchMerchantPurchases(params: {
     }
 
     // Create a map of user profiles
-    const profilesMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+    const profilesMap = new Map(
+      (profiles as ProfileRow[] | null | undefined)?.map((p) => [p.id, p]) || []
+    );
 
     // Map the data to include user info
-    const purchasesWithDetails: PurchaseWithDetails[] = data.map((purchase: any) => {
+    const purchasesWithDetails: PurchaseWithDetails[] = purchases.map((purchase) => {
       const userProfile = profilesMap.get(purchase.user_id);
       return {
         ...purchase,
@@ -138,7 +161,7 @@ export async function fetchMerchantPurchases(params: {
       page,
       pageSize,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
@@ -175,7 +198,7 @@ export async function markPaymentReceived(
 
     console.log("[markPaymentReceived] Payment marked as received");
     return success(data, "Comprobante marcado como recibido");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[markPaymentReceived] Unexpected error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -254,7 +277,7 @@ export async function approvePurchase(
     }
 
     return success(data, "Compra aprobada exitosamente");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[approvePurchase] Unexpected error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -293,7 +316,7 @@ export async function rejectPurchase(
 
     console.log("[rejectPurchase] Purchase rejected");
     return success(data, "Compra rechazada");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[rejectPurchase] Unexpected error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -334,7 +357,7 @@ export async function redeemCoupon(
 
     console.log("[redeemCoupon] Coupon redeemed successfully");
     return success(data, "Cupón canjeado exitosamente");
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[redeemCoupon] Unexpected error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -370,7 +393,7 @@ export async function updatePurchaseProof(
     }
 
     return success(data, "Comprobante subido exitosamente");
-  } catch (err: any) {
+  } catch (err: unknown) {
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
   }
@@ -400,9 +423,10 @@ async function sendCouponEmail(purchase: PromiiPurchase): Promise<void> {
       return;
     }
 
-    const userEmail = (fullPurchase.user as any)?.email;
-    const userName = (fullPurchase.user as any)?.first_name;
-    const merchantName = (fullPurchase.merchant as any)?.business_name;
+    const fullPurchaseTyped = fullPurchase as FullPurchaseRow;
+    const userEmail = fullPurchaseTyped.user?.email ?? undefined;
+    const userName = fullPurchaseTyped.user?.first_name ?? undefined;
+    const merchantName = fullPurchaseTyped.merchant?.business_name ?? undefined;
 
     if (!userEmail) {
       console.error("[sendCouponEmail] No user email found");

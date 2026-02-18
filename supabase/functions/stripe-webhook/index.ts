@@ -72,18 +72,17 @@ Deno.serve(async (req: Request) => {
 
 async function handleEvent(event: Stripe.Event) {
   const supabase = getSupabase();
-  // deno-lint-ignore no-explicit-any
-  const obj = event.data.object as any;
   const now = new Date().toISOString();
 
   switch (event.type) {
 
     // Pago único completado
     case "checkout.session.completed": {
-      if (obj.mode !== "payment") break;
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode !== "payment") break;
 
-      const merchantId: string = obj.metadata?.merchant_id ?? "";
-      const plan = (obj.metadata?.plan ?? "starter") as PlanId;
+      const merchantId: string = session.metadata?.merchant_id ?? "";
+      const plan = (session.metadata?.plan ?? "starter") as PlanId;
       const endsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       if (!merchantId) break;
@@ -101,7 +100,7 @@ async function handleEvent(event: Stripe.Event) {
         plan_id: plan,
         billing_type: "one_time",
         status: "active",
-        external_id: obj.id,
+        external_id: session.id,
         amount_usd: PLANS[plan].priceUsd,
         started_at: now,
         ends_at: endsAt,
@@ -111,14 +110,18 @@ async function handleEvent(event: Stripe.Event) {
 
     // Suscripción activada o renovada
     case "invoice.payment_succeeded": {
-      const metadata = obj.subscription_details?.metadata
-        ?? obj.subscription?.metadata
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscription = typeof invoice.subscription === "string"
+        ? null
+        : invoice.subscription;
+      const metadata = invoice.subscription_details?.metadata
+        ?? subscription?.metadata
         ?? {};
 
       const merchantId: string = metadata.merchant_id ?? "";
       const plan = (metadata.plan ?? "starter") as PlanId;
-      const subscriptionId: string = obj.subscription?.id ?? obj.subscription ?? "";
-      const periodEnd = obj.lines?.data?.[0]?.period?.end;
+      const subscriptionId: string = subscription?.id ?? invoice.subscription ?? "";
+      const periodEnd = invoice.lines?.data?.[0]?.period?.end;
       const endsAt = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
 
       if (!merchantId) break;
@@ -147,7 +150,8 @@ async function handleEvent(event: Stripe.Event) {
 
     // Suscripción cancelada
     case "customer.subscription.deleted": {
-      const merchantId: string = obj.metadata?.merchant_id ?? "";
+      const subscription = event.data.object as Stripe.Subscription;
+      const merchantId: string = subscription.metadata?.merchant_id ?? "";
       if (!merchantId) break;
 
       await updateMerchant(supabase, merchantId, {
@@ -155,22 +159,26 @@ async function handleEvent(event: Stripe.Event) {
         external_subscription_id: null,
       });
 
-      if (obj.id) {
+      if (subscription.id) {
         await supabase
           .from("merchant_subscriptions")
           .update({ status: "cancelled", updated_at: now })
-          .eq("external_id", obj.id);
+          .eq("external_id", subscription.id);
       }
       break;
     }
 
     // Pago fallido → expirar
     case "invoice.payment_failed": {
-      const metadata = obj.subscription_details?.metadata
-        ?? obj.subscription?.metadata
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscription = typeof invoice.subscription === "string"
+        ? null
+        : invoice.subscription;
+      const metadata = invoice.subscription_details?.metadata
+        ?? subscription?.metadata
         ?? {};
       const merchantId: string = metadata.merchant_id ?? "";
-      const subscriptionId: string = obj.subscription?.id ?? obj.subscription ?? "";
+      const subscriptionId: string = subscription?.id ?? invoice.subscription ?? "";
 
       if (!merchantId) break;
 

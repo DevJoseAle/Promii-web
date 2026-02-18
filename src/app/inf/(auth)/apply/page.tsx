@@ -218,8 +218,9 @@ export default function InfluencerApplyPage() {
     setError(null);
     try {
       await finalizeSubmitWithSession(userId);
-    } catch (e: any) {
-      setError(e?.message ?? "No se pudo enviar la solicitud.");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "No se pudo enviar la solicitud.";
+      setError(errorMessage);
       setLoading(false);
     }
   }
@@ -266,14 +267,16 @@ export default function InfluencerApplyPage() {
     const { data: auth } = await supabase.auth.getUser();
     const user = auth.user;
 
+    const userWithConfirmation = user as { email_confirmed_at?: string | null; confirmed_at?: string | null } | null;
     const isConfirmed =
-      !!(user as any)?.email_confirmed_at || !!(user as any)?.confirmed_at;
+      !!userWithConfirmation?.email_confirmed_at || !!userWithConfirmation?.confirmed_at;
 
     if (user?.id && isConfirmed) {
       try {
         await finalizeSubmitWithSession(user.id);
-      } catch (e: any) {
-        setError(e?.message ?? "No se pudo enviar la solicitud.");
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : "No se pudo enviar la solicitud.";
+        setError(errorMessage);
         setLoading(false);
       }
       return;

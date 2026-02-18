@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Ticket, AlertCircle } from "lucide-react";
 import { getUserCoupons } from "@/lib/services/user-purchases.service";
 import { CouponCard } from "./coupon-card";
 import { COLORS } from "@/config/colors";
 import type { CouponCard as CouponCardType } from "@/config/types/user-dashboard";
+import Link from "next/link";
 
 interface MyCouponsTabProps {
   userId: string;
@@ -19,11 +20,7 @@ export function MyCouponsTab({ userId }: MyCouponsTabProps) {
   // ─────────────────────────────────────────────────────────────
   // Fetch cupones al montar
   // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    loadCoupons();
-  }, [userId]);
-
-  async function loadCoupons() {
+  const loadCoupons = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -36,7 +33,14 @@ export function MyCouponsTab({ userId }: MyCouponsTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadCoupons();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadCoupons]);
 
   // ─────────────────────────────────────────────────────────────
   // Loading state
@@ -136,7 +140,7 @@ export function MyCouponsTab({ userId }: MyCouponsTabProps) {
         <p className="text-sm mb-6" style={{ color: COLORS.text.secondary }}>
           Cuando compres un promii y sea aprobado, tu cupón aparecerá aquí.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
           style={{
@@ -145,7 +149,7 @@ export function MyCouponsTab({ userId }: MyCouponsTabProps) {
           }}
         >
           Explorar Promiis
-        </a>
+        </Link>
       </div>
     );
   }

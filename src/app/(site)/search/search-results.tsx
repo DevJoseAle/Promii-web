@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,20 @@ type SearchFilters = {
   sortBy: "relevant" | "newest" | "price_low" | "price_high" | "rating";
 };
 
+type PromiiRow = {
+  id: string;
+  title: string;
+  price_amount: number;
+  original_price_amount: number | null;
+  city: string | null;
+  state: string | null;
+  merchant: {
+    business_name?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+};
+
 export default function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -46,23 +60,29 @@ export default function SearchResults() {
   const [offset, setOffset] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
 
+  const sortParam = searchParams.get("sort");
+  const initialSort: SearchFilters["sortBy"] =
+    sortParam === "relevant" ||
+    sortParam === "newest" ||
+    sortParam === "price_low" ||
+    sortParam === "price_high" ||
+    sortParam === "rating"
+      ? sortParam
+      : "relevant";
+
   const [filters, setFilters] = useState<SearchFilters>({
     query: searchParams.get("q") || "",
     state: searchParams.get("state") || "",
     city: searchParams.get("city") || "",
     category: searchParams.get("category") || "",
-    sortBy: (searchParams.get("sort") as any) || "relevant",
+    sortBy: initialSort,
   });
 
   const LIMIT = 12;
 
   const cities = filters.state ? getCitiesForState(filters.state) : [];
 
-  useEffect(() => {
-    loadResults();
-  }, [filters]);
-
-  async function loadResults(isLoadMore = false) {
+  const loadResults = useCallback(async (isLoadMore = false) => {
     if (isLoadMore) {
       setLoadingMore(true);
     } else {
@@ -172,7 +192,7 @@ export default function SearchResults() {
 
       // Transform to PromiiCard format
       const transformedPromiis: Promii[] = await Promise.all(
-        promiisData.map(async (promii: any) => {
+        (promiisData as PromiiRow[]).map(async (promii) => {
           const { count: purchaseCount } = await supabase
             .from("promii_purchases")
             .select("*", { count: "exact", head: true })
@@ -223,14 +243,21 @@ export default function SearchResults() {
 
     setLoading(false);
     setLoadingMore(false);
-  }
+  }, [filters, offset]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadResults();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadResults]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     loadResults();
   }
 
-  function updateFilter(key: keyof SearchFilters, value: any) {
+  function updateFilter(key: keyof SearchFilters, value: SearchFilters[keyof SearchFilters]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -259,7 +286,7 @@ export default function SearchResults() {
         </h1>
         {filters.query && (
           <p className="text-base" style={{ color: COLORS.text.secondary }}>
-            Resultados para: <strong>"{filters.query}"</strong>
+            Resultados para: <strong>&quot;{filters.query}&quot;</strong>
           </p>
         )}
       </div>

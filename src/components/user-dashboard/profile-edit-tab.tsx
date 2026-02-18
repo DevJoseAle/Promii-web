@@ -33,11 +33,14 @@ export function ProfileEditTab() {
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profile) {
-      setFormData({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
-        phone: profile.phone || null,
-      });
+      const timeoutId = setTimeout(() => {
+        setFormData({
+          first_name: profile.first_name || "",
+          last_name: profile.last_name || "",
+          phone: profile.phone || null,
+        });
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [profile]);
 

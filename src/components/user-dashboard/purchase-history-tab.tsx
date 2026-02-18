@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { History, AlertCircle, Search } from "lucide-react";
 import { fetchUserPurchases } from "@/lib/services/user-purchases.service";
 import { PurchaseCardCompact } from "./purchase-card-compact";
@@ -11,6 +11,7 @@ import type {
   PurchaseWithDetails,
   PurchaseStatusFilter,
 } from "@/config/types/user-dashboard";
+import Link from "next/link";
 
 interface PurchaseHistoryTabProps {
   userId: string;
@@ -34,7 +35,6 @@ const FILTER_OPTIONS: Omit<FilterOption, "count">[] = [
 
 export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
   const [purchases, setPurchases] = useState<PurchaseWithDetails[]>([]);
-  const [filteredPurchases, setFilteredPurchases] = useState<PurchaseWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,11 +44,7 @@ export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
   // ─────────────────────────────────────────────────────────────
   // Fetch purchases al montar
   // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    loadPurchases();
-  }, [userId]);
-
-  async function loadPurchases() {
+  const loadPurchases = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -61,12 +57,19 @@ export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPurchases();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPurchases]);
 
   // ─────────────────────────────────────────────────────────────
   // Aplicar filtros cuando cambien purchases, filter o search
   // ─────────────────────────────────────────────────────────────
-  useEffect(() => {
+  const filteredPurchases = useMemo(() => {
     let filtered = [...purchases];
 
     // Filtro por estado
@@ -82,7 +85,7 @@ export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
       );
     }
 
-    setFilteredPurchases(filtered);
+    return filtered;
   }, [purchases, activeFilter, searchQuery]);
 
   // ─────────────────────────────────────────────────────────────
@@ -190,7 +193,7 @@ export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
         <p className="text-sm mb-6" style={{ color: COLORS.text.secondary }}>
           Cuando compres tu primer promii, aparecerá en tu historial.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105"
           style={{
@@ -199,7 +202,7 @@ export function PurchaseHistoryTab({ userId }: PurchaseHistoryTabProps) {
           }}
         >
           Explorar Promiis
-        </a>
+        </Link>
       </div>
     );
   }

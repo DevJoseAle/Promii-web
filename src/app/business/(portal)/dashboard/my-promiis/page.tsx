@@ -74,9 +74,9 @@ export default function MyPromiisPage() {
       const { data, error } = await fetchMyPromiis({ merchantId: profile.id });
       if (error) throw error;
       setRows(data?.rows || []);
-    } catch (e: any) {
+    } catch (e: unknown) {
       ToastService.showErrorToast(
-        e?.message ?? "No se pudieron cargar tus Promiis."
+        e instanceof Error ? e.message : "No se pudieron cargar tus Promiis."
       );
     } finally {
       setLoading(false);
@@ -125,9 +125,9 @@ export default function MyPromiisPage() {
       ToastService.showSuccessToast(
         `Estado actualizado: ${STATUS_LABELS[next]}`,
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       ToastService.showErrorToast(
-        e?.message ?? "No se pudo actualizar el estado.",
+        e instanceof Error ? e.message : "No se pudo actualizar el estado.",
       );
     }
   }
@@ -183,7 +183,7 @@ export default function MyPromiisPage() {
 
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) => setStatus(e.target.value as PromiiStatus | "all")}
               className="h-10 w-full sm:w-[200px] rounded-lg border px-4 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-3"
               style={{
                 backgroundColor: COLORS.background.tertiary,

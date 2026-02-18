@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -10,6 +10,20 @@ import { ToastService } from "@/lib/toast/toast.service";
 
 type Props = {
   cityName: string;
+};
+
+type PromiiRow = {
+  id: string;
+  title: string;
+  price_amount: number;
+  original_price_amount: number | null;
+  city: string | null;
+  state: string | null;
+  merchant: {
+    business_name?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
 };
 
 export default function CityPromiis({ cityName }: Props) {
@@ -22,11 +36,7 @@ export default function CityPromiis({ cityName }: Props) {
 
   const LIMIT = 12;
 
-  useEffect(() => {
-    loadPromiis();
-  }, [cityName]);
-
-  async function loadPromiis(isLoadMore = false) {
+  const loadPromiis = useCallback(async (isLoadMore = false) => {
     if (isLoadMore) {
       setLoadingMore(true);
     } else {
@@ -36,7 +46,7 @@ export default function CityPromiis({ cityName }: Props) {
 
     try {
       // Query promiis by city
-      let query = supabase
+      const query = supabase
         .from("promiis")
         .select(
           `
@@ -84,7 +94,7 @@ export default function CityPromiis({ cityName }: Props) {
 
       // Transform to PromiiCard format
       const transformedPromiis: Promii[] = await Promise.all(
-        promiisData.map(async (promii: any) => {
+        (promiisData as PromiiRow[]).map(async (promii) => {
           // Get purchase count
           const { count: purchaseCount } = await supabase
             .from("promii_purchases")
@@ -130,7 +140,14 @@ export default function CityPromiis({ cityName }: Props) {
 
     setLoading(false);
     setLoadingMore(false);
-  }
+  }, [cityName, offset]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPromiis();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPromiis]);
 
   function handleLoadMore() {
     loadPromiis(true);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,13 +55,7 @@ export function DocumentsModal({
   const [documentType, setDocumentType] = useState<DocumentType>("rif");
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      loadDocuments();
-    }
-  }, [isOpen, merchantId]);
-
-  async function loadDocuments() {
+  const loadDocuments = useCallback(async () => {
     setLoading(true);
     const response = await getMerchantDocuments(merchantId);
 
@@ -71,7 +65,15 @@ export function DocumentsModal({
       ToastService.showErrorToast(response.error || "Error al cargar documentos");
     }
     setLoading(false);
-  }
+  }, [merchantId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeoutId = setTimeout(() => {
+      loadDocuments();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, loadDocuments]);
 
   async function handleUpload() {
     if (!file || !user) {

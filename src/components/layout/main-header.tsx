@@ -34,7 +34,7 @@ function MainHeaderContent() {
     try {
       setLogoutLoading(true);
       await signOut();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Logout error:", err);
     } finally {
       setLogoutLoading(false);

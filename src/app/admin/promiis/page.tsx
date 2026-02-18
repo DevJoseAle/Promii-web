@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import {
   getPromiis,
@@ -41,11 +41,7 @@ export default function PromiisAdminPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingPromii, setEditingPromii] = useState<PromiiAdmin | null>(null);
 
-  useEffect(() => {
-    loadPromiis();
-  }, [filterStatus]);
-
-  async function loadPromiis() {
+  const loadPromiis = useCallback(async () => {
     setLoading(true);
     const status = filterStatus === "all" ? undefined : filterStatus;
     const response = await getPromiis(status);
@@ -56,7 +52,14 @@ export default function PromiisAdminPage() {
       ToastService.showErrorToast(response.error || "Error al cargar promiis");
     }
     setLoading(false);
-  }
+  }, [filterStatus]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPromiis();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPromiis]);
 
   async function handlePause(promiiId: string) {
     if (!confirm("¿Estás seguro de pausar este promii?")) return;

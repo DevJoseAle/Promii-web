@@ -124,7 +124,10 @@ export const useAuthStore = create<AuthState>()(
             setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
           );
 
-          const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+          const { data, error } = (await Promise.race([fetchPromise, timeoutPromise])) as {
+            data: Profile | null;
+            error: { code?: string; message?: string; hint?: string; details?: string } | null;
+          };
 
           if (error) {
             console.error("[AuthStore] fetchProfile: Database error", {

@@ -12,6 +12,32 @@ import type {
   CouponStatus,
 } from "@/config/types/user-dashboard";
 
+type PurchaseWithRelations = PurchaseWithDetails & {
+  promii?: {
+    id?: string | null;
+    title?: string | null;
+    end_at?: string | null;
+    category_primary?: string | null;
+    state?: string | null;
+    city?: string | null;
+  } | null;
+  merchant?: {
+    id?: string | null;
+    business_name?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    address_line?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+};
+
+type PromiiPhotoRow = {
+  promii_id: string;
+  public_url: string | null;
+  sort_order: number | null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // FETCH: Cupones activos del usuario (approved + redeemed)
 // ─────────────────────────────────────────────────────────────
@@ -47,8 +73,9 @@ export async function getUserCoupons(
 
     // Fetch first photo for each promii
     let photoUrls: Record<string, string> = {};
-    if (data && data.length > 0) {
-      const promiiIds = [...new Set(data.map((p: any) => p.promii_id))];
+    const purchases = (data ?? []) as PurchaseWithRelations[];
+    if (purchases.length > 0) {
+      const promiiIds = [...new Set(purchases.map((p) => p.promii_id))];
       const { data: photos } = await supabase
         .from("promii_photos")
         .select("promii_id, public_url, sort_order")
@@ -57,9 +84,9 @@ export async function getUserCoupons(
 
       if (photos) {
         // Agrupar por promii_id y tomar solo la primera foto de cada uno
-        const photosByPromii = photos.reduce((acc: any, photo: any) => {
+        const photosByPromii = (photos as PromiiPhotoRow[]).reduce<Record<string, string>>((acc, photo) => {
           if (!acc[photo.promii_id]) {
-            acc[photo.promii_id] = photo.public_url;
+            acc[photo.promii_id] = photo.public_url || "";
           }
           return acc;
         }, {});
@@ -86,7 +113,7 @@ export async function getUserCoupons(
     }
 
     // Transformar a CouponCard con lógica de estado
-    const coupons: CouponCard[] = data.map((purchase: any) => {
+    const coupons: CouponCard[] = purchases.map((purchase) => {
       const now = new Date();
       const expiresAt = purchase.coupon_expires_at
         ? new Date(purchase.coupon_expires_at)

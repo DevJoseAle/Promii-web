@@ -7,6 +7,18 @@ import { supabase } from "@/lib/supabase/supabase.client";
 import type { SupabaseResponse } from "@/config/types/supabase-response.type";
 import type { Promii as PromiiCardType } from "@/components/ui/promii-card";
 
+type PromiiRow = {
+  id: string;
+  title: string;
+  price_amount: number;
+  original_price_amount: number | null;
+  merchant: {
+    business_name?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
+};
+
 export type PromiiFilters = {
   category?: string; // category key
   subcategory?: string; // subcategory key
@@ -210,7 +222,7 @@ export async function getPromiisByCategory(
 
     // Transform to PromiiCard format
     const transformedPromiis: PromiiCardType[] = await Promise.all(
-      promiis.map(async (promii: any) => {
+      (promiis as PromiiRow[]).map(async (promii) => {
         // Get purchase count for "sold" field
         const { count: purchaseCount } = await supabase
           .from("promii_purchases")

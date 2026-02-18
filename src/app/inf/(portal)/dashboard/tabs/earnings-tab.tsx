@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DollarSign, TrendingUp, Clock, CheckCircle, Calendar, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -29,6 +29,23 @@ type EarningsStats = {
   this_month: number;
 };
 
+type PurchaseRow = {
+  id: string;
+  created_at: string;
+  paid_amount: number | string | null;
+  referral_code: string | null;
+  status: string;
+  promii?: {
+    title?: string | null;
+    merchant_id?: string | null;
+  } | null;
+};
+
+type AssignmentRow = {
+  commission_type: "percentage" | "fixed" | null;
+  commission_value: number | string | null;
+};
+
 export function EarningsTab({ influencerId }: EarningsTabProps) {
   const [earnings, setEarnings] = useState<EarningRecord[]>([]);
   const [stats, setStats] = useState<EarningsStats>({
@@ -40,11 +57,7 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "paid">("all");
 
-  useEffect(() => {
-    loadEarnings();
-  }, [influencerId]);
-
-  async function loadEarnings() {
+  const loadEarnings = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -81,7 +94,7 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
       }
 
       // Para cada compra, obtener el assignment y merchant info
-      const earningsPromises = purchases.map(async (purchase: any) => {
+      const earningsPromises = (purchases as PurchaseRow[]).map(async (purchase) => {
         // Obtener assignment para saber la comisión
         const { data: assignment } = await supabase
           .from("promii_influencer_assignments")
@@ -98,11 +111,13 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
 
         // Calcular comisión
         let commissionEarned = 0;
-        if (assignment) {
-          if (assignment.commission_type === "percentage") {
-            commissionEarned = (Number(purchase.paid_amount) * Number(assignment.commission_value)) / 100;
-          } else if (assignment.commission_type === "fixed") {
-            commissionEarned = Number(assignment.commission_value);
+        const assignmentRow = assignment as AssignmentRow | null;
+        if (assignmentRow) {
+          if (assignmentRow.commission_type === "percentage") {
+            commissionEarned =
+              (Number(purchase.paid_amount) * Number(assignmentRow.commission_value)) / 100;
+          } else if (assignmentRow.commission_type === "fixed") {
+            commissionEarned = Number(assignmentRow.commission_value);
           }
         }
 
@@ -113,7 +128,7 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
           promii_title: purchase.promii?.title || "Sin título",
           sale_amount: Number(purchase.paid_amount),
           commission_earned: commissionEarned,
-          commission_type: assignment?.commission_type || "percentage",
+          commission_type: assignmentRow?.commission_type || "percentage",
           status: "pending" as "pending" | "paid", // Por ahora todas pending, luego se puede agregar sistema de payouts
         };
       });
@@ -147,7 +162,14 @@ export function EarningsTab({ influencerId }: EarningsTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadEarnings();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadEarnings]);
 
   const filteredEarnings = filter === "all" ? earnings : earnings.filter((e) => e.status === filter);
 

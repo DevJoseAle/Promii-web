@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link2, Copy, ExternalLink, QrCode, Sparkles, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,7 @@ export function ToolsTab({ influencerId }: ToolsTabProps) {
   const [selectedPromii, setSelectedPromii] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    loadAssignments();
-  }, [influencerId]);
-
-  async function loadAssignments() {
+  const loadAssignments = useCallback(async () => {
     setLoading(true);
     const response = await getInfluencerAssignments(influencerId);
 
@@ -35,7 +31,14 @@ export function ToolsTab({ influencerId }: ToolsTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId, selectedPromii]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadAssignments();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadAssignments]);
 
   function handleCopyLink(promiiId: string, referralCode: string) {
     const baseUrl = window.location.origin;
