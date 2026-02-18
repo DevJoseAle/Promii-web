@@ -57,8 +57,20 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 🔒 Proteger rutas /business/(portal)/**
-  if (path.startsWith("/business") && path.includes("(portal)")) {
+  const businessPublicPaths = new Set([
+    "/business/sign-in",
+    "/business/apply",
+    "/business/pending",
+  ]);
+
+  const influencerPublicPaths = new Set([
+    "/inf/sign-in",
+    "/inf/apply",
+    "/inf/pending",
+  ]);
+
+  // 🔒 Proteger rutas /business/**
+  if (path.startsWith("/business") && !businessPublicPaths.has(path)) {
     if (!user) {
       return NextResponse.redirect(new URL("/business/sign-in", request.url));
     }
@@ -68,8 +80,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 🔒 Proteger rutas /inf/(portal)/**
-  if (path.startsWith("/inf") && path.includes("(portal)")) {
+  // 🔒 Proteger rutas /inf/**
+  if (path.startsWith("/inf") && !influencerPublicPaths.has(path)) {
     if (!user) {
       return NextResponse.redirect(new URL("/inf/sign-in", request.url));
     }
