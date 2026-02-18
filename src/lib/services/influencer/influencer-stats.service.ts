@@ -421,7 +421,7 @@ export async function getPromiiInfluencerStats(
         return {
           assignment_id: assignment.id,
           promii_id: assignment.promii_id,
-          promii_title: assignment.influencer?.display_name || "Sin nombre",
+          promii_title: assignment.promii?.title || "Sin nombre",
           referral_code: assignment.referral_code,
           total_visits: v,
           total_conversions: c,

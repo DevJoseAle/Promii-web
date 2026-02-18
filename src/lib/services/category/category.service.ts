@@ -243,7 +243,7 @@ export async function getPromiisByCategory(
             : "Ubicación no disponible",
           rating: 4.5, // TODO: Implement real rating system
           sold: purchaseCount || 0,
-          oldPrice: promii.original_price_amount || undefined,
+          oldPrice: promii.original_price_amount ?? promii.price_amount,
           price: promii.price_amount,
           discountPct: discount,
           tag: undefined, // Can add logic for tags later

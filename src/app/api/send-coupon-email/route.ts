@@ -17,10 +17,10 @@ type OrderRow = {
   user: {
     email: string | null;
     first_name: string | null;
-  } | null;
+  }[] | null;
   merchant: {
     business_name: string | null;
-  } | null;
+  }[] | null;
 };
 
 function escapeHtml(value: string) {
@@ -91,14 +91,16 @@ export async function POST(request: NextRequest) {
     }
 
     const orderRow = order as OrderRow;
-    const userEmail = orderRow.user?.email || "";
-    const userName = orderRow.user?.first_name || "";
+    const user = orderRow.user?.[0] ?? null;
+    const merchant = orderRow.merchant?.[0] ?? null;
+    const userEmail = user?.email || "";
+    const userName = user?.first_name || "";
     const couponCode = orderRow.coupon_code || "";
     const promiiTitle = orderRow.promii_snapshot_title || "";
     const promiiDiscount = orderRow.promii_snapshot_discount_label || "";
     const promiiPrice = orderRow.final_price ?? null;
     const currency = orderRow.paid_currency || "USD";
-    const merchantName = orderRow.merchant?.business_name || "";
+    const merchantName = merchant?.business_name || "";
 
     if (!userEmail || !couponCode || !promiiTitle) {
       console.warn("[send-coupon-email] Missing required order fields");

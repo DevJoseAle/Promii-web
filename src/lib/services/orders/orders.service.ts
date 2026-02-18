@@ -147,7 +147,7 @@ export async function fetchMerchantPurchases(params: {
       const userProfile = profilesMap.get(purchase.user_id);
       return {
         ...purchase,
-        user_email: userProfile?.email,
+        user_email: userProfile?.email ?? undefined,
         user_name: userProfile?.first_name
           ? `${userProfile.first_name} ${userProfile.last_name || ""}`.trim()
           : undefined,

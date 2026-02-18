@@ -110,7 +110,10 @@ export class StripeProvider implements PaymentProvider {
 
       // Suscripción activada/renovada
       case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice & {
+          subscription?: string | Stripe.Subscription | null;
+          subscription_details?: { metadata?: Record<string, string> };
+        };
         const subscription = typeof invoice.subscription === "string"
           ? null
           : invoice.subscription;
@@ -118,13 +121,19 @@ export class StripeProvider implements PaymentProvider {
           ?? subscription?.metadata
           ?? {};
         const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+        const externalSubscriptionId =
+          subscription?.id ??
+          (typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : undefined);
+
         return {
           eventId: event.id,
           type: "subscription.activated",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
           billingType: "recurring",
-          externalSubscriptionId: subscription?.id ?? invoice.subscription,
+          externalSubscriptionId,
           periodEnd: periodEnd ? new Date(periodEnd * 1000) : undefined,
         };
       }
@@ -144,20 +153,29 @@ export class StripeProvider implements PaymentProvider {
 
       // Pago fallido → expirar
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
+        const invoice = event.data.object as Stripe.Invoice & {
+          subscription?: string | Stripe.Subscription | null;
+          subscription_details?: { metadata?: Record<string, string> };
+        };
         const subscription = typeof invoice.subscription === "string"
           ? null
           : invoice.subscription;
         const metadata = invoice.subscription_details?.metadata
           ?? subscription?.metadata
           ?? {};
+        const externalSubscriptionId =
+          subscription?.id ??
+          (typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : undefined);
+
         return {
           eventId: event.id,
           type: "subscription.expired",
           merchantId: metadata.merchant_id ?? "",
           plan: (metadata.plan ?? "starter") as PlanId,
           billingType: "recurring",
-          externalSubscriptionId: subscription?.id ?? invoice.subscription,
+          externalSubscriptionId,
         };
       }
     }
