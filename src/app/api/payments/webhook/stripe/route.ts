@@ -5,6 +5,8 @@ import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
+// Nota: el endpoint de Stripe debe apuntar a `/api/payments/webhook/stripe`,
+// no solo al dominio, o el handler no se ejecutará.
 export async function POST(request: NextRequest) {
   // ── 1. Leer body raw (necesario para verificar firma de Stripe) ───────────────
   const rawBody = await request.text();
