@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,12 +151,7 @@ export function MerchantEditModal({ isOpen, onClose, merchantId, merchantName, o
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<MerchantFull | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    loadMerchant();
-  }, [isOpen, merchantId]);
-
-  async function loadMerchant() {
+  const loadMerchant = useCallback(async () => {
     setLoading(true);
     const res = await getMerchantById(merchantId);
     if (res.status === "success") {
@@ -166,7 +161,15 @@ export function MerchantEditModal({ isOpen, onClose, merchantId, merchantName, o
       onClose();
     }
     setLoading(false);
-  }
+  }, [merchantId, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeoutId = setTimeout(() => {
+      loadMerchant();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, loadMerchant]);
 
   function set(field: keyof MerchantFull, value: string | number | null) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));

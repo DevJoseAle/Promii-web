@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import {
   getMerchantDocuments,
   uploadMerchantDocument,
   deleteMerchantDocument,
+  getMerchantDocumentSignedUrl,
   type MerchantDocument,
   type DocumentType,
 } from "@/lib/services/admin/merchant-documents.admin.service";
@@ -55,13 +56,7 @@ export function DocumentsModal({
   const [documentType, setDocumentType] = useState<DocumentType>("rif");
   const [notes, setNotes] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      loadDocuments();
-    }
-  }, [isOpen, merchantId]);
-
-  async function loadDocuments() {
+  const loadDocuments = useCallback(async () => {
     setLoading(true);
     const response = await getMerchantDocuments(merchantId);
 
@@ -71,7 +66,15 @@ export function DocumentsModal({
       ToastService.showErrorToast(response.error || "Error al cargar documentos");
     }
     setLoading(false);
-  }
+  }, [merchantId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeoutId = setTimeout(() => {
+      loadDocuments();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, loadDocuments]);
 
   async function handleUpload() {
     if (!file || !user) {
@@ -113,6 +116,15 @@ export function DocumentsModal({
       ToastService.showErrorToast(response.error || "Error al eliminar");
     }
     setDeleting(null);
+  }
+
+  async function handleDownload(doc: MerchantDocument) {
+    const response = await getMerchantDocumentSignedUrl(doc.id);
+    if (response.status === "success") {
+      window.open(response.data.signedUrl, "_blank", "noopener,noreferrer");
+    } else {
+      ToastService.showErrorToast(response.error || "Error al generar enlace");
+    }
   }
 
   function formatFileSize(bytes: number | null): string {
@@ -368,14 +380,12 @@ export function DocumentsModal({
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => handleDownload(doc)}
                         className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
                       >
                         <Download className="size-4" style={{ color: COLORS.primary.main }} />
-                      </a>
+                      </button>
                       <button
                         onClick={() => handleDelete(doc)}
                         disabled={deleting === doc.id}

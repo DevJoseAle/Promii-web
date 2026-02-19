@@ -8,6 +8,7 @@ export type MerchantDocument = {
   id: string;
   merchant_id: string;
   file_name: string;
+  // NOTE: file_url stores storage path for private bucket access.
   file_url: string;
   file_type: FileType;
   file_size: number | null;
@@ -59,6 +60,7 @@ export async function uploadMerchantDocument(
     const fileType: FileType = isPdf ? "pdf" : isImage ? "image" : "other";
 
     // Subir a Storage
+    // Bucket `merchant-documents` debe ser PRIVATE. Usar signed URLs para acceso.
     const fileName = `${merchantId}/${documentType}_${Date.now()}.${fileExt}`;
 
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
@@ -73,18 +75,13 @@ export async function uploadMerchantDocument(
       return failure(uploadError.message, "Error al subir archivo", "UPLOAD_ERROR");
     }
 
-    // Obtener URL pública
-    const { data: urlData } = supabaseAdmin.storage
-      .from("merchant-documents")
-      .getPublicUrl(fileName);
-
     // Crear registro en la base de datos
     const { data: createData, error: createError } = await supabaseAdmin.rpc(
       "admin_create_merchant_document",
       {
         p_merchant_id: merchantId,
         p_file_name: file.name,
-        p_file_url: urlData.publicUrl,
+        p_file_url: fileName,
         p_file_type: fileType,
         p_file_size: file.size,
         p_document_type: documentType,
@@ -122,7 +119,7 @@ export async function uploadMerchantDocument(
       id: createData.document_id,
       merchant_id: merchantId,
       file_name: file.name,
-      file_url: urlData.publicUrl,
+      file_url: fileName,
       file_type: fileType,
       file_size: file.size,
       document_type: documentType,
@@ -159,14 +156,15 @@ export async function deleteMerchantDocument(
       return failure(data?.error || "Error desconocido", "No se pudo eliminar", "DELETE_ERROR");
     }
 
-    // Extraer el path del archivo de la URL
+    // Extraer el path del archivo (si viene URL, convertir a path)
+    let filePath = fileUrl;
     try {
-      const url = new URL(fileUrl);
-      const pathMatch = url.pathname.match(/\/merchant-documents\/(.+)$/);
-      if (pathMatch && pathMatch[1]) {
-        const filePath = pathMatch[1];
-        await supabaseAdmin.storage.from("merchant-documents").remove([filePath]);
+      if (fileUrl.startsWith("http")) {
+        const url = new URL(fileUrl);
+        const pathMatch = url.pathname.match(/\/merchant-documents\/(.+)$/);
+        if (pathMatch && pathMatch[1]) filePath = pathMatch[1];
       }
+      await supabaseAdmin.storage.from("merchant-documents").remove([filePath]);
     } catch (storageError) {
       console.warn("[deleteMerchantDocument] Storage cleanup error:", storageError);
       // No fallar si no se puede eliminar de storage
@@ -175,6 +173,32 @@ export async function deleteMerchantDocument(
     return success(undefined);
   } catch (err) {
     console.error("[deleteMerchantDocument] Unexpected error:", err);
+    return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
+  }
+}
+
+/**
+ * Solicita un signed URL (expira rápido) para descargar un documento.
+ * El acceso se valida en el server.
+ */
+export async function getMerchantDocumentSignedUrl(
+  documentId: string
+): Promise<SupabaseResponse<{ signedUrl: string }>> {
+  try {
+    const res = await fetch("/api/merchant-documents/signed-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return failure(err?.error || "No autorizado", "Error al generar URL", "SIGNED_URL_ERROR");
+    }
+
+    const data = (await res.json()) as { signedUrl: string };
+    return success({ signedUrl: data.signedUrl });
+  } catch (err) {
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Clock, Check, X, MapPin, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -17,11 +17,7 @@ export function RequestsTab({ influencerId }: RequestsTabProps) {
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRequests();
-  }, [influencerId]);
-
-  async function loadRequests() {
+  const loadRequests = useCallback(async () => {
     setLoading(true);
     const response = await getInfluencerPartnerships(influencerId, "pending");
 
@@ -30,7 +26,23 @@ export function RequestsTab({ influencerId }: RequestsTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadRequests();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadRequests]);
+
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setNow(Date.now());
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   async function handleRespond(partnershipId: string, approved: boolean) {
     setResponding(partnershipId);
@@ -115,9 +127,9 @@ export function RequestsTab({ influencerId }: RequestsTabProps) {
           const merchant = request.merchant;
           if (!merchant) return null;
 
-          const daysSince = Math.floor(
-            (Date.now() - new Date(request.requested_at).getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysSince = now
+            ? Math.floor((now - new Date(request.requested_at).getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
 
           return (
             <div

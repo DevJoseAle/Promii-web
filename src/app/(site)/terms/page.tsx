@@ -267,7 +267,7 @@ export default function TermsPage() {
             <div className="space-y-3">
               <div>
                 <p className="font-semibold" style={{ color: COLORS.text.primary }}>Recompensa base ($5 USD):</p>
-                <p>Se paga cuando el comercio referido alcanza el estado "Activado", que requiere:</p>
+                <p>Se paga cuando el comercio referido alcanza el estado &quot;Activado&quot;, que requiere:</p>
                 <ul className="list-disc list-inside ml-4 space-y-1">
                   <li>Registro completado</li>
                   <li>Solicitud aprobada por Promii</li>

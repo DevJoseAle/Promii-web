@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import {
   Gift,
@@ -34,11 +34,7 @@ export function PromiiRedTab({ userId }: PromiiRedTabProps) {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [referrals, setReferrals] = useState<ReferralWithMerchant[]>([]);
 
-  useEffect(() => {
-    loadData();
-  }, [userId]);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     // 1. Obtener o crear código de referido
@@ -60,7 +56,14 @@ export function PromiiRedTab({ userId }: PromiiRedTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadData]);
 
   async function handleCopy() {
     if (!referralCode) return;

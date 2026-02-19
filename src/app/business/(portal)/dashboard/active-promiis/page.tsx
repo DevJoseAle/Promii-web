@@ -41,9 +41,9 @@ export default function ActivePromiisPage() {
       if (error) throw error;
       // Solo mostrar los activos
       setRows(data?.rows.filter(r => r.status === "active") || []);
-    } catch (e: any) {
+    } catch (e: unknown) {
       ToastService.showErrorToast(
-        e?.message ?? "No se pudieron cargar tus Promiis activos."
+        e instanceof Error ? e.message : "No se pudieron cargar tus Promiis activos."
       );
     } finally {
       setLoading(false);
@@ -84,9 +84,9 @@ export default function ActivePromiisPage() {
       setRows((prev) => prev.filter((p) => p.id !== promiiId));
 
       ToastService.showSuccessToast("Promii pausado exitosamente");
-    } catch (e: any) {
+    } catch (e: unknown) {
       ToastService.showErrorToast(
-        e?.message ?? "No se pudo pausar el Promii."
+        e instanceof Error ? e.message : "No se pudo pausar el Promii."
       );
     }
   }

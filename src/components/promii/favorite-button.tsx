@@ -25,7 +25,10 @@ export function FavoriteButton({ promiiId }: FavoriteButtonProps) {
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profile?.id) {
-      setIsFav(isFavorite(profile.id, promiiId));
+      const timeoutId = setTimeout(() => {
+        setIsFav(isFavorite(profile.id, promiiId));
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [profile, promiiId]);
 

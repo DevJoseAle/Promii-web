@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import {
   getMerchants,
@@ -46,11 +46,7 @@ export default function MerchantsAdminPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingMerchant, setEditingMerchant] = useState<MerchantWithApplication | null>(null);
 
-  useEffect(() => {
-    loadMerchants();
-  }, [filterStatus]);
-
-  async function loadMerchants() {
+  const loadMerchants = useCallback(async () => {
     setLoading(true);
     const status = filterStatus === "all" ? undefined : filterStatus;
     const response = await getMerchants(status);
@@ -61,7 +57,14 @@ export default function MerchantsAdminPage() {
       ToastService.showErrorToast(response.error || "Error al cargar merchants");
     }
     setLoading(false);
-  }
+  }, [filterStatus]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadMerchants();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadMerchants]);
 
   async function handleApprove(merchantId: string) {
     setActionLoading(merchantId);

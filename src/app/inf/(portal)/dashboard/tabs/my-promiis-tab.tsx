@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sparkles, Copy, Eye, ShoppingCart, TrendingUp, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -15,11 +15,7 @@ export function MyPromiisTab({ influencerId }: MyPromiisTabProps) {
   const [assignments, setAssignments] = useState<AssignmentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAssignments();
-  }, [influencerId]);
-
-  async function loadAssignments() {
+  const loadAssignments = useCallback(async () => {
     setLoading(true);
     const response = await getInfluencerAssignmentPerformance(influencerId);
 
@@ -28,7 +24,14 @@ export function MyPromiisTab({ influencerId }: MyPromiisTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadAssignments();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadAssignments]);
 
   function handleCopyCode(code: string) {
     navigator.clipboard.writeText(code);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TrendingUp, DollarSign, Users, Code, Eye, ShoppingCart } from "lucide-react";
 import { COLORS } from "@/config/colors";
 import { getInfluencerOverviewStats, type InfluencerOverviewStats } from "@/lib/services/influencer";
@@ -13,11 +13,7 @@ export function OverviewTab({ influencerId }: OverviewTabProps) {
   const [stats, setStats] = useState<InfluencerOverviewStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, [influencerId]);
-
-  async function loadStats() {
+  const loadStats = useCallback(async () => {
     setLoading(true);
     const response = await getInfluencerOverviewStats(influencerId);
 
@@ -26,7 +22,14 @@ export function OverviewTab({ influencerId }: OverviewTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadStats();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadStats]);
 
   if (loading) {
     return <div className="text-center py-8" style={{ color: COLORS.text.secondary }}>Cargando estadísticas...</div>;

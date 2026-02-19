@@ -238,7 +238,7 @@ function computeDiscountLabel(original: number | null, current: number | null) {
 
 // UI guarda ID, DB guarda name
 function getStateNameById(stateId: string) {
-  return VENEZUELA_STATES.find((s: any) => s.id === stateId)?.name ?? stateId;
+  return VENEZUELA_STATES.find((s) => s.id === stateId)?.name ?? stateId;
 }
 
 function normalize(s: string) {
@@ -652,7 +652,7 @@ export function CreatePromiiForm({
     const cityName =
       values.cityId === "otra"
         ? values.otherCityName.trim()
-        : (cities.find((c: any) => c.id === values.cityId)?.name ?? "");
+        : (cities.find((c) => c.id === values.cityId)?.name ?? "");
 
     const payload = {
       merchant_id,
@@ -767,11 +767,12 @@ export function CreatePromiiForm({
         type === "edit" ? "Promii actualizado correctamente" : "Promii guardado como borrador"
       );
       router.push("/business/dashboard/my-promiis");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errObj = err as { message?: unknown; details?: unknown; hint?: unknown };
       const msg =
-        err?.message ??
-        err?.details ??
-        err?.hint ??
+        (typeof errObj.message === "string" && errObj.message) ||
+        (typeof errObj.details === "string" && errObj.details) ||
+        (typeof errObj.hint === "string" && errObj.hint) ||
         "No se pudo guardar el Promii. Revisa los campos e inténtalo de nuevo.";
 
       setGlobalError(msg);
@@ -1187,7 +1188,7 @@ export function CreatePromiiForm({
                   className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
                 >
                   <option value="">Selecciona un estado</option>
-                  {VENEZUELA_STATES.map((s: any) => (
+                  {VENEZUELA_STATES.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -1210,7 +1211,7 @@ export function CreatePromiiForm({
                       : "Elige primero un estado"}
                   </option>
 
-                  {cities.map((c: any) => (
+                  {cities.map((c) => (
                     <option
                       key={`${values.stateId}-${c.id}-${c.name}`}
                       value={c.id}
@@ -1515,7 +1516,12 @@ export function CreatePromiiForm({
                     <Field label="Tipo de descuento">
                       <select
                         value={values.extraDiscountType}
-                        onChange={(e) => update("extraDiscountType", e.target.value as any)}
+                        onChange={(e) =>
+                          update(
+                            "extraDiscountType",
+                            e.target.value as FormState["extraDiscountType"]
+                          )
+                        }
                         className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
                       >
                         <option value="">Sin descuento extra</option>

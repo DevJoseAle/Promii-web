@@ -36,9 +36,25 @@ type Props = {
   data?: HomePromii;
 };
 
+type NormalizedPromii = {
+  id: string;
+  title: string;
+  merchant: string;
+  location: string;
+  rating: number;
+  sold: number;
+  oldPrice: number;
+  price: number;
+  discountPct: number;
+  photoUrl: string | null;
+  currency: string;
+  discountLabel: string | null;
+  tag?: string;
+};
+
 export function PromiiCard({ p, data }: Props) {
   // Use either format
-  const promii = data ? {
+  const promii: NormalizedPromii = data ? {
     id: data.id,
     title: data.title,
     merchant: data.merchant_name ?? "Comercio",
@@ -101,7 +117,7 @@ export function PromiiCard({ p, data }: Props) {
           </div>
         )}
 
-        {(promii as any).tag && (
+        {promii.tag && (
           <div
             className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
             style={{
@@ -109,7 +125,7 @@ export function PromiiCard({ p, data }: Props) {
               color: COLORS.text.inverse,
             }}
           >
-            {(promii as any).tag}
+            {promii.tag}
           </div>
         )}
 

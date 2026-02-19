@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Users, MapPin, ExternalLink, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -16,11 +16,7 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
   const [partnerships, setPartnerships] = useState<PartnershipWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPartnerships();
-  }, [influencerId]);
-
-  async function loadPartnerships() {
+  const loadPartnerships = useCallback(async () => {
     setLoading(true);
     const response = await getInfluencerPartnerships(influencerId, "approved");
 
@@ -29,7 +25,14 @@ export function MyMerchantsTab({ influencerId }: MyMerchantsTabProps) {
     }
 
     setLoading(false);
-  }
+  }, [influencerId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadPartnerships();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadPartnerships]);
 
   function handleCopyPhone(phone: string) {
     navigator.clipboard.writeText(phone);

@@ -2,6 +2,32 @@ import { createSupabaseServerClient } from "@/lib/supabase/supabase.server";
 import { SupabaseResponse, success, failure } from "@/config/types/supabase-response.type";
 import { PostgrestError } from "@supabase/supabase-js";
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+type PromiiRow = {
+  id: string;
+  title: string;
+  price_amount: number;
+  price_currency: string;
+  original_price_amount: number | null;
+  discount_label: string | null;
+  city: string;
+  state: string;
+  merchant_id: string;
+  category_primary: string;
+  created_at: string;
+};
+
+type PromiiPhotoRow = {
+  public_url: string | null;
+};
+
+type MerchantRow = {
+  business_name: string | null;
+};
+
+type QueryResult<T> = PromiseLike<{ data: T[] | null; error: PostgrestError | null }>;
+
 export type HomePromii = {
   id: string;
   title: string;
@@ -18,18 +44,18 @@ export type HomePromii = {
   photo_url: string | null;
 };
 
-function normalizeSupabaseError(err: any) {
+function normalizeSupabaseError(err: unknown) {
   const e = err as PostgrestError & { code?: string; details?: string; hint?: string };
   return {
     error: e?.message ?? "Error desconocido",
     message: e?.details ?? e?.hint ?? undefined,
-    code: (e as any)?.code ?? undefined,
+    code: e?.code ?? undefined,
   };
 }
 
 async function fetchPromiisWithPhotos(
-  supabase: any,
-  query: any
+  supabase: SupabaseServerClient,
+  query: QueryResult<PromiiRow>
 ): Promise<HomePromii[]> {
   try {
     const { data, error } = await query;
@@ -52,7 +78,7 @@ async function fetchPromiisWithPhotos(
 
     // Fetch photos and merchant info for each promii
     const promiisWithExtras = await Promise.all(
-      data.map(async (promii: any) => {
+      (data as PromiiRow[]).map(async (promii) => {
         try {
           // Get first photo
           const { data: photos, error: photoError } = await supabase
@@ -73,7 +99,7 @@ async function fetchPromiisWithPhotos(
             console.error(`[fetchPromiisWithPhotos] Photo error for ${promii.id}:`, photoError);
           }
 
-          const photo = photos && photos.length > 0 ? photos[0] : null;
+          const photo = (photos as PromiiPhotoRow[] | null)?.[0] ?? null;
 
           // Get merchant name
           const { data: merchants, error: merchantError } = await supabase
@@ -86,7 +112,7 @@ async function fetchPromiisWithPhotos(
             console.error(`[fetchPromiisWithPhotos] Merchant error for ${promii.merchant_id}:`, merchantError);
           }
 
-          const merchant = merchants && merchants.length > 0 ? merchants[0] : null;
+          const merchant = (merchants as MerchantRow[] | null)?.[0] ?? null;
 
           const result = {
             ...promii,
@@ -101,7 +127,7 @@ async function fetchPromiisWithPhotos(
           }
 
           return result;
-        } catch (err) {
+        } catch (err: unknown) {
           console.error("[fetchPromiisWithPhotos] Error fetching extras:", err);
           return {
             ...promii,
@@ -114,7 +140,7 @@ async function fetchPromiisWithPhotos(
 
     console.log("[fetchPromiisWithPhotos] Returning promiis:", promiisWithExtras.length);
     return promiisWithExtras;
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[fetchPromiisWithPhotos] Unexpected error:", err);
     return [];
   }
@@ -171,7 +197,7 @@ export async function fetchFeaturedPromiis(
     const promiis = await fetchPromiisWithPhotos(supabase, query);
     console.log("[fetchFeaturedPromiis] Found promiis:", promiis.length);
     return success(promiis);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[fetchFeaturedPromiis] Error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -219,7 +245,7 @@ export async function fetchTrendingPromiis(
     const promiis = await fetchPromiisWithPhotos(supabase, query);
     console.log("[fetchTrendingPromiis] Found promiis:", promiis.length);
     return success(promiis);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[fetchTrendingPromiis] Error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);
@@ -261,7 +287,7 @@ export async function fetchPopularPromiis(
     const promiis = await fetchPromiisWithPhotos(supabase, query);
     console.log("[fetchPopularPromiis] Found promiis:", promiis.length);
     return success(promiis);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[fetchPopularPromiis] Error:", err);
     const n = normalizeSupabaseError(err);
     return failure(n.error, n.message, n.code);

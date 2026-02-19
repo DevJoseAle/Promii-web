@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,12 +143,7 @@ export function PromiiEditModal({ isOpen, onClose, promiiId, promiiTitle, onSave
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<PromiiFull | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    loadPromii();
-  }, [isOpen, promiiId]);
-
-  async function loadPromii() {
+  const loadPromii = useCallback(async () => {
     setLoading(true);
     const res = await getPromiiById(promiiId);
     if (res.status === "success") {
@@ -158,7 +153,15 @@ export function PromiiEditModal({ isOpen, onClose, promiiId, promiiTitle, onSave
       onClose();
     }
     setLoading(false);
-  }
+  }, [promiiId, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeoutId = setTimeout(() => {
+      loadPromii();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, loadPromii]);
 
   function set(field: keyof PromiiFull, value: string | number | boolean | null) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
