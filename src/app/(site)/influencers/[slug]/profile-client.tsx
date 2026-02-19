@@ -34,8 +34,30 @@ type InfluencerData = {
   totalBrands: number;
 };
 
+type InfluencerOffer = {
+  id: string;
+  type: "fixed" | "barter" | "mixed";
+  title: string;
+  description: string;
+  price_usd: number | null;
+  barter_description: string | null;
+};
+
+type InfluencerBrand = {
+  id: string;
+  business_name: string;
+  logo_url: string | null;
+  city: string | null;
+  state: string | null;
+  description: string | null;
+  instagram_handle: string | null;
+  website_url: string | null;
+};
+
 type Props = {
   influencer: InfluencerData;
+  offers: InfluencerOffer[];
+  brands: InfluencerBrand[];
   isMerchant?: boolean;
 };
 
@@ -58,7 +80,18 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export default function InfluencerProfileClient({ influencer: i, isMerchant = false }: Props) {
+function formatOfferType(type: InfluencerOffer["type"]) {
+  if (type === "fixed") return "Fee fijo";
+  if (type === "barter") return "Canje";
+  return "Mixto";
+}
+
+function formatOfferPrice(value: number | null) {
+  if (value == null || Number.isNaN(value)) return "";
+  return `$${value.toFixed(2)} USD`;
+}
+
+export default function InfluencerProfileClient({ influencer: i, offers, brands, isMerchant = false }: Props) {
   // Construir URLs de redes sociales
   const instagramUrl = `https://instagram.com/${i.handle.replace("@", "")}`;
   const tiktokUrl = i.tiktokHandle
@@ -174,11 +207,11 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
                   <div className="flex items-center gap-2 mb-1">
                     <Users className="size-5" style={{ color: COLORS.primary.main }} />
                     <span className="text-xs" style={{ color: COLORS.text.secondary }}>
-                      Seguidores
+                      Marcas colaboradoras
                     </span>
                   </div>
                   <div className="text-2xl font-bold" style={{ color: COLORS.text.primary }}>
-                    {formatFollowers(i.followers)}
+                    {i.totalBrands}
                   </div>
                 </div>
               </div>
@@ -304,43 +337,174 @@ export default function InfluencerProfileClient({ influencer: i, isMerchant = fa
             Tipo de colaboraciones
           </h2>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          {offers.length === 0 ? (
             <div
-              className="rounded-lg border p-4"
+              className="rounded-lg border p-4 text-sm"
               style={{
-                backgroundColor: COLORS.success.lighter,
-                borderColor: COLORS.success.light,
+                backgroundColor: COLORS.background.secondary,
+                borderColor: COLORS.border.light,
+                color: COLORS.text.secondary,
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="size-5" style={{ color: COLORS.success.dark }} />
-                <span className="font-semibold text-sm" style={{ color: COLORS.success.dark }}>
-                  Colaboraciones pagadas
-                </span>
-              </div>
-              <p className="text-xs" style={{ color: COLORS.success.dark }}>
-                Acepta colaboraciones con compensación económica
-              </p>
+              Este influencer aún no ha publicado ofertas de colaboración.
             </div>
+          ) : (
+            <div className="grid gap-4">
+              {offers.map((offer) => (
+                <div
+                  key={offer.id}
+                  className="rounded-lg border p-4"
+                  style={{
+                    backgroundColor: COLORS.background.secondary,
+                    borderColor: COLORS.border.light,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                          style={{
+                            backgroundColor: COLORS.primary.lighter,
+                            color: COLORS.primary.main,
+                          }}
+                        >
+                          {formatOfferType(offer.type)}
+                        </span>
+                        <h3 className="text-sm font-semibold" style={{ color: COLORS.text.primary }}>
+                          {offer.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs" style={{ color: COLORS.text.secondary }}>
+                        {offer.description}
+                      </p>
+                      <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                        {offer.price_usd != null && (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="size-3.5" />
+                            <span>{formatOfferPrice(offer.price_usd)}</span>
+                          </div>
+                        )}
+                        {offer.barter_description && (
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="size-3.5" />
+                            <span>{offer.barter_description}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-text-secondary">
+                      <Star className="size-4" style={{ color: COLORS.warning.main }} />
+                      Oferta activa
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
+        {/* Brands */}
+        <section
+          className="rounded-xl border p-6"
+          style={{
+            backgroundColor: COLORS.background.primary,
+            borderColor: COLORS.border.light,
+          }}
+        >
+          <h2
+            className="text-lg font-bold mb-4 flex items-center gap-2"
+            style={{ color: COLORS.text.primary }}
+          >
+            <Briefcase className="size-5" style={{ color: COLORS.info.main }} />
+            Marcas colaboradoras
+          </h2>
+
+          {brands.length === 0 ? (
             <div
-              className="rounded-lg border p-4"
+              className="rounded-lg border p-4 text-sm"
               style={{
-                backgroundColor: COLORS.info.lighter,
-                borderColor: COLORS.info.light,
+                backgroundColor: COLORS.background.secondary,
+                borderColor: COLORS.border.light,
+                color: COLORS.text.secondary,
               }}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="size-5" style={{ color: COLORS.info.dark }} />
-                <span className="font-semibold text-sm" style={{ color: COLORS.info.dark }}>
-                  Comisión por ventas
-                </span>
-              </div>
-              <p className="text-xs" style={{ color: COLORS.info.dark }}>
-                Trabaja con códigos de descuento y comisiones
-              </p>
+              Este influencer aún no tiene marcas públicas asociadas.
             </div>
-          </div>
+          ) : (
+            <div className="grid gap-4">
+              {brands.map((brand) => (
+                <div
+                  key={brand.id}
+                  className="flex gap-4 rounded-lg border p-4"
+                  style={{
+                    backgroundColor: COLORS.background.secondary,
+                    borderColor: COLORS.border.light,
+                  }}
+                >
+                  <div
+                    className="size-12 rounded-lg overflow-hidden border flex items-center justify-center text-sm font-bold shrink-0"
+                    style={{
+                      backgroundColor: COLORS.background.primary,
+                      borderColor: COLORS.border.light,
+                      color: COLORS.primary.main,
+                    }}
+                  >
+                    {brand.logo_url ? (
+                      <img
+                        src={brand.logo_url}
+                        alt={brand.business_name}
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      brand.business_name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <div>
+                      <div className="text-sm font-semibold truncate" style={{ color: COLORS.text.primary }}>
+                        {brand.business_name}
+                      </div>
+                      <div className="text-xs" style={{ color: COLORS.text.secondary }}>
+                        {[brand.city, brand.state].filter(Boolean).join(" · ") || "Venezuela"}
+                      </div>
+                    </div>
+                    {brand.description && (
+                      <p className="text-xs" style={{ color: COLORS.text.secondary }}>
+                        {brand.description}
+                      </p>
+                    )}
+                    {(brand.instagram_handle || brand.website_url) && (
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {brand.instagram_handle && (
+                          <span
+                            className="rounded-full border px-2 py-0.5"
+                            style={{
+                              borderColor: COLORS.border.light,
+                              color: COLORS.text.secondary,
+                            }}
+                          >
+                            @{brand.instagram_handle.replace("@", "")}
+                          </span>
+                        )}
+                        {brand.website_url && (
+                          <span
+                            className="rounded-full border px-2 py-0.5"
+                            style={{
+                              borderColor: COLORS.border.light,
+                              color: COLORS.text.secondary,
+                            }}
+                          >
+                            {brand.website_url.replace(/^https?:\/\//, "")}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 

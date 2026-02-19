@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BarChart3, Clock, Users, UserCircle, Sparkles, DollarSign, Wrench, ShoppingBag, Gift } from "lucide-react";
+import { BarChart3, Clock, Users, UserCircle, Sparkles, DollarSign, Wrench, ShoppingBag, Gift, BadgeDollarSign } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,11 +13,12 @@ import { MyPromiisTab } from "./tabs/my-promiis-tab";
 import { ProfileTab } from "./tabs/profile-tab";
 import { EarningsTab } from "./tabs/earnings-tab";
 import { ToolsTab } from "./tabs/tools-tab";
+import { OffersTab } from "./tabs/offers-tab";
 import { MyCouponsTab } from "@/components/user-dashboard/my-coupons-tab";
 import { PurchaseHistoryTab } from "@/components/user-dashboard/purchase-history-tab";
 import { PromiiRedTab } from "@/components/user-dashboard/promii-red-tab";
 
-type TabId = "overview" | "requests" | "merchants" | "promiis" | "earnings" | "tools" | "purchases" | "promii-red" | "profile";
+type TabId = "overview" | "requests" | "merchants" | "promiis" | "offers" | "earnings" | "tools" | "purchases" | "promii-red" | "profile";
 
 type Tab = {
   id: TabId;
@@ -30,6 +31,7 @@ const TABS: Tab[] = [
   { id: "requests", label: "Solicitudes", icon: Clock },
   { id: "merchants", label: "Mis Marcas", icon: Users },
   { id: "promiis", label: "Mis Promiis", icon: Sparkles },
+  { id: "offers", label: "Mis Ofertas", icon: BadgeDollarSign },
   { id: "earnings", label: "Ganancias", icon: DollarSign },
   { id: "tools", label: "Herramientas", icon: Wrench },
   { id: "purchases", label: "Mis Compras", icon: ShoppingBag },
@@ -68,6 +70,7 @@ export default function InfluencerDashboardPage() {
       {activeTab === "requests" && <RequestsTab influencerId={profile.id} />}
       {activeTab === "merchants" && <MyMerchantsTab influencerId={profile.id} />}
       {activeTab === "promiis" && <MyPromiisTab influencerId={profile.id} />}
+      {activeTab === "offers" && <OffersTab influencerId={profile.id} />}
       {activeTab === "earnings" && <EarningsTab influencerId={profile.id} />}
       {activeTab === "tools" && <ToolsTab influencerId={profile.id} />}
       {activeTab === "purchases" && (

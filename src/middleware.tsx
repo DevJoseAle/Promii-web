@@ -47,6 +47,14 @@ export async function middleware(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname;
+  const isBusinessPath = path === "/business" || path.startsWith("/business/");
+  const isInfluencerPortalPath = path === "/inf" || path.startsWith("/inf/");
+  const isInfluencersDirectoryPath =
+    path === "/influencers" || path.startsWith("/influencers/");
+
+  if (isInfluencersDirectoryPath) {
+    return response;
+  }
 
   // 🔒 Proteger rutas /admin/**
   if (path.startsWith("/admin")) {
@@ -70,7 +78,7 @@ export async function middleware(request: NextRequest) {
   ]);
 
   // 🔒 Proteger rutas /business/**
-  if (path.startsWith("/business")) {
+  if (isBusinessPath) {
     if (!user) {
       if (!businessAuthPaths.has(path)) {
         return NextResponse.redirect(new URL("/business/sign-in", request.url));
@@ -87,7 +95,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 🔒 Proteger rutas /inf/**
-  if (path.startsWith("/inf")) {
+  if (isInfluencerPortalPath) {
     if (!user) {
       if (!influencerAuthPaths.has(path)) {
         return NextResponse.redirect(new URL("/inf/sign-in", request.url));

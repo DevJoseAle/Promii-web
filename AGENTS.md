@@ -17,3 +17,24 @@
 - Findings grouped: P0 (critical), P1 (high), P2 (medium), P3 (low)
 - For each finding: file path + exact code reference + impact + exploit scenario + fix (minimal diff)
 - Provide verification steps (how to test the fix)
+
+## Skills System
+- Always scan `/skills/**` relevant to the current task before coding.
+- Apply relevant rules silently (do not mention "skills" in PR descriptions or responses).
+- Prefer minimal diffs, no new dependencies, and no version bumps unless explicitly requested.
+- Follow existing patterns: TypeScript, Next.js App Router conventions, and Supabase best practices.
+- For security tasks, enforce server-side authorization; never rely only on client gating.
+
+## Internal Skills System (Extended)
+
+- Always scan /skills/** before implementing changes.
+- Apply relevant skills silently.
+- Do not mention skill names in outputs.
+- Prioritize:
+  - security-hardening
+  - supabase-rls-validation
+  - performance-architecture
+- Maintain compatibility with vercel-react-best-practices.
+- Prefer minimal diffs.
+- Never introduce breaking refactors unless requested.
+- Never upgrade core dependencies unless explicitly asked.
