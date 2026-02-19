@@ -55,7 +55,6 @@ export async function middleware(request: NextRequest) {
   if (isInfluencersDirectoryPath) {
     return response;
   }
-
   // 🔒 Proteger rutas /admin/**
   if (path.startsWith("/admin")) {
     if (!user) {
