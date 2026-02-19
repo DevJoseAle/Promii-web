@@ -16,6 +16,7 @@ import {
   Wrench,
   ShoppingBag,
   Gift,
+  BadgeDollarSign,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Solicitudes", href: "/inf/dashboard?tab=requests", icon: Clock, tab: "requests" },
   { label: "Mis Marcas", href: "/inf/dashboard?tab=merchants", icon: Users, tab: "merchants" },
   { label: "Mis Promiis", href: "/inf/dashboard?tab=promiis", icon: Sparkles, tab: "promiis" },
+  { label: "Mis Ofertas", href: "/inf/dashboard?tab=offers", icon: BadgeDollarSign, tab: "offers" },
   { label: "Ganancias", href: "/inf/dashboard?tab=earnings", icon: DollarSign, tab: "earnings" },
   { label: "Herramientas", href: "/inf/dashboard?tab=tools", icon: Wrench, tab: "tools" },
   { label: "Mis Compras", href: "/inf/dashboard?tab=purchases", icon: ShoppingBag, tab: "purchases" },

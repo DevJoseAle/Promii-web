@@ -97,6 +97,17 @@ export class StripeProvider implements PaymentProvider {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode !== "payment") break;
+        if (session.metadata?.payment_kind === "promii_purchase") {
+          return {
+            eventId: event.id,
+            type: "purchase.succeeded",
+            merchantId: session.metadata?.merchant_id ?? "",
+            plan: "starter",
+            billingType: "one_time",
+            externalSubscriptionId: session.id,
+            purchaseId: session.metadata?.purchase_id,
+          };
+        }
         return {
           eventId: event.id,
           type: "payment.succeeded",
