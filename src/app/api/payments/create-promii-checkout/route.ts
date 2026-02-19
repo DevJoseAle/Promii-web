@@ -9,7 +9,7 @@ type PromiiRow = {
   price_amount: number;
   price_currency: string;
   merchant_id: string;
-  merchant: { business_name: string | null } | null;
+  merchant: { business_name: string | null }[] | null;
 };
 
 export async function POST(request: NextRequest) {
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const promiiRow = promii as PromiiRow;
+    const merchant = promiiRow.merchant?.[0] ?? null;
     const currency = (promiiRow.price_currency || "USD").toUpperCase();
     const priceAmount = Number(promiiRow.price_amount);
     if (!Number.isFinite(priceAmount) || priceAmount <= 0) {
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
             unit_amount: Math.round(priceAmount * 100),
             product_data: {
               name: promiiRow.title,
-              description: promiiRow.merchant?.business_name || undefined,
+              description: merchant?.business_name || undefined,
             },
           },
           quantity: 1,
