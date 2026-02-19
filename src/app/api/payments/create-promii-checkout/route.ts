@@ -12,6 +12,13 @@ type PromiiRow = {
   merchant: { business_name: string | null }[] | null;
 };
 
+type AssignmentRow = {
+  influencer_id: string;
+  promii_id: string;
+  is_active: boolean;
+  extra_discount_type: "percentage" | "fixed" | null;
+  extra_discount_value: number | null;
+};
 export async function POST(request: NextRequest) {
   try {
     const supabaseAuth = await createSupabaseServerClient();
@@ -24,9 +31,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const promiiId = body?.promiiId as string | undefined;
+    const referralCodeRaw = body?.referralCode as string | null | undefined;
     if (!promiiId || typeof promiiId !== "string") {
       return NextResponse.json({ error: "Missing promiiId" }, { status: 400 });
     }
+    const referralCode = typeof referralCodeRaw === "string" && referralCodeRaw.trim()
+      ? referralCodeRaw.trim().toUpperCase()
+      : null;
 
     const supabase = createServiceRoleClient();
     const { data: promii, error: promiiError } = await supabase
@@ -59,6 +70,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Moneda no soportada" }, { status: 400 });
     }
 
+    let finalAmount = priceAmount;
+    let influencerId: string | null = null;
+    let validReferralCode: string | null = null;
+
+    if (referralCode) {
+      const { data: assignment } = await supabase
+        .from("promii_influencer_assignments")
+        .select("influencer_id,promii_id,is_active,extra_discount_type,extra_discount_value")
+        .eq("referral_code", referralCode)
+        .maybeSingle();
+
+      const assignmentRow = assignment as AssignmentRow | null;
+      if (assignmentRow?.is_active && assignmentRow.promii_id === promiiRow.id) {
+        validReferralCode = referralCode;
+        influencerId = assignmentRow.influencer_id;
+
+        if (assignmentRow.extra_discount_type && assignmentRow.extra_discount_value) {
+          if (assignmentRow.extra_discount_type === "percentage") {
+            const discountAmount = (priceAmount * assignmentRow.extra_discount_value) / 100;
+            finalAmount = Math.max(0, priceAmount - discountAmount);
+          } else {
+            finalAmount = Math.max(0, priceAmount - assignmentRow.extra_discount_value);
+          }
+        }
+      }
+    }
+
+    if (!Number.isFinite(finalAmount) || finalAmount <= 0) {
+      return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
+    }
     // Create purchase record (pending payment)
     const { data: purchase, error: purchaseError } = await supabase
       .from("promii_purchases")
@@ -66,8 +107,9 @@ export async function POST(request: NextRequest) {
         promii_id: promiiRow.id,
         merchant_id: promiiRow.merchant_id,
         user_id: user.id,
-        influencer_id: null,
-        paid_amount: priceAmount,
+        influencer_id: influencerId,
+        referral_code: validReferralCode,
+        paid_amount: finalAmount,
         paid_currency: currency,
         payment_method: "stripe",
         status: "pending_payment",
@@ -103,7 +145,7 @@ export async function POST(request: NextRequest) {
         {
           price_data: {
             currency: "usd",
-            unit_amount: Math.round(priceAmount * 100),
+            unit_amount: Math.round(finalAmount * 100),
             product_data: {
               name: promiiRow.title,
               description: merchant?.business_name || undefined,
@@ -121,6 +163,8 @@ export async function POST(request: NextRequest) {
         promii_id: promiiRow.id,
         merchant_id: promiiRow.merchant_id,
         user_id: user.id,
+        referral_code: validReferralCode ?? "",
+        influencer_id: influencerId ?? "",
       },
     });
 

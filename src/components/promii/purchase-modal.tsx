@@ -173,7 +173,10 @@ export function PurchaseModal({
     setError(null);
 
     try {
-      const data = await createPromiiStripeCheckout({ promiiId });
+      const data = await createPromiiStripeCheckout({
+        promiiId,
+        referralCode: influencerCode ?? null,
+      });
       window.location.href = data.checkoutUrl;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Error al iniciar el pago";

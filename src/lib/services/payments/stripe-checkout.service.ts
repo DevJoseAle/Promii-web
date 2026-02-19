@@ -42,6 +42,7 @@ export async function createPlanStripeCheckout(params: {
 
 export async function createPromiiStripeCheckout(params: {
   promiiId: string;
+  referralCode?: string | null;
 }): Promise<CheckoutResponse> {
   const token = await getAuthToken();
   const res = await fetch("/api/payments/create-promii-checkout", {
@@ -52,6 +53,7 @@ export async function createPromiiStripeCheckout(params: {
     },
     body: JSON.stringify({
       promiiId: params.promiiId,
+      referralCode: params.referralCode ?? null,
     }),
   });
 

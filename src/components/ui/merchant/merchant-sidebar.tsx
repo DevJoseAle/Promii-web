@@ -379,7 +379,7 @@ function SidebarInner({
           {!collapsed ? <span>Configuración</span> : null}
         </Link>
         <Link
-          href="/merchant/feedback"
+          href="/business/dashboard/feedback"
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all hover:scale-105",
             collapsed && "justify-center px-2",
@@ -560,7 +560,7 @@ function MobileBottomBar() {
                           <span>Configuración</span>
                         </Link>
                         <Link
-                          href="/merchant/feedback"
+                          href="/business/dashboard/feedback"
                           onClick={() => setShowMore(false)}
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
                           style={{
