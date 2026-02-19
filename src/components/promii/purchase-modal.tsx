@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, ShoppingCart, User, Mail, Phone, MessageCircle, AlertCircle, Loader2 } from "lucide-react";
+import { X, ShoppingCart, User, Mail, Phone, MessageCircle, AlertCircle, Loader2, CreditCard } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { supabase } from "@/lib/supabase/supabase.client";
 import { createPurchase } from "@/lib/services/orders/orders.service";
 import { trackReferralConversion } from "@/lib/services/influencer";
+import { createPromiiStripeCheckout } from "@/lib/services/payments/stripe-checkout.service";
 import type { CreatePurchasePayload } from "@/config/types/orders";
 
 type Props = {
@@ -40,6 +41,7 @@ export function PurchaseModal({
   const router = useRouter();
   const { profile, user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"stripe" | "whatsapp" | "signin" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Express signin state
@@ -60,6 +62,7 @@ export function PurchaseModal({
   const handleExpressSignin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setLoadingAction("signin");
     setError(null);
 
     try {
@@ -80,6 +83,7 @@ export function PurchaseModal({
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -90,6 +94,7 @@ export function PurchaseModal({
     }
 
     setLoading(true);
+    setLoadingAction("whatsapp");
     setError(null);
 
     try {
@@ -148,6 +153,33 @@ export function PurchaseModal({
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setLoadingAction(null);
+    }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!user || !profile) {
+      setError("Debes iniciar sesión para continuar");
+      return;
+    }
+
+    if (priceCurrency.toUpperCase() !== "USD") {
+      setError("Este promii solo puede pagarse en USD por ahora.");
+      return;
+    }
+
+    setLoading(true);
+    setLoadingAction("stripe");
+    setError(null);
+
+    try {
+      const data = await createPromiiStripeCheckout({ promiiId });
+      window.location.href = data.checkoutUrl;
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al iniciar el pago";
+      setError(errorMessage);
+      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -400,6 +432,30 @@ export function PurchaseModal({
                     <span className="flex items-center gap-2">
                       <MessageCircle className="size-5" />
                       Continuar por WhatsApp
+                    </span>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleStripeCheckout}
+                  disabled={loading}
+                  className="w-full h-12 font-semibold text-base"
+                  style={{
+                    background: loadingAction === "stripe"
+                      ? COLORS.text.tertiary
+                      : `linear-gradient(135deg, ${COLORS.primary.main} 0%, ${COLORS.primary.light} 100%)`,
+                    color: COLORS.text.inverse,
+                  }}
+                >
+                  {loadingAction === "stripe" ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="size-5 animate-spin" />
+                      Procesando...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <CreditCard className="size-5" />
+                      Pagar en USD
                     </span>
                   )}
                 </Button>

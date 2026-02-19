@@ -38,6 +38,7 @@ export type CheckoutResult = {
 
 export type WebhookEventType =
   | "payment.succeeded"      // pago completado (one-time o primer mes)
+  | "purchase.succeeded"     // compra de promii pagada
   | "subscription.activated" // suscripción activa
   | "subscription.cancelled" // cancelada por el usuario
   | "subscription.expired"   // expiró / falló el cobro
@@ -51,6 +52,7 @@ export type WebhookEvent = {
   billingType: BillingType;
   externalSubscriptionId?: string; // ID de la suscripción en el gateway
   periodEnd?: Date;                // cuándo vence el período actual
+  purchaseId?: string;             // ID de compra de promii (si aplica)
 };
 
 // ─── Provider interface (contrato que todo gateway debe implementar) ──────────
