@@ -27,6 +27,29 @@ export type InfluencerFilters = {
   niche?: string;
 };
 
+export type PublicInfluencerOffer = {
+  id: string;
+  influencer_id: string;
+  type: "fixed" | "barter" | "mixed";
+  title: string;
+  description: string;
+  price_usd: number | null;
+  barter_description: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type PublicInfluencerBrand = {
+  id: string;
+  business_name: string;
+  logo_url: string | null;
+  city: string | null;
+  state: string | null;
+  description: string | null;
+  instagram_handle: string | null;
+  website_url: string | null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // FETCH: Todos los influencers aprobados (para directorio público)
 // ─────────────────────────────────────────────────────────────
@@ -149,15 +172,15 @@ export async function getInfluencerPublicStats(influencerId: string): Promise<{
       .eq("influencer_id", influencerId)
       .eq("status", "active");
 
-    // Contar brands (merchants únicos)
-    const { data: assignments } = await supabase
-      .from("influencer_promii_assignments")
+    // Contar brands (partnerships aprobados)
+    const { data: partnerships } = await supabase
+      .from("influencer_partnerships")
       .select("merchant_id")
       .eq("influencer_id", influencerId)
-      .eq("status", "active");
+      .eq("status", "approved");
 
     const uniqueBrands = new Set(
-      assignments?.map((a) => a.merchant_id) || []
+      partnerships?.map((p) => p.merchant_id) || []
     );
 
     return {
@@ -169,6 +192,108 @@ export async function getInfluencerPublicStats(influencerId: string): Promise<{
     return {
       totalPromiis: 0,
       totalBrands: 0,
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FETCH: Ofertas públicas activas del influencer
+// ─────────────────────────────────────────────────────────────
+export async function getPublicInfluencerOffers(
+  influencerId: string
+): Promise<SupabaseResponse<PublicInfluencerOffer[]>> {
+  try {
+    const { data, error } = await supabase
+      .from("influencer_offers")
+      .select(
+        "id,influencer_id,type,title,description,price_usd,barter_description,is_active,created_at"
+      )
+      .eq("influencer_id", influencerId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[getPublicInfluencerOffers] Error:", error);
+      return {
+        status: "error",
+        data: null,
+        error: error.message,
+      };
+    }
+
+    return {
+      status: "success",
+      data: data || [],
+      error: null,
+    };
+  } catch (error) {
+    console.error("[getPublicInfluencerOffers] Unexpected error:", error);
+    return {
+      status: "error",
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+      code: "UNEXPECTED_ERROR",
+    };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// FETCH: Marcas colaboradoras (partnerships aprobados)
+// ─────────────────────────────────────────────────────────────
+export async function getPublicInfluencerBrands(
+  influencerId: string,
+  limit = 10
+): Promise<SupabaseResponse<PublicInfluencerBrand[]>> {
+  try {
+    const { data, error } = await supabase
+      .from("influencer_partnerships")
+      .select(
+        `
+        merchant:merchants!influencer_partnerships_merchant_id_fkey(
+          id,
+          business_name,
+          logo_url,
+          city,
+          state,
+          description,
+          instagram_handle,
+          website_url
+        )
+      `
+      )
+      .eq("influencer_id", influencerId)
+      .eq("status", "approved")
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      console.error("[getPublicInfluencerBrands] Error:", error);
+      return {
+        status: "error",
+        data: null,
+        error: error.message,
+      };
+    }
+
+    const brands = (data ?? [])
+      .map((row: { merchant?: PublicInfluencerBrand[] | PublicInfluencerBrand | null }) => {
+        if (!row.merchant) return null;
+        return Array.isArray(row.merchant) ? row.merchant[0] ?? null : row.merchant;
+      })
+      .filter((m): m is PublicInfluencerBrand => !!m);
+
+    return {
+      status: "success",
+      data: brands,
+      error: null,
+    };
+  } catch (error) {
+    console.error("[getPublicInfluencerBrands] Unexpected error:", error);
+    return {
+      status: "error",
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+      code: "UNEXPECTED_ERROR",
     };
   }
 }

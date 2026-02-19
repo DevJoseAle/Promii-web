@@ -5,6 +5,8 @@ import { createServiceRoleClient } from "@/lib/supabase/supabase.service-role";
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
+// Nota: el endpoint de Stripe debe apuntar a `/api/payments/webhook/stripe`,
+// no solo al dominio, o el handler no se ejecutará.
 export async function POST(request: NextRequest) {
   // ── 1. Leer body raw (necesario para verificar firma de Stripe) ───────────────
   const rawBody = await request.text();
@@ -56,6 +58,10 @@ export async function POST(request: NextRequest) {
 
   // ── 4. Aplicar cambios en DB ───────────────────────────────────────────────────
   try {
+    if (event.type === "purchase.succeeded") {
+      await applyPromiiPurchase(supabase, event);
+      return NextResponse.json({ received: true });
+    }
     await applyPlanUpdate(supabase, event);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -164,6 +170,42 @@ async function applyPlanUpdate(
       break;
     }
   }
+}
+
+// ─── Promii purchase: marcar como aprobada ────────────────────────────────────
+
+async function applyPromiiPurchase(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  event: WebhookEvent
+): Promise<void> {
+  if (!event.purchaseId) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  const { data: purchase } = await supabase
+    .from("promii_purchases")
+    .select("id,status")
+    .eq("id", event.purchaseId)
+    .single();
+
+  if (!purchase) return;
+  if (purchase.status === "approved" || purchase.status === "redeemed") {
+    return;
+  }
+
+  await supabase
+    .from("promii_purchases")
+    .update({
+      status: "approved",
+      payment_reference: event.externalSubscriptionId ?? null,
+      paid_at: now,
+      validated_at: now,
+      validated_by: null,
+    })
+    .eq("id", event.purchaseId)
+    .in("status", ["pending_payment", "pending_validation"]);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -3,6 +3,8 @@ import InfluencerProfileClient from "./profile-client";
 import {
   getInfluencerByHandle,
   getInfluencerPublicStats,
+  getPublicInfluencerOffers,
+  getPublicInfluencerBrands,
 } from "@/lib/services/influencer/influencer-public.service";
 
 export default async function InfluencerProfilePage({
@@ -23,6 +25,10 @@ export default async function InfluencerProfilePage({
 
   // Obtener estadísticas públicas
   const stats = await getInfluencerPublicStats(influencer.id);
+  const offersResponse = await getPublicInfluencerOffers(influencer.id);
+  const offers = offersResponse.status === "success" ? offersResponse.data || [] : [];
+  const brandsResponse = await getPublicInfluencerBrands(influencer.id, 10);
+  const brands = brandsResponse.status === "success" ? brandsResponse.data || [] : [];
 
   // Transformar datos al formato que espera el componente cliente
   const influencerData = {
@@ -47,6 +53,8 @@ export default async function InfluencerProfilePage({
   return (
     <InfluencerProfileClient
       influencer={influencerData}
+      offers={offers}
+      brands={brands}
       isMerchant={isMerchant}
     />
   );
