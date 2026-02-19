@@ -194,7 +194,7 @@ export default function AdminFeedbackPage() {
             <div className="divide-y" style={{ borderColor: COLORS.border.light }}>
               {feedbacks.map((item) => {
                 const statusConfig = STATUS_CONFIG[item.status];
-                const profile = item.profiles;
+                const profile = item.profiles?.[0] ?? null;
                 return (
                   <button
                     key={item.id}
@@ -257,9 +257,12 @@ export default function AdminFeedbackPage() {
               <div className="space-y-2 text-sm" style={{ color: COLORS.text.secondary }}>
                 <div>
                   <span className="font-semibold">Usuario:</span>{" "}
-                  {selected.profiles?.first_name || selected.profiles?.last_name
-                    ? `${selected.profiles?.first_name ?? ""} ${selected.profiles?.last_name ?? ""}`.trim()
-                    : selected.profiles?.email ?? selected.user_id}
+                  {(() => {
+                    const profile = selected.profiles?.[0] ?? null;
+                    return profile?.first_name || profile?.last_name
+                      ? `${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim()
+                      : profile?.email ?? selected.user_id;
+                  })()}
                 </div>
                 <div>
                   <span className="font-semibold">Rol:</span> {ROLE_LABELS[selected.role]}

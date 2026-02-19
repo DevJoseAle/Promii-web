@@ -21,7 +21,7 @@ export type FeedbackItem = {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
-  } | null;
+  }[] | null;
 };
 
 export async function getFeedbacks(params?: {
@@ -46,7 +46,12 @@ export async function getFeedbacks(params?: {
       return failure(error.message, "Error al cargar feedbacks", "FETCH_ERROR");
     }
 
-    return success((data ?? []) as FeedbackItem[]);
+    const normalized = (data ?? []).map((item) => ({
+      ...item,
+      profiles: item.profiles ?? null,
+    })) as FeedbackItem[];
+
+    return success(normalized);
   } catch (err) {
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
   }
@@ -73,7 +78,12 @@ export async function respondFeedback(params: {
       return failure(error.message, "Error al responder feedback", "UPDATE_ERROR");
     }
 
-    return success(data as FeedbackItem);
+    const normalized = {
+      ...data,
+      profiles: data?.profiles ?? null,
+    } as FeedbackItem;
+
+    return success(normalized);
   } catch (err) {
     return failure(String(err), "Error inesperado", "UNEXPECTED_ERROR");
   }
