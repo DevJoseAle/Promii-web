@@ -276,10 +276,10 @@ export async function getPublicInfluencerBrands(
     }
 
     const brands = (data ?? [])
-      .map(
-        (row: { merchant?: PublicInfluencerBrand[] | null }) =>
-          row.merchant?.[0] ?? null
-      )
+      .map((row: { merchant?: PublicInfluencerBrand[] | PublicInfluencerBrand | null }) => {
+        if (!row.merchant) return null;
+        return Array.isArray(row.merchant) ? row.merchant[0] ?? null : row.merchant;
+      })
       .filter((m): m is PublicInfluencerBrand => !!m);
 
     return {
