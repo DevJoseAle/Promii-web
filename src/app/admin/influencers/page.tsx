@@ -210,7 +210,12 @@ export default function InfluencersAdminPage() {
               </thead>
               <tbody>
                 {influencers.map((influencer) => {
-                  const config = STATUS_CONFIG[influencer.state];
+                  const config = STATUS_CONFIG[influencer.state] ?? {
+                    label: influencer.state ?? "Sin estado",
+                    icon: Clock,
+                    color: COLORS.text.tertiary,
+                    bg: COLORS.neutral[200],
+                  };
                   const Icon = config.icon;
                   const isActionLoading = actionLoading === influencer.id;
 

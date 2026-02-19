@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Shield,
+  MessageSquarePlus,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Influencers", href: "/admin/influencers", icon: Users },
   { label: "Promiis", href: "/admin/promiis", icon: Tag },
   { label: "Promii Red", href: "/admin/promii-red", icon: Gift },
+  { label: "Feedback", href: "/admin/feedback", icon: MessageSquarePlus },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

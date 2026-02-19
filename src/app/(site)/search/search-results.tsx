@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export default function SearchResults() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const [showFilters, setShowFilters] = useState(false);
 
   const sortParam = searchParams.get("sort");
@@ -77,6 +77,7 @@ export default function SearchResults() {
     category: searchParams.get("category") || "",
     sortBy: initialSort,
   });
+  const [searchInput, setSearchInput] = useState(filters.query);
 
   const LIMIT = 12;
 
@@ -87,7 +88,7 @@ export default function SearchResults() {
       setLoadingMore(true);
     } else {
       setLoading(true);
-      setOffset(0);
+      offsetRef.current = 0;
     }
 
     try {
@@ -110,7 +111,8 @@ export default function SearchResults() {
             business_name,
             city,
             state
-          )
+          ),
+          promii_purchases(count)
         `,
           { count: "exact" }
         )
@@ -166,10 +168,8 @@ export default function SearchResults() {
       }
 
       // Pagination
-      query = query.range(
-        isLoadMore ? offset : 0,
-        (isLoadMore ? offset : 0) + LIMIT - 1
-      );
+      const start = isLoadMore ? offsetRef.current : 0;
+      query = query.range(start, start + LIMIT - 1);
 
       const { data: promiisData, error, count } = await query;
 
@@ -191,51 +191,47 @@ export default function SearchResults() {
       }
 
       // Transform to PromiiCard format
-      const transformedPromiis: Promii[] = await Promise.all(
-        (promiisData as PromiiRow[]).map(async (promii) => {
-          const { count: purchaseCount } = await supabase
-            .from("promii_purchases")
-            .select("*", { count: "exact", head: true })
-            .eq("promii_id", promii.id);
+      const transformedPromiis: Promii[] = (promiisData as (PromiiRow & {
+        promii_purchases?: { count: number }[] | null;
+      })[]).map((promii) => {
+        const purchaseCount = promii.promii_purchases?.[0]?.count ?? 0;
+        const discount =
+          promii.original_price_amount && promii.price_amount
+            ? Math.round(
+                ((promii.original_price_amount - promii.price_amount) /
+                  promii.original_price_amount) *
+                  100
+              )
+            : 0;
 
-          const discount =
-            promii.original_price_amount && promii.price_amount
-              ? Math.round(
-                  ((promii.original_price_amount - promii.price_amount) /
-                    promii.original_price_amount) *
-                    100
-                )
-              : 0;
-
-          return {
-            id: promii.id,
-            title: promii.title,
-            merchant: promii.merchant?.business_name || "Sin nombre",
-            location: promii.merchant
-              ? `${promii.merchant.city || promii.city} · ${
-                  promii.merchant.state || promii.state
-                }`
-              : `${promii.city} · ${promii.state}`,
-            rating: 4.5,
-            sold: purchaseCount || 0,
-            oldPrice: promii.original_price_amount ?? promii.price_amount,
-            price: promii.price_amount,
-            discountPct: discount,
-            tag: undefined,
-          };
-        })
-      );
+        return {
+          id: promii.id,
+          title: promii.title,
+          merchant: promii.merchant?.business_name || "Sin nombre",
+          location: promii.merchant
+            ? `${promii.merchant.city || promii.city} · ${
+                promii.merchant.state || promii.state
+              }`
+            : `${promii.city} · ${promii.state}`,
+          rating: 4.5,
+          sold: purchaseCount,
+          oldPrice: promii.original_price_amount ?? promii.price_amount,
+          price: promii.price_amount,
+          discountPct: discount,
+          tag: undefined,
+        };
+      });
 
       if (isLoadMore) {
         setPromiis((prev) => [...prev, ...transformedPromiis]);
-        setOffset((prev) => prev + LIMIT);
+        offsetRef.current += LIMIT;
       } else {
         setPromiis(transformedPromiis);
-        setOffset(LIMIT);
+        offsetRef.current = LIMIT;
       }
 
       setTotal(count || 0);
-      setHasMore((isLoadMore ? offset : 0) + LIMIT < (count || 0));
+      setHasMore(offsetRef.current < (count || 0));
     } catch (error) {
       console.error("[SearchResults] Unexpected error:", error);
       ToastService.showErrorToast("Error al buscar");
@@ -243,7 +239,7 @@ export default function SearchResults() {
 
     setLoading(false);
     setLoadingMore(false);
-  }, [filters, offset]);
+  }, [filters]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -252,9 +248,16 @@ export default function SearchResults() {
     return () => clearTimeout(timeoutId);
   }, [loadResults]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, query: searchInput }));
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    loadResults();
+    setFilters((prev) => ({ ...prev, query: searchInput }));
   }
 
   function updateFilter(key: keyof SearchFilters, value: SearchFilters[keyof SearchFilters]) {
@@ -302,8 +305,8 @@ export default function SearchResults() {
             <Input
               type="text"
               placeholder="Buscar promociones..."
-              value={filters.query}
-              onChange={(e) => updateFilter("query", e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="h-12 pl-11"
               style={{
                 backgroundColor: COLORS.background.primary,
