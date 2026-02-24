@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -35,7 +35,7 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<ActiveFilters>({});
 
@@ -46,7 +46,7 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
       setLoadingMore(true);
     } else {
       setLoading(true);
-      setOffset(0);
+      offsetRef.current = 0;
     }
 
     // Build filters
@@ -54,7 +54,7 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
       category: categoryKey,
       subcategory: subcategoryKey,
       limit: LIMIT,
-      offset: isLoadMore ? offset : 0,
+      offset: isLoadMore ? offsetRef.current : 0,
       sortBy: filters.sortBy || "popular",
     };
 
@@ -78,10 +78,10 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
     if (response.status === "success" && response.data) {
       if (isLoadMore) {
         setPromiis((prev) => [...prev, ...response.data!.promiis]);
-        setOffset((prev) => prev + LIMIT);
+        offsetRef.current += LIMIT;
       } else {
         setPromiis(response.data.promiis);
-        setOffset(LIMIT);
+        offsetRef.current = LIMIT;
       }
       setTotal(response.data.total);
       setHasMore(response.data.hasMore);
@@ -91,7 +91,7 @@ export default function SubcategoryPromiis({ categoryKey, subcategoryKey, subcat
 
     setLoading(false);
     setLoadingMore(false);
-  }, [categoryKey, subcategoryKey, filters, offset]);
+  }, [categoryKey, subcategoryKey, filters]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {

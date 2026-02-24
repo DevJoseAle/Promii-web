@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -15,11 +15,11 @@ type Props = {
 
 export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
   const [promiis, setPromiis] = useState<Promii[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
 
   const LIMIT = 12;
 
@@ -29,11 +29,11 @@ export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
     } else {
       setLoading(true);
     }
-
+    console.log("Desde load promiis en category", { categoryKey, offset: offsetRef.current });
     const filters: PromiiFilters = {
       category: categoryKey,
       limit: LIMIT,
-      offset: isLoadMore ? offset : 0,
+      offset: isLoadMore ? offsetRef.current : 0,
       sortBy: "popular",
     };
 
@@ -42,10 +42,10 @@ export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
     if (response.status === "success" && response.data) {
       if (isLoadMore) {
         setPromiis((prev) => [...prev, ...response.data!.promiis]);
-        setOffset((prev) => prev + LIMIT);
+        offsetRef.current += LIMIT;
       } else {
         setPromiis(response.data.promiis);
-        setOffset(LIMIT);
+        offsetRef.current = LIMIT;
       }
       setTotal(response.data.total);
       setHasMore(response.data.hasMore);
@@ -55,7 +55,7 @@ export default function CategoryPromiis({ categoryKey, categoryLabel }: Props) {
 
     setLoading(false);
     setLoadingMore(false);
-  }, [categoryKey, offset]);
+  }, [categoryKey]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
