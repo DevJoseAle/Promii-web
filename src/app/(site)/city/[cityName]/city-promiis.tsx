@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PromiiCard, type Promii } from "@/components/ui/promii-card";
 import { Button } from "@/components/ui/button";
 import { COLORS } from "@/config/colors";
@@ -32,7 +32,7 @@ export default function CityPromiis({ cityName }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
 
   const LIMIT = 12;
 
@@ -41,7 +41,7 @@ export default function CityPromiis({ cityName }: Props) {
       setLoadingMore(true);
     } else {
       setLoading(true);
-      setOffset(0);
+      offsetRef.current = 0;
     }
 
     try {
@@ -71,7 +71,10 @@ export default function CityPromiis({ cityName }: Props) {
         .gte("end_at", new Date().toISOString())
         .ilike("city", `%${cityName}%`) // Case-insensitive partial match
         .order("created_at", { ascending: false })
-        .range(isLoadMore ? offset : 0, (isLoadMore ? offset : 0) + LIMIT - 1);
+        .range(
+          isLoadMore ? offsetRef.current : 0,
+          (isLoadMore ? offsetRef.current : 0) + LIMIT - 1
+        );
 
       const { data: promiisData, error, count } = await query;
 
@@ -125,14 +128,14 @@ export default function CityPromiis({ cityName }: Props) {
 
       if (isLoadMore) {
         setPromiis((prev) => [...prev, ...transformedPromiis]);
-        setOffset((prev) => prev + LIMIT);
+        offsetRef.current += LIMIT;
       } else {
         setPromiis(transformedPromiis);
-        setOffset(LIMIT);
+        offsetRef.current = LIMIT;
       }
 
       setTotal(count || 0);
-      setHasMore((isLoadMore ? offset : 0) + LIMIT < (count || 0));
+      setHasMore(offsetRef.current < (count || 0));
     } catch (error) {
       console.error("[CityPromiis] Unexpected error:", error);
       ToastService.showErrorToast("Error al cargar promociones");
@@ -140,7 +143,7 @@ export default function CityPromiis({ cityName }: Props) {
 
     setLoading(false);
     setLoadingMore(false);
-  }, [cityName, offset]);
+  }, [cityName]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
