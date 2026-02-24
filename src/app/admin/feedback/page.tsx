@@ -58,7 +58,10 @@ export default function AdminFeedbackPage() {
   }, [filterRole, filterStatus, selected]);
 
   useEffect(() => {
-    loadFeedbacks();
+    const timeoutId = setTimeout(() => {
+      void loadFeedbacks();
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [loadFeedbacks]);
 
   const stats = useMemo(() => {
