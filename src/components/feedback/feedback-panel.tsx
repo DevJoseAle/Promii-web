@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessageSquarePlus, Star } from "lucide-react";
 import { COLORS } from "@/config/colors";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export function FeedbackPanel({ role, userId, title, subtitle }: Props) {
     return subject.trim().length >= 4 && message.trim().length >= 10;
   }, [subject, message]);
 
-  async function loadFeedbacks() {
+  const loadFeedbacks = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setError(null);
@@ -79,11 +79,14 @@ export function FeedbackPanel({ role, userId, title, subtitle }: Props) {
     }
 
     setLoading(false);
-  }
+  }, [userId]);
 
   useEffect(() => {
-    loadFeedbacks();
-  }, [userId]);
+    const timeoutId = setTimeout(() => {
+      void loadFeedbacks();
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [loadFeedbacks]);
 
   async function handleSubmit() {
     if (!canSubmit || submitting) return;
