@@ -20,9 +20,6 @@ export function FavoriteButton({ promiiId }: FavoriteButtonProps) {
   const [isFav, setIsFav] = useState(false);
   const [animating, setAnimating] = useState(false);
 
-  // ─────────────────────────────────────────────────────────────
-  // Verificar si está en favoritos al montar
-  // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (profile?.id) {
       const timeoutId = setTimeout(() => {
