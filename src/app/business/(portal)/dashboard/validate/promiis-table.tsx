@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, AlertCircle, FileText, ClipboardCheck, Award, Search } from "lucide-react";
 import { COLORS } from "@/config/colors";
@@ -27,8 +28,6 @@ export function PromiisTable({ mode }: { mode: Mode }) {
   const sp = useSearchParams();
   const q = (sp.get("q") ?? "").trim().toLowerCase();
 
-  // ⚠️ Aquí conectas tu data real (Supabase) según "mode" y "q".
-  // No pongo data dummy para no "simular".
   const rows: Array<{
     id: string;
     title: string;
